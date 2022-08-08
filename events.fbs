@@ -1,0 +1,65 @@
+// events.fbs
+// use to generate events_generated.rs with: flatc --rust -o src events.fbs 
+namespace events;
+
+// Create a union of all event types to use as the root type; from the documentation, this seems to be
+// the best way to handle sending one of a possible set of messages over a network.  Note that all 
+// timestamps are in UTC (Zulu) time.
+//
+// cf., https://google.github.io/flatbuffers/md__schemas.html
+union EventType {NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent}
+
+// Event with embedded new image.  This is how images enter the system.
+// In simulation environments, the simulator generates images and posts
+// them using this event.  In actual camera trap environments, this event
+// is constructed by the code that interfaces with the camera.  
+table NewImageEvent {
+  event_timestamp:string;
+  image_uuid:string;
+  image_format:string;
+  image:[ubyte];
+}
+
+// Event that indicates a new image has been written to the internal database, 
+// which might be an in-memory hash table, an SQLite database, file system 
+// subtree, etc.  The image database is accessible to all plugins and images 
+// are retrievable by image_uuid.
+table ImageReceivedEvent {
+  event_timestamp:string;
+  image_uuid:string;
+}  
+
+// Represents the probability that an image has a specific label.
+table ImageLabelScore {
+  image_uuid:string;
+  label:string;
+  probability:float;
+}
+
+// Event indicating an image's scores.
+table ImageScoredEvent {
+  event_timestamp:string;
+  image_uuid:string;
+  scores:[ImageLabelScore];
+}
+
+// Event indicating an image has been written to some persistent
+// or external destination, which is represented as a URI.
+table ImageStoredEvent {
+  event_timestamp:string;
+  image_uuid:string;
+  destination:string;
+}
+
+// Event indicating an image has been deleted from the database.
+table ImageDeletedEvent {
+  event_timestamp:string;
+  image_uuid:string;
+}
+
+// The root_type needs to be a table, not a union, so we wrap it up like this
+table Event {
+  event:EventType;  
+}
+
+root_type Event;
