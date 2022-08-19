@@ -1,7 +1,7 @@
 mod plugins;
 
 fn main() {
-    println!("Hello, world!");
+    println!("Starting camera-traps!");
 }
 
 #[cfg(test)]
