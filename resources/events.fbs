@@ -14,7 +14,7 @@ union EventType {NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStore
 // them using this event.  In actual camera trap environments, this event
 // is constructed by the code that interfaces with the camera.  
 table NewImageEvent {
-  event_timestamp:string;
+  event_create_ts:string;
   image_uuid:string;
   image_format:string;
   image:[ubyte];
@@ -25,7 +25,7 @@ table NewImageEvent {
 // subtree, etc.  The image database is accessible to all plugins and images 
 // are retrievable by image_uuid.
 table ImageReceivedEvent {
-  event_timestamp:string;
+  event_create_ts:string;
   image_uuid:string;
 }  
 
@@ -38,7 +38,7 @@ table ImageLabelScore {
 
 // Event indicating an image's scores.
 table ImageScoredEvent {
-  event_timestamp:string;
+  event_create_ts:string;
   image_uuid:string;
   scores:[ImageLabelScore];
 }
@@ -46,14 +46,14 @@ table ImageScoredEvent {
 // Event indicating an image has been written to some persistent
 // or external destination, which is represented as a URI.
 table ImageStoredEvent {
-  event_timestamp:string;
+  event_create_ts:string;
   image_uuid:string;
   destination:string;
 }
 
 // Event indicating an image has been deleted from the database.
 table ImageDeletedEvent {
-  event_timestamp:string;
+  event_create_ts:string;
   image_uuid:string;
 }
 
