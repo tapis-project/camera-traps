@@ -1,4 +1,5 @@
 mod plugins;
+mod events;
 
 fn main() {
     println!("Starting camera-traps!");
