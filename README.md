@@ -1,6 +1,8 @@
 # camera-traps
 
-When complete, the camera-traps application will be both a simulator and an edge device application for classifying wildlife images.  The simulation environment will be implemented first and serve as a test bed for protocols and techniques that optimize storage, execution time, power and accuracy.  The ultimate goal is to deploy a version of this application on camera-traps in the wild.   
+When complete, the camera-traps application will be both a simulator and an edge device application for classifying wildlife images.  The simulation environment will be implemented first and serve as a test bed for protocols and techniques that optimize storage, execution time, power and accuracy.  The ultimate goal is to deploy a version of this application on camera-traps in the wild. 
+
+This crate uses the [event-engine](https://github.com/tapis-project/event-engine) library to implement its plugin architecture and event-driven communication.
 
 ## Updating the flatbuffers messages
 
