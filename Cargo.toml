@@ -6,4 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-event-engine = { path = "../event-engine/event-engine" }
+anyhow = "1.0.62"
+event-engine = "0.1.0"
+# event-engine = { path = "../event-engine/event-engine" }
+log = "0.4.17"
+log4rs = "1.1.1"
+serde = "1.0.144"
+serde_derive = "1.0.144"
+thiserror = "1.0.32"
+toml = "0.5.9"
