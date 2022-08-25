@@ -4,7 +4,7 @@ use std::fs;
 use toml;
 
 // Logging imports.
-use log::{error, warn, info, debug, trace};
+use log::{error, info};
 use anyhow::{Context, Result, anyhow};
 
 // Application modules.
@@ -12,11 +12,15 @@ mod plugins;
 mod config;
 use config::config::{Config};
 use config::errors::{Errors};
+mod traps_utils;
+use traps_utils::general_utils;
+
+use crate::traps_utils::general_utils::get_absolute_path;
 
 // Constants.
 const LOG4RS_CONFIG_FILE  : &str = "resources/log4rs.yml";
 const ENV_CONFIG_FILE_KEY : &str = "TRAPS_CONFIG_FILE";
-const DEFAULT_CONFIG_FILE : &str = "resources/traps.toml";
+const DEFAULT_CONFIG_FILE : &str = "~/traps.toml";
 
 fn main() -> Result<()> {
     // Write to stdout.
@@ -38,10 +42,13 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/**
- * 
+/** Retrieve the application parameters from the configuration file specified
+ * either through an environment variable or as the first (and only) command
+ * line argument.  If neither are provided, an attempt is made to use the
+ * default file path.
  */
 fn get_parms() -> Result<Parms> {
+    // Get the config file path from the environment, command line or default.
     let config_file = env::var(ENV_CONFIG_FILE_KEY).unwrap_or_else(
         |_| {
             // Get the config file pathname as the first command line
@@ -53,11 +60,12 @@ fn get_parms() -> Result<Parms> {
         });
 
     // Read the cofiguration file.
-    info!("{}", Errors::ReadingConfigFile(config_file.clone()));
-    let contents = match fs::read_to_string(&config_file) {
+    let config_file_abs = get_absolute_path(&config_file);
+    info!("{}", Errors::ReadingConfigFile(config_file_abs.clone()));
+    let contents = match fs::read_to_string(&config_file_abs) {
         Ok(c) => c,
         Err(e) => {
-            let msg = format!("{}\n   {}", Errors::FileIOError(config_file.clone()), e);
+            let msg = format!("{}\n   {}", Errors::FileIOError(config_file_abs), e);
             error!("{}", msg);
             return Result::Err(anyhow!(msg));
         }
@@ -67,18 +75,19 @@ fn get_parms() -> Result<Parms> {
     let config : Config = match toml::from_str(&contents) {
         Ok(c)  => c,
         Err(e) => {
-            let msg = format!("{}\n   {}", Errors::TOMLParseError(config_file), e);
+            let msg = format!("{}\n   {}", Errors::TOMLParseError(config_file_abs), e);
             error!("{}", msg);
             return Result::Err(anyhow!(msg));
         }
     };
 
-    Result::Ok(Parms { config_file: config_file, })
+    Result::Ok(Parms { config_file: config_file_abs, config: config})
 }
 
 #[derive(Debug)]
 struct Parms {
     config_file: String,
+    config: Config,
 }
 
 

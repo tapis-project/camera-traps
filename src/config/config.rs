@@ -1,15 +1,16 @@
 use serde::Deserialize;
-use toml::value::Datetime;
 
+#[derive(Debug)]
 #[derive(Deserialize)]
 pub struct Config {
     pub title: String,
-    pub owner: Owner,
+    pub plugins: Plugins,
 }
 
+#[derive(Debug)]
 #[derive(Deserialize)]
-pub struct Owner {
-    pub name: String,
-    pub dob:  Datetime,
+pub struct Plugins {
+    pub internal: Vec<String>,
+    pub external: Vec<String>,
 }
 
