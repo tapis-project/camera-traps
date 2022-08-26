@@ -13,9 +13,6 @@ mod config;
 use config::config::{Config};
 use config::errors::{Errors};
 mod traps_utils;
-use traps_utils::general_utils;
-
-use crate::traps_utils::general_utils::get_absolute_path;
 
 // Constants.
 const LOG4RS_CONFIG_FILE  : &str = "resources/log4rs.yml";
@@ -60,7 +57,7 @@ fn get_parms() -> Result<Parms> {
         });
 
     // Read the cofiguration file.
-    let config_file_abs = get_absolute_path(&config_file);
+    let config_file_abs = traps_utils::get_absolute_path(&config_file);
     info!("{}", Errors::ReadingConfigFile(config_file_abs.clone()));
     let contents = match fs::read_to_string(&config_file_abs) {
         Ok(c) => c,
