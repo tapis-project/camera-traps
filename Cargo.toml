@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.62"
-event-engine = "0.1.0"
+event-engine = "0.1.1"
 # event-engine = { path = "../event-engine/event-engine" }
 log = "0.4.17"
 log4rs = "1.1.1"
