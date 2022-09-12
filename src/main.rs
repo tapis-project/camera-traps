@@ -1,6 +1,5 @@
 // Stardard imports.
-use std::env;
-use std::fs;
+use std::{env, fs};
 use toml;
 
 // Logging imports.
@@ -10,15 +9,29 @@ use anyhow::{Context, Result, anyhow};
 // Application modules.
 mod plugins;
 mod config;
+mod events;
+mod events_generated;
+pub mod traps_utils;
 use config::config::{Config};
 use config::errors::{Errors};
-mod traps_utils;
 
+// Event engine imports.
+use event_engine::App;
+
+// ***************************************************************************
+//                                Constants
+// ***************************************************************************
 // Constants.
 const LOG4RS_CONFIG_FILE  : &str = "resources/log4rs.yml";
 const ENV_CONFIG_FILE_KEY : &str = "TRAPS_CONFIG_FILE";
 const DEFAULT_CONFIG_FILE : &str = "~/traps.toml";
 
+// ***************************************************************************
+//                                Functions
+// ***************************************************************************
+// ---------------------------------------------------------------------------
+// main:
+// ---------------------------------------------------------------------------
 fn main() -> Result<()> {
     // Write to stdout.
     println!("Starting camera-traps!");
@@ -28,17 +41,38 @@ fn main() -> Result<()> {
         .context(format!("{}", Errors::Log4rsInitialization(LOG4RS_CONFIG_FILE.to_string())))?;
 
     // Read input parameters.
-    let parms = match get_parms() {
-        Ok(p) => p,
-        Err(e) => return Err(e),
-    };
-    
+    let parms = get_parms()?;
     info!("{}", Errors::InputParms(format!("{:#?}", parms)));
+
+    // Start internal plugins.
+    let app = init_app(parms)?;
+
 
     // We're done.
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// initApp:
+// ---------------------------------------------------------------------------
+fn init_app(parms: Parms) -> Result<App>{
+    
+    // Create the app on the specified
+    let app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
+    
+    // Register internal plugins.
+
+
+    // Register external plugins.
+
+
+    // Return the app.
+    Result::Ok(app)
+}
+
+// ---------------------------------------------------------------------------
+// get_parms:
+// ---------------------------------------------------------------------------
 /** Retrieve the application parameters from the configuration file specified
  * either through an environment variable or as the first (and only) command
  * line argument.  If neither are provided, an attempt is made to use the
@@ -81,6 +115,12 @@ fn get_parms() -> Result<Parms> {
     Result::Ok(Parms { config_file: config_file_abs, config: config})
 }
 
+// ***************************************************************************
+//                                  Structs
+// ***************************************************************************
+// ---------------------------------------------------------------------------
+// Parms:
+// ---------------------------------------------------------------------------
 #[derive(Debug)]
 struct Parms {
     config_file: String,

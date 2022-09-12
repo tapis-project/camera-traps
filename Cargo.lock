@@ -47,6 +47,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "event-engine",
+ "flatbuffers",
  "log",
  "log4rs",
  "path-absolutize",
@@ -55,6 +56,8 @@ dependencies = [
  "shellexpand",
  "thiserror",
  "toml 0.5.9",
+ "uuid",
+ "zmq",
 ]
 
 [[package]]
@@ -124,13 +127,22 @@ checksum = "d9435d864e017c3c6afeac1654189b06cdb491cf2ff73dbf0d73b0f292f42ff8"
 [[package]]
 name = "event-engine"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33c82e16cdbb378136aee4d090b01507ca7979cccfde3cab42f6667484aaacf6"
 dependencies = [
  "rand",
  "thiserror",
  "uuid",
  "zmq",
+]
+
+[[package]]
+name = "flatbuffers"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86b428b715fdbdd1c364b84573b5fdc0f84f8e423661b9f398735278bc7f2b6a"
+dependencies = [
+ "bitflags",
+ "smallvec",
+ "thiserror",
 ]
 
 [[package]]

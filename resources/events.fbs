@@ -1,13 +1,14 @@
 // events.fbs
 // use to generate events_generated.rs with: flatc --rust -o src events.fbs 
-namespace events;
+namespace gen_events;
 
 // Create a union of all event types to use as the root type; from the documentation, this seems to be
 // the best way to handle sending one of a possible set of messages over a network.  Note that all 
 // timestamps are in UTC (Zulu) time.
 //
 // cf., https://google.github.io/flatbuffers/md__schemas.html
-union EventType {NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent}
+union EventType {NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent,
+                 PluginStartedEvent, PluginTerminatingEvent, PluginTerminateEvent}
 
 // Event with embedded new image.  This is how images enter the system.
 // In simulation environments, the simulator generates images and posts
@@ -55,6 +56,27 @@ table ImageStoredEvent {
 table ImageDeletedEvent {
   event_create_ts:string;
   image_uuid:string;
+}
+
+// Plugin started event.
+table PluginStartedEvent {
+  event_create_ts:string;
+  plugin_name:string;
+  plugin_uuid:string;
+}
+
+// Plugin terminating event.
+table PluginTerminatingEvent {
+  event_create_ts:string;
+  plugin_name:string;
+  plugin_uuid:string;
+}
+
+// Plugin terminate event.
+table PluginTerminateEvent {
+  event_create_ts:string;
+  target_plugin_name:string;
+  target_plugin_uuid:string;
 }
 
 // The root_type needs to be a table, not a union, so we wrap it up like this

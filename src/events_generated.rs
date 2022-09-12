@@ -9,7 +9,7 @@ extern crate flatbuffers;
 use self::flatbuffers::{EndianScalar, Follow};
 
 #[allow(unused_imports, dead_code)]
-pub mod events {
+pub mod gen_events {
 
   use core::mem;
   use core::cmp::Ordering;
@@ -20,16 +20,19 @@ pub mod events {
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_EVENT_TYPE: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_EVENT_TYPE: u8 = 5;
+pub const ENUM_MAX_EVENT_TYPE: u8 = 8;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_EVENT_TYPE: [EventType; 6] = [
+pub const ENUM_VALUES_EVENT_TYPE: [EventType; 9] = [
   EventType::NONE,
   EventType::NewImageEvent,
   EventType::ImageReceivedEvent,
   EventType::ImageScoredEvent,
   EventType::ImageStoredEvent,
   EventType::ImageDeletedEvent,
+  EventType::PluginStartedEvent,
+  EventType::PluginTerminatingEvent,
+  EventType::PluginTerminateEvent,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -43,9 +46,12 @@ impl EventType {
   pub const ImageScoredEvent: Self = Self(3);
   pub const ImageStoredEvent: Self = Self(4);
   pub const ImageDeletedEvent: Self = Self(5);
+  pub const PluginStartedEvent: Self = Self(6);
+  pub const PluginTerminatingEvent: Self = Self(7);
+  pub const PluginTerminateEvent: Self = Self(8);
 
   pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 5;
+  pub const ENUM_MAX: u8 = 8;
   pub const ENUM_VALUES: &'static [Self] = &[
     Self::NONE,
     Self::NewImageEvent,
@@ -53,6 +59,9 @@ impl EventType {
     Self::ImageScoredEvent,
     Self::ImageStoredEvent,
     Self::ImageDeletedEvent,
+    Self::PluginStartedEvent,
+    Self::PluginTerminatingEvent,
+    Self::PluginTerminateEvent,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
@@ -63,6 +72,9 @@ impl EventType {
       Self::ImageScoredEvent => Some("ImageScoredEvent"),
       Self::ImageStoredEvent => Some("ImageStoredEvent"),
       Self::ImageDeletedEvent => Some("ImageDeletedEvent"),
+      Self::PluginStartedEvent => Some("PluginStartedEvent"),
+      Self::PluginTerminatingEvent => Some("PluginTerminatingEvent"),
+      Self::PluginTerminateEvent => Some("PluginTerminateEvent"),
       _ => None,
     }
   }
@@ -840,6 +852,372 @@ impl core::fmt::Debug for ImageDeletedEvent<'_> {
       ds.finish()
   }
 }
+pub enum PluginStartedEventOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct PluginStartedEvent<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for PluginStartedEvent<'a> {
+  type Inner = PluginStartedEvent<'a>;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table { buf, loc } }
+  }
+}
+
+impl<'a> PluginStartedEvent<'a> {
+  pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
+  pub const VT_PLUGIN_NAME: flatbuffers::VOffsetT = 6;
+  pub const VT_PLUGIN_UUID: flatbuffers::VOffsetT = 8;
+
+  #[inline]
+  pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    PluginStartedEvent { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args PluginStartedEventArgs<'args>
+  ) -> flatbuffers::WIPOffset<PluginStartedEvent<'bldr>> {
+    let mut builder = PluginStartedEventBuilder::new(_fbb);
+    if let Some(x) = args.plugin_uuid { builder.add_plugin_uuid(x); }
+    if let Some(x) = args.plugin_name { builder.add_plugin_name(x); }
+    if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn event_create_ts(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginStartedEvent::VT_EVENT_CREATE_TS, None)
+  }
+  #[inline]
+  pub fn plugin_name(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginStartedEvent::VT_PLUGIN_NAME, None)
+  }
+  #[inline]
+  pub fn plugin_uuid(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginStartedEvent::VT_PLUGIN_UUID, None)
+  }
+}
+
+impl flatbuffers::Verifiable for PluginStartedEvent<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("plugin_name", Self::VT_PLUGIN_NAME, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("plugin_uuid", Self::VT_PLUGIN_UUID, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct PluginStartedEventArgs<'a> {
+    pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub plugin_name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub plugin_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for PluginStartedEventArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    PluginStartedEventArgs {
+      event_create_ts: None,
+      plugin_name: None,
+      plugin_uuid: None,
+    }
+  }
+}
+
+pub struct PluginStartedEventBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> PluginStartedEventBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_event_create_ts(&mut self, event_create_ts: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginStartedEvent::VT_EVENT_CREATE_TS, event_create_ts);
+  }
+  #[inline]
+  pub fn add_plugin_name(&mut self, plugin_name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginStartedEvent::VT_PLUGIN_NAME, plugin_name);
+  }
+  #[inline]
+  pub fn add_plugin_uuid(&mut self, plugin_uuid: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginStartedEvent::VT_PLUGIN_UUID, plugin_uuid);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> PluginStartedEventBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    PluginStartedEventBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<PluginStartedEvent<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for PluginStartedEvent<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("PluginStartedEvent");
+      ds.field("event_create_ts", &self.event_create_ts());
+      ds.field("plugin_name", &self.plugin_name());
+      ds.field("plugin_uuid", &self.plugin_uuid());
+      ds.finish()
+  }
+}
+pub enum PluginTerminatingEventOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct PluginTerminatingEvent<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for PluginTerminatingEvent<'a> {
+  type Inner = PluginTerminatingEvent<'a>;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table { buf, loc } }
+  }
+}
+
+impl<'a> PluginTerminatingEvent<'a> {
+  pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
+  pub const VT_PLUGIN_NAME: flatbuffers::VOffsetT = 6;
+  pub const VT_PLUGIN_UUID: flatbuffers::VOffsetT = 8;
+
+  #[inline]
+  pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    PluginTerminatingEvent { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args PluginTerminatingEventArgs<'args>
+  ) -> flatbuffers::WIPOffset<PluginTerminatingEvent<'bldr>> {
+    let mut builder = PluginTerminatingEventBuilder::new(_fbb);
+    if let Some(x) = args.plugin_uuid { builder.add_plugin_uuid(x); }
+    if let Some(x) = args.plugin_name { builder.add_plugin_name(x); }
+    if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn event_create_ts(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginTerminatingEvent::VT_EVENT_CREATE_TS, None)
+  }
+  #[inline]
+  pub fn plugin_name(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginTerminatingEvent::VT_PLUGIN_NAME, None)
+  }
+  #[inline]
+  pub fn plugin_uuid(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginTerminatingEvent::VT_PLUGIN_UUID, None)
+  }
+}
+
+impl flatbuffers::Verifiable for PluginTerminatingEvent<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("plugin_name", Self::VT_PLUGIN_NAME, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("plugin_uuid", Self::VT_PLUGIN_UUID, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct PluginTerminatingEventArgs<'a> {
+    pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub plugin_name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub plugin_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for PluginTerminatingEventArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    PluginTerminatingEventArgs {
+      event_create_ts: None,
+      plugin_name: None,
+      plugin_uuid: None,
+    }
+  }
+}
+
+pub struct PluginTerminatingEventBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> PluginTerminatingEventBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_event_create_ts(&mut self, event_create_ts: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginTerminatingEvent::VT_EVENT_CREATE_TS, event_create_ts);
+  }
+  #[inline]
+  pub fn add_plugin_name(&mut self, plugin_name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginTerminatingEvent::VT_PLUGIN_NAME, plugin_name);
+  }
+  #[inline]
+  pub fn add_plugin_uuid(&mut self, plugin_uuid: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginTerminatingEvent::VT_PLUGIN_UUID, plugin_uuid);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> PluginTerminatingEventBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    PluginTerminatingEventBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<PluginTerminatingEvent<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for PluginTerminatingEvent<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("PluginTerminatingEvent");
+      ds.field("event_create_ts", &self.event_create_ts());
+      ds.field("plugin_name", &self.plugin_name());
+      ds.field("plugin_uuid", &self.plugin_uuid());
+      ds.finish()
+  }
+}
+pub enum PluginTerminateEventOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct PluginTerminateEvent<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for PluginTerminateEvent<'a> {
+  type Inner = PluginTerminateEvent<'a>;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table { buf, loc } }
+  }
+}
+
+impl<'a> PluginTerminateEvent<'a> {
+  pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
+  pub const VT_TARGET_PLUGIN_NAME: flatbuffers::VOffsetT = 6;
+  pub const VT_TARGET_PLUGIN_UUID: flatbuffers::VOffsetT = 8;
+
+  #[inline]
+  pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    PluginTerminateEvent { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args PluginTerminateEventArgs<'args>
+  ) -> flatbuffers::WIPOffset<PluginTerminateEvent<'bldr>> {
+    let mut builder = PluginTerminateEventBuilder::new(_fbb);
+    if let Some(x) = args.target_plugin_uuid { builder.add_target_plugin_uuid(x); }
+    if let Some(x) = args.target_plugin_name { builder.add_target_plugin_name(x); }
+    if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn event_create_ts(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginTerminateEvent::VT_EVENT_CREATE_TS, None)
+  }
+  #[inline]
+  pub fn target_plugin_name(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginTerminateEvent::VT_TARGET_PLUGIN_NAME, None)
+  }
+  #[inline]
+  pub fn target_plugin_uuid(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(PluginTerminateEvent::VT_TARGET_PLUGIN_UUID, None)
+  }
+}
+
+impl flatbuffers::Verifiable for PluginTerminateEvent<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("target_plugin_name", Self::VT_TARGET_PLUGIN_NAME, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("target_plugin_uuid", Self::VT_TARGET_PLUGIN_UUID, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct PluginTerminateEventArgs<'a> {
+    pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub target_plugin_name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub target_plugin_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for PluginTerminateEventArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    PluginTerminateEventArgs {
+      event_create_ts: None,
+      target_plugin_name: None,
+      target_plugin_uuid: None,
+    }
+  }
+}
+
+pub struct PluginTerminateEventBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> PluginTerminateEventBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_event_create_ts(&mut self, event_create_ts: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginTerminateEvent::VT_EVENT_CREATE_TS, event_create_ts);
+  }
+  #[inline]
+  pub fn add_target_plugin_name(&mut self, target_plugin_name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginTerminateEvent::VT_TARGET_PLUGIN_NAME, target_plugin_name);
+  }
+  #[inline]
+  pub fn add_target_plugin_uuid(&mut self, target_plugin_uuid: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(PluginTerminateEvent::VT_TARGET_PLUGIN_UUID, target_plugin_uuid);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> PluginTerminateEventBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    PluginTerminateEventBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<PluginTerminateEvent<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for PluginTerminateEvent<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("PluginTerminateEvent");
+      ds.field("event_create_ts", &self.event_create_ts());
+      ds.field("target_plugin_name", &self.target_plugin_name());
+      ds.field("target_plugin_uuid", &self.target_plugin_uuid());
+      ds.finish()
+  }
+}
 pub enum EventOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -933,6 +1311,36 @@ impl<'a> Event<'a> {
     }
   }
 
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn event_as_plugin_started_event(&self) -> Option<PluginStartedEvent<'a>> {
+    if self.event_type() == EventType::PluginStartedEvent {
+      self.event().map(PluginStartedEvent::init_from_table)
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn event_as_plugin_terminating_event(&self) -> Option<PluginTerminatingEvent<'a>> {
+    if self.event_type() == EventType::PluginTerminatingEvent {
+      self.event().map(PluginTerminatingEvent::init_from_table)
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn event_as_plugin_terminate_event(&self) -> Option<PluginTerminateEvent<'a>> {
+    if self.event_type() == EventType::PluginTerminateEvent {
+      self.event().map(PluginTerminateEvent::init_from_table)
+    } else {
+      None
+    }
+  }
+
 }
 
 impl flatbuffers::Verifiable for Event<'_> {
@@ -949,6 +1357,9 @@ impl flatbuffers::Verifiable for Event<'_> {
           EventType::ImageScoredEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<ImageScoredEvent>>("EventType::ImageScoredEvent", pos),
           EventType::ImageStoredEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<ImageStoredEvent>>("EventType::ImageStoredEvent", pos),
           EventType::ImageDeletedEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<ImageDeletedEvent>>("EventType::ImageDeletedEvent", pos),
+          EventType::PluginStartedEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<PluginStartedEvent>>("EventType::PluginStartedEvent", pos),
+          EventType::PluginTerminatingEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<PluginTerminatingEvent>>("EventType::PluginTerminatingEvent", pos),
+          EventType::PluginTerminateEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<PluginTerminateEvent>>("EventType::PluginTerminateEvent", pos),
           _ => Ok(()),
         }
      })?
@@ -1033,6 +1444,27 @@ impl core::fmt::Debug for Event<'_> {
         },
         EventType::ImageDeletedEvent => {
           if let Some(x) = self.event_as_image_deleted_event() {
+            ds.field("event", &x)
+          } else {
+            ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        EventType::PluginStartedEvent => {
+          if let Some(x) = self.event_as_plugin_started_event() {
+            ds.field("event", &x)
+          } else {
+            ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        EventType::PluginTerminatingEvent => {
+          if let Some(x) = self.event_as_plugin_terminating_event() {
+            ds.field("event", &x)
+          } else {
+            ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        EventType::PluginTerminateEvent => {
+          if let Some(x) = self.event_as_plugin_terminate_event() {
             ds.field("event", &x)
           } else {
             ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
@@ -1129,5 +1561,5 @@ pub fn finish_event_buffer<'a, 'b>(
 pub fn finish_size_prefixed_event_buffer<'a, 'b>(fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>, root: flatbuffers::WIPOffset<Event<'a>>) {
   fbb.finish_size_prefixed(root, None);
 }
-}  // pub mod events
+}  // pub mod gen_events
 

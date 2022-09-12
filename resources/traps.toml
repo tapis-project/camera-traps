@@ -2,6 +2,9 @@
 
 title = "Camera-Traps Application Configuration"
 
+publish_port = 5559
+subscribe_port = 5560
+
 [plugins]
 internal = [
     "image_gen_plugin",
@@ -11,3 +14,5 @@ internal = [
     "observer_plugin"
 ]
 external = []
+
+

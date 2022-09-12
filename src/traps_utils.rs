@@ -2,7 +2,11 @@ use std::ops::Deref;
 use std::path::Path;
 use shellexpand;
 use path_absolutize::Absolutize;
+use crate::events_generated::gen_events;
 
+// ---------------------------------------------------------------------------
+// get_absolute_path:
+// ---------------------------------------------------------------------------
 /** Replace tilde (~) and environment variable values in a path name and
  * then construct the absolute path name.  The difference between 
  * absolutize and standard canonicalize methods is that absolutize does not 
