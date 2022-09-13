@@ -121,9 +121,9 @@ impl NewImageEvent {
         }
     }
 
-    pub fn event_from_bytes(bytes: Vec<u8>) -> Result<i32, Box<dyn Error>> {
+    // pub fn event_from_bytes(bytes: Vec<u8>) -> Result<Box<dyn EventType>, Box<dyn Error>> {
 
-    }
+    // }
 
 
 }
