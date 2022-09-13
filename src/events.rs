@@ -25,7 +25,9 @@ pub struct NewImageEvent {
     image: Vec<u8>,
 }
 
-// ------ Implement EventType
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
 impl EventType for NewImageEvent {
     fn get_name(&self) -> String {
         String::from("NewImageEvent")
@@ -37,9 +39,14 @@ impl EventType for NewImageEvent {
     }
 }
 
-// ------ Implement Event
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
 impl Event for NewImageEvent {
-    /// convert the event to a raw byte array
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** convert the event to a raw byte array. */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -72,7 +79,10 @@ impl Event for NewImageEvent {
         Ok(byte_vec)
     }
 
-    /// Get a NewImageEvent from a vector raw event bytes.
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
     fn from_bytes(bytes: Vec<u8>) -> Result<NewImageEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -95,8 +105,13 @@ impl Event for NewImageEvent {
     }
 }
 
-// ------ Implement Status Functions
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
 impl NewImageEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
     #![allow(unused)]
     pub fn new(image_uuid: Uuid, image_format: String, image: Vec<u8>) -> Self {
         NewImageEvent {
@@ -107,6 +122,10 @@ impl NewImageEvent {
         }
     }
 
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
     pub fn new_from_gen(ev: gen_events::NewImageEvent) -> Self {
         // Create and populate the image vector.
         let raw_image = ev.image().unwrap();
@@ -120,12 +139,6 @@ impl NewImageEvent {
             image: image,
         }
     }
-
-    // pub fn event_from_bytes(bytes: Vec<u8>) -> Result<Box<dyn EventType>, Box<dyn Error>> {
-
-    // }
-
-
 }
 
 // ---------------------------------------------------------------------------
@@ -144,8 +157,38 @@ impl EventType for ImageDeletedEvent {
 }
 
 // ***************************************************************************
+// PUBLIC FUNCTIONS
+// ***************************************************************************
+// ---------------------------------------------------------------------------
+// event_from_bytes:
+// ---------------------------------------------------------------------------
+pub fn event_from_bytes(bytes: Vec<u8>) -> Result<Box<dyn EventType>, Box<dyn Error>> {
+
+    // Get the union of all possible generated events.
+    let event = bytes_to_gen_event(&bytes)?;
+
+    // Get the event type as a string reference.
+    let event_type = match event.event_type().variant_name() {
+        Some(etype) => etype,
+        None => return Result::Err(Box::new(Errors::EventReadTypeError(String::from("anyEvent")))),
+    };
+    
+    // Make the camera trap event given the generated event and its type.
+    make_event(&event, event_type)
+}
+
+// ***************************************************************************
 // PRIVATE FUNCTIONS
 // ***************************************************************************
+// ---------------------------------------------------------------------------
+// bytes_to_gen_event:
+// ---------------------------------------------------------------------------
+fn make_event(gen_event: &gen_events::Event, event_type: &str) -> Result<Box<dyn EventType>, Box<dyn Error>> {
+
+    // *** TEMP to keep compiler quiet.
+    Result::Ok(Box::new(NewImageEvent::new(Uuid::new_v4(), "jpg".to_string(), vec![65,66])))
+}
+
 // ---------------------------------------------------------------------------
 // bytes_to_gen_event:
 // ---------------------------------------------------------------------------
@@ -178,8 +221,9 @@ fn check_event_type(expected: &str, event: &gen_events::Event) -> Result<(), Err
     Ok(())
 }
 
-
-
+// ***************************************************************************
+// TESTS
+// ***************************************************************************
 #[cfg(test)]
 mod tests {
 
