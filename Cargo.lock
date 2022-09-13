@@ -46,6 +46,7 @@ name = "camera-traps"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "event-engine",
  "flatbuffers",
  "log",

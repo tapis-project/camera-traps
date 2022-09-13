@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::path::Path;
 use shellexpand;
 use path_absolutize::Absolutize;
-use crate::events_generated::gen_events;
+use chrono::{Utc, DateTime, FixedOffset, ParseError};
 
 // ---------------------------------------------------------------------------
 // get_absolute_path:
@@ -47,4 +47,41 @@ pub fn get_absolute_path(path: &str) -> String {
     };
 
     p2.to_owned()
+}
+
+// ---------------------------------------------------------------------------
+// timestamp_str:
+// ---------------------------------------------------------------------------
+/** Get the current UTC timestamp as a string in rfc3339 format, which looks
+ * like this:  2022-09-13T14:14:42.719849912+00:00
+ */
+pub fn timestamp_str() -> String {
+    Utc::now().to_rfc3339()
+}
+
+// ---------------------------------------------------------------------------
+// timestamp_str_to_datetime:
+// ---------------------------------------------------------------------------
+/** Convert a timestamp string in rfc3339 format (ex: 2022-09-13T14:14:42.719849912+00:00)
+ * to a DateTime object.  The result will contain a parse error if the string
+ * does not conform to rfc3339.
+ */
+pub fn timestamp_str_to_datetime(ts: &String) -> Result<DateTime<FixedOffset>, ParseError> {
+    DateTime::parse_from_rfc3339(ts)
+}
+
+mod tests {
+    use crate::traps_utils::*;
+
+    #[test]
+    fn here_i_am() {
+        println!("file test: traps_utils.rs");
+
+        // Test timestamp string inversion: string to datetime back to string
+        let s1 = timestamp_str();
+        println!("current utc timestamp: {}", s1);
+        let ts1 = timestamp_str_to_datetime(&s1).unwrap();
+        let s2 = ts1.to_rfc3339();
+        assert_eq!(s1, s2);
+    }
 }

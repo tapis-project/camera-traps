@@ -2,7 +2,6 @@ use uuid::Uuid;
 use event_engine::events::{Event, EventType};
 use event_engine::errors::EngineError;
 use flatbuffers::{FlatBufferBuilder, InvalidFlatbuffer};
-use crate::events_generated::gen_events;
 use std::error::Error;
 
 // Logging imports.
@@ -10,6 +9,8 @@ use anyhow::Result;
 
 // Application errors.
 use crate::config::errors::Errors;
+use crate::events_generated::gen_events;
+use crate::traps_utils::timestamp_str;
 
 // ***************************************************************************
 // EVENTS
@@ -96,9 +97,10 @@ impl Event for NewImageEvent {
 
 // ------ Implement Status Functions
 impl NewImageEvent {
-    pub fn new(created: String, image_uuid: Uuid, image_format: String, image: Vec<u8>) -> Self {
+    #![allow(unused)]
+    pub fn new(image_uuid: Uuid, image_format: String, image: Vec<u8>) -> Self {
         NewImageEvent {
-            created: created,
+            created: timestamp_str(),
             image_uuid: image_uuid,
             image_format: image_format,
             image: image,
@@ -118,6 +120,12 @@ impl NewImageEvent {
             image: image,
         }
     }
+
+    pub fn event_from_bytes(bytes: Vec<u8>) -> Result<i32, Box<dyn Error>> {
+
+    }
+
+
 }
 
 // ---------------------------------------------------------------------------
@@ -136,7 +144,7 @@ impl EventType for ImageDeletedEvent {
 }
 
 // ***************************************************************************
-// Private Functions
+// PRIVATE FUNCTIONS
 // ***************************************************************************
 // ---------------------------------------------------------------------------
 // bytes_to_gen_event:
@@ -169,6 +177,7 @@ fn check_event_type(expected: &str, event: &gen_events::Event) -> Result<(), Err
     // Success.
     Ok(())
 }
+
 
 
 #[cfg(test)]
