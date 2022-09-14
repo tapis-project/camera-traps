@@ -15,9 +15,9 @@ use crate::traps_utils::timestamp_str;
 // ***************************************************************************
 // EVENTS
 // ***************************************************************************
-// ---------------------------------------------------------------------------
+// ===========================================================================
 // NewImageEvent:
-// ---------------------------------------------------------------------------
+// ===========================================================================
 pub struct NewImageEvent {
     created: String,
     image_uuid: Uuid,
@@ -100,8 +100,10 @@ impl Event for NewImageEvent {
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
-        let event_object = NewImageEvent::new_from_gen(flatbuf_event);
-        Result::Ok(event_object)
+        match NewImageEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
     }
 }
 
@@ -126,25 +128,132 @@ impl NewImageEvent {
     // new_from_gen:
     // ----------------------------------------------------------------------
     /** Construct a new event object from a generated flatbuffer object. */
-    pub fn new_from_gen(ev: gen_events::NewImageEvent) -> Self {
+    pub fn new_from_gen(ev: gen_events::NewImageEvent) -> Result<Self, Errors> {
         // Create and populate the image vector.
-        let raw_image = ev.image().unwrap();
-        let mut image = Vec::with_capacity(raw_image.len());
-        image.extend_from_slice(raw_image);
+        let raw = match ev.image() {
+            Some(raw) => raw,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("image")))},
+        };
+        let mut image = Vec::with_capacity(raw.len());
+        image.extend_from_slice(raw);
+
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.image_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+        };
+
+        // Get the image format string.
+        let format = match ev.image_format() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format")))},
+        };
     
-        NewImageEvent {
-            created: String::from(ev.event_create_ts().unwrap()),
-            image_uuid: Uuid::parse_str(ev.image_uuid().unwrap()).unwrap(),
-            image_format: ev.image_format().unwrap().to_string(),
+        // Finally...
+        Result::Ok(NewImageEvent {
+            created: String::from(created),
+            image_uuid: uuid,
+            image_format: String::from(format),
             image: image,
-        }
+        })
     }
 }
 
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// ImageRecievedEvent:
+// ===========================================================================
+pub struct ImageReceivedEvent {
+    created: String,
+    image_uuid: Uuid,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for ImageReceivedEvent {
+    fn get_name(&self) -> String {
+        String::from("ImageReceivedEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        // just return the bytes associated with the name.
+        Ok(self.get_name().as_bytes().to_vec())
+    }
+}
+
+// ===========================================================================
+// ImageScoredEvent:
+// ===========================================================================
+pub struct ImageScoredEvent {
+    created: String,
+    image_uuid: Uuid,
+    scores: [ImageLabelScore],
+}
+
+pub struct ImageLabelScore {
+    image_uuid: Uuid,
+    label: String,
+    probability: f32,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for ImageScoredEvent {
+    fn get_name(&self) -> String {
+        String::from("ImageScoredEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        // just return the bytes associated with the name.
+        Ok(self.get_name().as_bytes().to_vec())
+    }
+}
+
+// ===========================================================================
+// ImageStoredEvent:
+// ===========================================================================
+pub struct ImageStoredEvent {
+    created: String,
+    image_uuid: Uuid,
+    destination: String,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for ImageStoredEvent {
+    fn get_name(&self) -> String {
+        String::from("ImageStoredEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        // just return the bytes associated with the name.
+        Ok(self.get_name().as_bytes().to_vec())
+    }
+}
+
+// ===========================================================================
 // ImageDeletedEvent:
-// ---------------------------------------------------------------------------
-pub struct ImageDeletedEvent {}
+// ===========================================================================
+pub struct ImageDeletedEvent {
+    created: String,
+    image_uuid: Uuid,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
 impl EventType for ImageDeletedEvent {
     fn get_name(&self) -> String {
         String::from("ImageDeletedEvent")
@@ -156,26 +265,79 @@ impl EventType for ImageDeletedEvent {
     }
 }
 
+// ===========================================================================
+// PluginStartedEvent:
+// ===========================================================================
+pub struct PluginStartedEvent {
+    created: String,
+    plugin_name: String,
+    plugin_uuid: Uuid,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for PluginStartedEvent {
+    fn get_name(&self) -> String {
+        String::from("PluginStartedEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        // just return the bytes associated with the name.
+        Ok(self.get_name().as_bytes().to_vec())
+    }
+}
+
+// ===========================================================================
+// PluginTerminateEvent:
+// ===========================================================================
+pub struct PluginTerminateEvent {
+    created: String,
+    target_plugin_name: String,
+    target_plugin_uuid: Uuid,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for PluginTerminateEvent {
+    fn get_name(&self) -> String {
+        String::from("PluginTerminateEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        // just return the bytes associated with the name.
+        Ok(self.get_name().as_bytes().to_vec())
+    }
+}
+
 // ***************************************************************************
 // PUBLIC FUNCTIONS
 // ***************************************************************************
-// ---------------------------------------------------------------------------
-// event_from_bytes:
-// ---------------------------------------------------------------------------
-pub fn event_from_bytes(bytes: Vec<u8>) -> Result<Box<dyn EventType>, Box<dyn Error>> {
+// pub struct EventSelector<'a> {
+//     pub gen_event: gen_events::Event<'a>,
+//     pub event_type: &'a str,
+// }
 
-    // Get the union of all possible generated events.
-    let event = bytes_to_gen_event(&bytes)?;
+// // ---------------------------------------------------------------------------
+// // event_from_bytes:
+// // ---------------------------------------------------------------------------
+// pub fn event_from_bytes<'a>(bytes: Vec<u8>) -> Result<EventSelector<'a>, Box<dyn Error>> {
 
-    // Get the event type as a string reference.
-    let event_type = match event.event_type().variant_name() {
-        Some(etype) => etype,
-        None => return Result::Err(Box::new(Errors::EventReadTypeError(String::from("anyEvent")))),
-    };
+//     // Get the union of all possible generated events.
+//     let event = bytes_to_gen_event(&bytes)?;
+
+//     // Get the event type as a string reference.
+//     let event_type = match event.event_type().variant_name() {
+//         Some(etype) => etype,
+//         None => return Result::Err(Box::new(Errors::EventReadTypeError(String::from("anyEvent")))),
+//     };
+
+
     
-    // Make the camera trap event given the generated event and its type.
-    make_event(&event, event_type)
-}
+//     // Return the information needed to create a camera-traps event.
+//     Result::Ok(EventSelector{gen_event: event, event_type: event_type,})
+// }
 
 // ***************************************************************************
 // PRIVATE FUNCTIONS

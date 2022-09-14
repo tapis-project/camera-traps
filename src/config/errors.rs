@@ -3,8 +3,11 @@ use thiserror::Error;
 /// Error enumerates the errors returned by this application.
 #[derive(Error, Debug)]
 pub enum Errors {
-    #[error("Unable to create an event from a buffer of type {}", .0)]
+    #[error("Unable to create an event from a buffer of type {}.", .0)]
     EventCreateFromFlatbuffer(String),
+
+    #[error("Unable to read buffer for field {}.", .0)]
+    EventReadFlatbuffer(String),
 
     #[error("Unable to read event from subscription socket: {}", .0)]
     EventReadError(String),
@@ -35,4 +38,7 @@ pub enum Errors {
 
     #[error("Unable to parse TOML file: {}", .0)]
     TOMLParseError(String),
+
+    #[error("Unable to parse string '{}' into a Uuid: {}", .0, .1)]
+    UUIDParseError(String, String),
 }
