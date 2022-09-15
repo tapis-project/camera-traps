@@ -32,11 +32,6 @@ impl EventType for NewImageEvent {
     fn get_name(&self) -> String {
         String::from("NewImageEvent")
     }
-
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
-    }
 }
 
 // ------------------------------
@@ -46,7 +41,7 @@ impl Event for NewImageEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array. */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -67,16 +62,9 @@ impl Event for NewImageEvent {
             event_type: gen_events::EventType::NewImageEvent,
             event: Some(event_offset.as_union_value()),
         };
-        let union_offset = gen_events::Event::create(&mut fbuf, &union_args);
 
-        // Complete the flatbuffer and extract its data as a byte array.
-        fbuf.finish(union_offset, None);
-        let bytes = fbuf.finished_data();
-
-        // Copy the raw data into a properly sized vector.
-        let mut byte_vec: Vec<u8> = Vec::with_capacity(bytes.len());
-        byte_vec.extend_from_slice(bytes);
-        Ok(byte_vec)
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
@@ -184,10 +172,108 @@ impl EventType for ImageReceivedEvent {
     fn get_name(&self) -> String {
         String::from("ImageReceivedEvent")
     }
+}
 
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for ImageReceivedEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::ImageReceivedEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+        };
+        let event_offset = gen_events::ImageReceivedEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::ImageReceivedEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<ImageReceivedEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "ImageReceivedEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_image_received_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match ImageReceivedEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl ImageReceivedEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(image_uuid: Uuid) -> Self {
+        ImageReceivedEvent {
+            created: timestamp_str(),
+            image_uuid: image_uuid,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::ImageReceivedEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.image_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+        };
+
+        // Finally...
+        Result::Ok(ImageReceivedEvent {
+            created: String::from(created),
+            image_uuid: uuid,
+        })
     }
 }
 
@@ -213,11 +299,6 @@ impl EventType for ImageScoredEvent {
     fn get_name(&self) -> String {
         String::from("ImageScoredEvent")
     }
-
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
-    }
 }
 
 // ===========================================================================
@@ -236,10 +317,117 @@ impl EventType for ImageStoredEvent {
     fn get_name(&self) -> String {
         String::from("ImageStoredEvent")
     }
+}
 
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for ImageStoredEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::ImageStoredEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            destination: Some(fbuf.create_string(&self.destination)),
+        };
+        let event_offset = gen_events::ImageStoredEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::ImageStoredEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<ImageStoredEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "ImageStoredEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_image_stored_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match ImageStoredEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl ImageStoredEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(image_uuid: Uuid, destination: String) -> Self {
+        ImageStoredEvent {
+            created: timestamp_str(),
+            image_uuid: image_uuid,
+            destination: destination,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::ImageStoredEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.image_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+        };
+
+        // Get the destination.
+        let destination = match ev.destination() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("destination")))},
+        };
+
+        // Finally...
+        Result::Ok(ImageStoredEvent {
+            created: String::from(created),
+            image_uuid: uuid,
+            destination: String::from(destination),
+        })
     }
 }
 
@@ -258,10 +446,108 @@ impl EventType for ImageDeletedEvent {
     fn get_name(&self) -> String {
         String::from("ImageDeletedEvent")
     }
+}
 
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for ImageDeletedEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::ImageDeletedEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+        };
+        let event_offset = gen_events::ImageDeletedEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::ImageDeletedEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<ImageDeletedEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "ImageDeletedEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_image_deleted_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match ImageDeletedEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl ImageDeletedEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(image_uuid: Uuid) -> Self {
+        ImageDeletedEvent {
+            created: timestamp_str(),
+            image_uuid: image_uuid,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::ImageDeletedEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.image_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+        };
+
+        // Finally...
+        Result::Ok(ImageDeletedEvent {
+            created: String::from(created),
+            image_uuid: uuid,
+        })
     }
 }
 
@@ -281,11 +567,6 @@ impl EventType for PluginStartedEvent {
     fn get_name(&self) -> String {
         String::from("PluginStartedEvent")
     }
-
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
-    }
 }
 
 // ===========================================================================
@@ -304,53 +585,11 @@ impl EventType for PluginTerminateEvent {
     fn get_name(&self) -> String {
         String::from("PluginTerminateEvent")
     }
-
-    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
-        // just return the bytes associated with the name.
-        Ok(self.get_name().as_bytes().to_vec())
-    }
 }
-
-// ***************************************************************************
-// PUBLIC FUNCTIONS
-// ***************************************************************************
-// pub struct EventSelector<'a> {
-//     pub gen_event: gen_events::Event<'a>,
-//     pub event_type: &'a str,
-// }
-
-// // ---------------------------------------------------------------------------
-// // event_from_bytes:
-// // ---------------------------------------------------------------------------
-// pub fn event_from_bytes<'a>(bytes: Vec<u8>) -> Result<EventSelector<'a>, Box<dyn Error>> {
-
-//     // Get the union of all possible generated events.
-//     let event = bytes_to_gen_event(&bytes)?;
-
-//     // Get the event type as a string reference.
-//     let event_type = match event.event_type().variant_name() {
-//         Some(etype) => etype,
-//         None => return Result::Err(Box::new(Errors::EventReadTypeError(String::from("anyEvent")))),
-//     };
-
-
-    
-//     // Return the information needed to create a camera-traps event.
-//     Result::Ok(EventSelector{gen_event: event, event_type: event_type,})
-// }
 
 // ***************************************************************************
 // PRIVATE FUNCTIONS
 // ***************************************************************************
-// ---------------------------------------------------------------------------
-// bytes_to_gen_event:
-// ---------------------------------------------------------------------------
-fn make_event(gen_event: &gen_events::Event, event_type: &str) -> Result<Box<dyn EventType>, Box<dyn Error>> {
-
-    // *** TEMP to keep compiler quiet.
-    Result::Ok(Box::new(NewImageEvent::new(Uuid::new_v4(), "jpg".to_string(), vec![65,66])))
-}
-
 // ---------------------------------------------------------------------------
 // bytes_to_gen_event:
 // ---------------------------------------------------------------------------
@@ -381,6 +620,23 @@ fn check_event_type(expected: &str, event: &gen_events::Event) -> Result<(), Err
 
     // Success.
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// serialize_flatbuffer:
+// ---------------------------------------------------------------------------
+fn serialize_flatbuffer(mut fbuf: FlatBufferBuilder, union_args: gen_events::EventArgs) -> Vec<u8> {
+    // Get the offset of the particular event already encoded in the union argument.    
+    let union_offset = gen_events::Event::create(&mut fbuf, &union_args);
+    
+    // Complete the flatbuffer and extract its data as a byte array.
+    fbuf.finish(union_offset, None);
+    let bytes = fbuf.finished_data();
+
+    // Copy the raw data into a properly sized vector.
+    let mut byte_vec: Vec<u8> = Vec::with_capacity(bytes.len());
+    byte_vec.extend_from_slice(bytes);
+    byte_vec
 }
 
 // ***************************************************************************
