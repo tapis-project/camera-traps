@@ -280,16 +280,55 @@ impl ImageReceivedEvent {
 // ===========================================================================
 // ImageScoredEvent:
 // ===========================================================================
-pub struct ImageScoredEvent {
-    created: String,
-    image_uuid: Uuid,
-    scores: [ImageLabelScore],
-}
-
 pub struct ImageLabelScore {
     image_uuid: Uuid,
     label: String,
     probability: f32,
+}
+
+impl ImageLabelScore {
+    #![allow(unused)]
+    pub fn new(image_uuid: Uuid, label: String, probability: f32) -> Self {
+        ImageLabelScore {
+            image_uuid,
+            label,
+            probability,
+        }
+    }
+
+    pub fn new_from_gen(ev: gen_events::ImageLabelScore) -> Result<Self, Errors> {
+        // Get the uuid.
+        let u = match ev.image_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+        };
+
+        // Get the image label string.
+        let label = match ev.label() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("label")))},
+        };
+
+        // Get the label's probability value.
+        let probability = ev.probability(); 
+        
+        // Return the object.
+        Result::Ok(ImageLabelScore {
+            image_uuid: uuid,
+            label: String::from(label),
+            probability,
+        })
+    }
+}
+
+pub struct ImageScoredEvent {
+    created: String,
+    image_uuid: Uuid,
+    scores: [ImageLabelScore],
 }
 
 // ------------------------------
