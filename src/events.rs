@@ -569,6 +569,248 @@ impl EventType for PluginStartedEvent {
     }
 }
 
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for PluginStartedEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::PluginStartedEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            plugin_name: Some(fbuf.create_string(&self.plugin_name)),
+            plugin_uuid: Some(fbuf.create_string(&self.plugin_uuid.to_hyphenated().to_string())),
+        };
+        let event_offset = gen_events::PluginStartedEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::PluginStartedEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<PluginStartedEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "PluginStartedEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_plugin_started_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match PluginStartedEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl PluginStartedEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(plugin_uuid: Uuid, plugin_name: String) -> Self {
+        PluginStartedEvent {
+            created: timestamp_str(),
+            plugin_name,
+            plugin_uuid,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::PluginStartedEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the plugin_name.
+        let plugin_name = match ev.plugin_name() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("plugin_name")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.plugin_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("plugin_uuid"), e.to_string()))},
+        };
+
+        // Finally...
+        Result::Ok(PluginStartedEvent {
+            created: String::from(created),
+            plugin_name: String::from(plugin_name),
+            plugin_uuid: uuid,
+        })
+    }
+}
+
+// ===========================================================================
+// PluginTerminatingEvent:
+// ===========================================================================
+pub struct PluginTerminatingEvent {
+    created: String,
+    plugin_name: String,
+    plugin_uuid: Uuid,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for PluginTerminatingEvent {
+    fn get_name(&self) -> String {
+        String::from("PluginTerminatingEvent")
+    }
+}
+
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for PluginTerminatingEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::PluginTerminatingEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            plugin_name: Some(fbuf.create_string(&self.plugin_name)),
+            plugin_uuid: Some(fbuf.create_string(&self.plugin_uuid.to_hyphenated().to_string())),
+        };
+        let event_offset = gen_events::PluginTerminatingEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::PluginTerminatingEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<PluginTerminatingEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "PluginTerminatingEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_plugin_terminating_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match PluginTerminatingEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl PluginTerminatingEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(plugin_uuid: Uuid, plugin_name: String) -> Self {
+        PluginTerminatingEvent {
+            created: timestamp_str(),
+            plugin_name,
+            plugin_uuid,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::PluginTerminatingEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the plugin_name.
+        let plugin_name = match ev.plugin_name() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("plugin_name")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.plugin_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("plugin_uuid"), e.to_string()))},
+        };
+
+        // Finally...
+        Result::Ok(PluginTerminatingEvent {
+            created: String::from(created),
+            plugin_name: String::from(plugin_name),
+            plugin_uuid: uuid,
+        })
+    }
+}
+
 // ===========================================================================
 // PluginTerminateEvent:
 // ===========================================================================
@@ -584,6 +826,118 @@ pub struct PluginTerminateEvent {
 impl EventType for PluginTerminateEvent {
     fn get_name(&self) -> String {
         String::from("PluginTerminateEvent")
+    }
+}
+
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for PluginTerminateEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::PluginTerminateEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            target_plugin_name: Some(fbuf.create_string(&self.target_plugin_name)),
+            target_plugin_uuid: Some(fbuf.create_string(&self.target_plugin_uuid.to_hyphenated().to_string())),
+        };
+        let event_offset = gen_events::PluginTerminateEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::PluginTerminateEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<PluginTerminateEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "PluginTerminateEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_plugin_terminate_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match PluginTerminateEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl PluginTerminateEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(target_plugin_uuid: Uuid, target_plugin_name: String) -> Self {
+        PluginTerminateEvent {
+            created: timestamp_str(),
+            target_plugin_name,
+            target_plugin_uuid,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::PluginTerminateEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the plugin_name.
+        let target_plugin_name = match ev.target_plugin_name() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("target_plugin_name")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.target_plugin_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("target_plugin_uuid"), e.to_string()))},
+        };
+
+        // Finally...
+        Result::Ok(PluginTerminateEvent {
+            created: String::from(created),
+            target_plugin_name: String::from(target_plugin_name),
+            target_plugin_uuid: uuid,
+        })
     }
 }
 
