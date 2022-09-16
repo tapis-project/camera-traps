@@ -280,6 +280,9 @@ impl ImageReceivedEvent {
 // ===========================================================================
 // ImageScoredEvent:
 // ===========================================================================
+// ------------------------------
+// ------ ImageLabelScore
+// ------------------------------
 pub struct ImageLabelScore {
     image_uuid: Uuid,
     label: String,
@@ -325,10 +328,13 @@ impl ImageLabelScore {
     }
 }
 
+// ------------------------------
+// ------ ImageScoredEvent
+// ------------------------------
 pub struct ImageScoredEvent {
     created: String,
     image_uuid: Uuid,
-    scores: [ImageLabelScore],
+    scores: Vec<ImageLabelScore>,
 }
 
 // ------------------------------
@@ -337,6 +343,149 @@ pub struct ImageScoredEvent {
 impl EventType for ImageScoredEvent {
     fn get_name(&self) -> String {
         String::from("ImageScoredEvent")
+    }
+}
+
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for ImageScoredEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array. */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Create a vector of gen_events::ImageLabelScores from this object's scores.
+        // First create a vector to hold the gen_events::ImageLabelScore objects.
+        let mut image_label_scores = Vec::<flatbuffers::WIPOffset<gen_events::ImageLabelScore>>::new();
+        for score in &self.scores {
+            // Assign the string fields.
+            let image_uuid = Some(fbuf.create_string(&score.image_uuid.to_hyphenated().to_string()));
+            let label = Some(fbuf.create_string(&score.label));
+
+            // Create each generated score object 
+            let im_score = gen_events::ImageLabelScore::create(
+                &mut fbuf,
+                &gen_events::ImageLabelScoreArgs {
+                    image_uuid,
+                    label,
+                    probability: score.probability,
+                },
+            );
+            // Add the current generated score object to the list.
+            image_label_scores.push(im_score);
+        }
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::ImageScoredEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            scores: Some(fbuf.create_vector(&image_label_scores)),
+        };
+        let event_offset = gen_events::ImageScoredEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::ImageScoredEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(fbuf, union_args))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a NewImageEvent from a vector raw event bytes. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<ImageScoredEvent, Box<dyn Error>>
+    where
+        Self: Sized {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "ImageScoredEvent";
+        check_event_type(event_type, &event)?;
+    
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_image_scored_event() {
+            Some(ev) => ev,
+            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match ImageScoredEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => return Result::Ok(ev),
+            Err(e) => return Result::Err(Box::new(e)),
+        };
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl ImageScoredEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(image_uuid: Uuid, scores: Vec<ImageLabelScore>) -> Self {
+        ImageScoredEvent {
+            created: timestamp_str(),
+            image_uuid,
+            scores,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. */
+    pub fn new_from_gen(ev: gen_events::ImageScoredEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+        };
+
+        // Get the uuid.
+        let u = match ev.image_uuid() {
+            Some(s) => s,
+            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+        };
+        let uuid = match Uuid::parse_str(u) {
+            Ok(u) => u,
+            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+        };
+
+        // Get the list of scores.
+        let mut scores: Vec<ImageLabelScore> = Vec::new();
+        for gen_score in ev.scores() {
+            let u = match ev.image_uuid() {
+                Some(u) => u,
+                None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("ImageLabelScore.image_uuid")))},
+            };
+            let image_uuid = match Uuid::parse_str(u) {
+                Ok(u) => u,
+                Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("ImageLabelScore.image_uuid"), e.to_string()))},
+            };
+
+            // ******************* NOT FINISHED *******************
+            
+        }
+
+        // Finally...
+        Result::Ok(ImageScoredEvent {
+            created: String::from(created),
+            image_uuid: uuid,
+            scores,
+        })
     }
 }
 
