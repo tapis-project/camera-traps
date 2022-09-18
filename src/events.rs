@@ -465,9 +465,16 @@ impl ImageScoredEvent {
         };
 
         // Get the list of scores.
+        let gen_scores = match ev.scores() {
+            Some(v) => v,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("scores"))),
+        };
+
+        // Iterate through each generated score and add to list of event scores.
         let mut scores: Vec<ImageLabelScore> = Vec::new();
-        for gen_score in ev.scores() {
-            let u = match ev.image_uuid() {
+        for gen_score in gen_scores {
+            // Extract the imaget uuid.
+            let u = match gen_score.image_uuid() {
                 Some(u) => u,
                 None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("ImageLabelScore.image_uuid")))},
             };
@@ -476,8 +483,22 @@ impl ImageScoredEvent {
                 Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("ImageLabelScore.image_uuid"), e.to_string()))},
             };
 
-            // ******************* NOT FINISHED *******************
+            // Extract the label.
+            let label = match gen_score.label() {
+                Some(s)=> s,
+                None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("ImageLabelScore.label")))},
+            };
             
+            // Extract the probability.
+            let probability = gen_score.probability();
+
+            // Create the event imagelabelscore and add it to the vector.
+            let new_score = ImageLabelScore {
+                image_uuid,
+                label: label.to_string(),
+                probability,
+            };
+            scores.push(new_score);
         }
 
         // Finally...
