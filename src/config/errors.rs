@@ -15,6 +15,9 @@ pub enum Errors {
     #[error("Unable to read event type from raw event, expected type is: {}", .0)]
     EventReadTypeError(String),
 
+    #[error("Plugin {} is unable to convert a {} event to vector of bytes: {}", .0, .1, .2)]
+    EventToBytesError(String, String, String),
+
     #[error("Expected event type {}, but received event {} instead.", .0, .1)]
     EventUnexpectedError(String, String),
 
@@ -33,8 +36,17 @@ pub enum Errors {
     #[error("Unable to access the Log4rs configuration file: {}", .0)]
     Log4rsInitialization(String),
 
+    #[error("**** Plugin {} ({}) starting execution.", .0, .1)]
+    PluginStarted(String, String),
+
     #[error("Reading application configuration file: {}", .0)]
     ReadingConfigFile(String),
+
+    #[error("Plugin {0} failed to read a byte stream from its subscription socket: {1}")]
+    SocketRecvError(String, String),
+
+    #[error("Plugin {} is unable to send a {} event: {}", .0, .1, .2)]
+    SocketSendError(String, String, String),
 
     #[error("Unable to parse TOML file: {}", .0)]
     TOMLParseError(String),
