@@ -1024,9 +1024,9 @@ impl PluginTerminatingEvent {
 // PluginTerminateEvent:
 // ===========================================================================
 pub struct PluginTerminateEvent {
-    created: String,
-    target_plugin_name: String,
-    target_plugin_uuid: Uuid,
+    pub created: String,
+    pub target_plugin_name: String,
+    pub target_plugin_uuid: Uuid,
 }
 
 // ------------------------------
@@ -1156,7 +1156,7 @@ impl PluginTerminateEvent {
 // ---------------------------------------------------------------------------
 // bytes_to_gen_event:
 // ---------------------------------------------------------------------------
-/** Givent a reference to a byte array containing the serialized flatbuffer
+/** Given a reference to a byte array containing the serialized flatbuffer
  * event, convert it into an event as defined in the generated flatbuffer code.
  */
 fn bytes_to_gen_event(msg_bytes: &[u8]) -> Result<gen_events::Event, InvalidFlatbuffer> {

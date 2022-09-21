@@ -3,7 +3,23 @@ use std::path::Path;
 use shellexpand;
 use path_absolutize::Absolutize;
 use chrono::{Utc, DateTime, FixedOffset, ParseError};
+use uuid::Uuid;
 
+use crate::events_generated::gen_events::{self, EventType};
+use crate::config::errors::Errors;
+use crate::events::{NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent,
+                    ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent};
+use log::{error};
+
+// ***************************************************************************
+// CONSTANTS
+// ***************************************************************************
+// Used in termination processing.
+const PLUGIN_NAME_WILDCARD: &str = "*";
+
+// ***************************************************************************
+// GENERAL PUBLIC FUNCTIONS
+// ***************************************************************************
 // ---------------------------------------------------------------------------
 // get_absolute_path:
 // ---------------------------------------------------------------------------
@@ -69,6 +85,95 @@ pub fn timestamp_str() -> String {
 pub fn timestamp_str_to_datetime(ts: &String) -> Result<DateTime<FixedOffset>, ParseError> {
     DateTime::parse_from_rfc3339(ts)
 }
+
+// ***************************************************************************
+// EVENT PROCESSING
+// ***************************************************************************
+// ---------------------------------------------------------------------------
+// bytes_to_gen_event:
+// ---------------------------------------------------------------------------
+pub fn bytes_to_gen_event(msg_bytes: &[u8]) -> Result<gen_events::Event, Errors> {
+    // Read the byte array into a generated event backed by a flatbuffer.
+    match gen_events::root_as_event(msg_bytes) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => {return Result::Err(Errors::EventFromFlatbuffer(e.to_string()));},
+    };
+}
+
+// ---------------------------------------------------------------------------
+// process_plugin_terminate_event:
+// ---------------------------------------------------------------------------
+/** Determine if the calling plugin is targeted for termination by the terminate 
+ * event.  The input is the generated event, the plugin's uuid and the plugin's
+ * name.    
+ * 
+ * Returns true if the plugin is targeted, false otherwise.  If the generated
+ * event cannot be converted into an application event, then the error is logged
+ * and false is returned.
+ */
+pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid, plugin_name: &String) -> bool {
+    let event = match gen_to_pluging_terminate_event(gen_event) {
+        Ok(ev) => ev,
+        Err(e) => {
+            error!("{}", e.to_string());
+            return false
+        },
+    };
+
+    // See if the calling plugin is the target either
+    // explicitly by name or by wildcard.
+    if event.target_plugin_name.eq(plugin_name) || 
+       event.target_plugin_name.eq(PLUGIN_NAME_WILDCARD) {
+        return true;
+    }
+
+    // See if the calling plugin's uuid is the target.
+    if event.target_plugin_uuid.eq(uuid) {
+        return true;
+    }
+
+    // We're not the target of the terminate event.
+    false
+}
+
+// ***************************************************************************
+// GENERATED EVENT TO CAMERA EVENT FUNCTIONS
+// ***************************************************************************
+// ---------------------------------------------------------------------------
+// gen_to_new_image_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_new_image_event(gen_event: gen_events::Event) -> Result<NewImageEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_new_image_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("NewImageEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match NewImageEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_pluging_terminate_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_pluging_terminate_event(gen_event: gen_events::Event) -> Result<PluginTerminateEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_plugin_terminate_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("PluginTerminateEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match PluginTerminateEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+
 
 mod tests {
     use crate::traps_utils::*;

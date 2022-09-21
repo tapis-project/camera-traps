@@ -6,6 +6,15 @@ pub enum Errors {
     #[error("Unable to create an event from a buffer of type {}.", .0)]
     EventCreateFromFlatbuffer(String),
 
+    #[error("Unable to create an event from buffer contents: {0}")]
+    EventFromFlatbuffer(String),
+
+    #[error("Plugin {0} received an unknown event type which it is ignoring.")]
+    EventNoneError(String),
+
+    #[error("Plugin {0} received event type {1} which it does not handle.")]
+    EventNotHandledError(String, String),
+
     #[error("Unable to read buffer for field {}.", .0)]
     EventReadFlatbuffer(String),
 

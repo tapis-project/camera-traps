@@ -4,6 +4,7 @@ use event_engine::{plugins::Plugin, events::Event};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
+use crate::traps_utils;
 
 use log::{info, error};
 use std::{thread, time};
@@ -68,14 +69,42 @@ impl Plugin for ImageGenPlugin {
                 }
             };
 
-            // Determine the event type.
-            
+            // Get the generated event and its type.
+            let gen_event = match traps_utils::bytes_to_gen_event(&bytes) {
+                Ok(tuple)=> tuple,
+                Err(e)=> {
+                    error!("{}", e.to_string());
+                    continue;
+                }
+            };
 
-            // Process the event.
-
-            // Determine if we should break.
+            // Process events we expect; log and disregard all others.
+            let terminate = match gen_event.event_type().variant_name() {
+                Some("PluginTerminateEvent") => {
+                    // Determine whether we are the target of this terminate event.
+                    traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
+                },
+                None => {
+                    let msg = format!("{}", Errors::EventNoneError(self.name.clone()));
+                    error!("{}", msg);
+                    false
+                },
+                Some(unexpected) => {
+                    let msg = format!("{}", Errors::EventNotHandledError(self.name.clone(), unexpected.to_string()));
+                    error!("{}", msg);
+                    false
+                }
+            };
+        
+            // Determine if we should terminate our event read loop.
+            if terminate {
+                // Clean up and send the terminating event.
+                break;
+            }
         }
 
+        // Shutting down.
+        Ok(())
     }
 
     /// Return the event subscriptions, as a vector of strings, that this plugin is interested in.
