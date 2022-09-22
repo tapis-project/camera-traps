@@ -1,13 +1,13 @@
 use std::ops::Deref;
 use std::path::Path;
-use event_engine::events::Event;
+use event_engine::events::{Event, EventType};
 use shellexpand;
 use path_absolutize::Absolutize;
 use chrono::{Utc, DateTime, FixedOffset, ParseError};
 use uuid::Uuid;
 use zmq::Socket;
 
-use crate::events_generated::gen_events::{self, EventType};
+use crate::events_generated::gen_events::{self};
 use crate::config::errors::Errors;
 use crate::events::{NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent,
                     ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent};
@@ -146,14 +146,15 @@ pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid,
  */
 pub fn send_terminating_event(plugin_name: String, plugin_uuid: Uuid, pub_socket: &Socket) {
     // Create the event for the calling plugin.
-    let ev = PluginTerminatingEvent::new(plugin_uuid, plugin_name);
+    let ev = PluginTerminatingEvent::new(plugin_uuid, plugin_name.clone());
 
     // Serialize the event.
     let data = match ev.to_bytes() {
         Ok(d) => d,
         Err(e) => {
             // Log the error.
-            error!("{}", e.to_string());
+            let err = Errors::EventToBytesError(plugin_name, ev.get_name(), e.to_string());
+            error!("{}", err.to_string());
             return ();
         }
     };
@@ -163,7 +164,8 @@ pub fn send_terminating_event(plugin_name: String, plugin_uuid: Uuid, pub_socket
         Ok(_) => (),
         Err(e) => {
             // Log the error.
-            error!("{}", e.to_string());
+            let err = Errors::EventSendError(plugin_name, ev.get_name(), e.to_string());
+            error!("{}", err.to_string());
             ()
         },
     };

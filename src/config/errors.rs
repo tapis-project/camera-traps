@@ -24,6 +24,9 @@ pub enum Errors {
     #[error("Unable to read event type from raw event, expected type is: {}", .0)]
     EventReadTypeError(String),
 
+    #[error("Plugin {} is unable to send a {} event: {}", .0, .1, .2)]
+    EventSendError(String, String, String),
+
     #[error("Plugin {} is unable to convert a {} event to vector of bytes: {}", .0, .1, .2)]
     EventToBytesError(String, String, String),
 
