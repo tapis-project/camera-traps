@@ -99,6 +99,7 @@ impl Plugin for ImageGenPlugin {
             // Determine if we should terminate our event read loop.
             if terminate {
                 // Clean up and send the terminating event.
+                traps_utils::send_terminating_event(self.name.clone(), self.id.clone(), &pub_socket);
                 break;
             }
         }

@@ -1,9 +1,11 @@
 use std::ops::Deref;
 use std::path::Path;
+use event_engine::events::Event;
 use shellexpand;
 use path_absolutize::Absolutize;
 use chrono::{Utc, DateTime, FixedOffset, ParseError};
 use uuid::Uuid;
+use zmq::Socket;
 
 use crate::events_generated::gen_events::{self, EventType};
 use crate::config::errors::Errors;
@@ -112,7 +114,7 @@ pub fn bytes_to_gen_event(msg_bytes: &[u8]) -> Result<gen_events::Event, Errors>
  * and false is returned.
  */
 pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid, plugin_name: &String) -> bool {
-    let event = match gen_to_pluging_terminate_event(gen_event) {
+    let event = match gen_to_plugin_terminate_event(gen_event) {
         Ok(ev) => ev,
         Err(e) => {
             error!("{}", e.to_string());
@@ -136,8 +138,39 @@ pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid,
     false
 }
 
+// ---------------------------------------------------------------------------
+// send_terminating_event:
+// ---------------------------------------------------------------------------
+/** This method quietly sends the calling plugin's terminating event.
+ * Errors are logged but not surfaced.
+ */
+pub fn send_terminating_event(plugin_name: String, plugin_uuid: Uuid, pub_socket: &Socket) {
+    // Create the event for the calling plugin.
+    let ev = PluginTerminatingEvent::new(plugin_uuid, plugin_name);
+
+    // Serialize the event.
+    let data = match ev.to_bytes() {
+        Ok(d) => d,
+        Err(e) => {
+            // Log the error.
+            error!("{}", e.to_string());
+            return ();
+        }
+    };
+
+    // Send the event.
+    match pub_socket.send(&data, 0) {
+        Ok(_) => (),
+        Err(e) => {
+            // Log the error.
+            error!("{}", e.to_string());
+            ()
+        },
+    };
+}
+
 // ***************************************************************************
-// GENERATED EVENT TO CAMERA EVENT FUNCTIONS
+// GENERATED-EVENT TO CAMERA-EVENT FUNCTIONS
 // ***************************************************************************
 // ---------------------------------------------------------------------------
 // gen_to_new_image_event:
@@ -157,9 +190,96 @@ pub fn gen_to_new_image_event(gen_event: gen_events::Event) -> Result<NewImageEv
 }
 
 // ---------------------------------------------------------------------------
-// gen_to_pluging_terminate_event:
+// gen_to_image_received_event:
 // ---------------------------------------------------------------------------
-pub fn gen_to_pluging_terminate_event(gen_event: gen_events::Event) -> Result<PluginTerminateEvent, Errors> {
+pub fn gen_to_image_received_event(gen_event: gen_events::Event) -> Result<ImageReceivedEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_image_received_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("ImageReceivedEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match ImageReceivedEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_image_stored_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_image_scored_event(gen_event: gen_events::Event) -> Result<ImageScoredEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_image_scored_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("ImageScoredEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match ImageScoredEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_image_deleted_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_image_stored_event(gen_event: gen_events::Event) -> Result<ImageDeletedEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_image_deleted_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("ImageDeletedEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match ImageDeletedEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_image_deleted_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_image_deleted_event(gen_event: gen_events::Event) -> Result<ImageStoredEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_image_stored_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("ImageStoredEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match ImageStoredEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_pluging_started_event:
+// ---------------------------------------------------------------------------
+// gen_to_pluging_started_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_pluging_started_event(gen_event: gen_events::Event) -> Result<PluginStartedEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_plugin_started_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("PluginStartedEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match PluginStartedEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_plugin_terminate_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_plugin_terminate_event(gen_event: gen_events::Event) -> Result<PluginTerminateEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_plugin_terminate_event() {
         Some(ev) => ev,
@@ -168,6 +288,23 @@ pub fn gen_to_pluging_terminate_event(gen_event: gen_events::Event) -> Result<Pl
 
     // Return a camera-trap event given the flatbuffer generated event.
     match PluginTerminateEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => return Result::Ok(ev),
+        Err(e) => return Result::Err(e),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_plugin_terminating_event:
+// ---------------------------------------------------------------------------
+pub fn gen_to_plugin_terminating_event(gen_event: gen_events::Event) -> Result<PluginTerminatingEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_plugin_terminating_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("PluginTerminatingEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match PluginTerminatingEvent::new_from_gen(flatbuf_event) {
         Ok(ev) => return Result::Ok(ev),
         Err(e) => return Result::Err(e),
     };
