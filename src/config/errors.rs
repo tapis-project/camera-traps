@@ -15,6 +15,9 @@ pub enum Errors {
     #[error("Plugin {0} received event type {1} which it does not handle.")]
     EventNotHandledError(String, String),
 
+    #[error("Plugin {0} is processing event type {1}.")]
+    EventProcessing(String, &'static str),
+
     #[error("Unable to read buffer for field {}.", .0)]
     EventReadFlatbuffer(String),
 

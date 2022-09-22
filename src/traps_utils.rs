@@ -144,17 +144,17 @@ pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid,
 /** This method quietly sends the calling plugin's terminating event.
  * Errors are logged but not surfaced.
  */
-pub fn send_terminating_event(plugin_name: String, plugin_uuid: Uuid, pub_socket: &Socket) {
+pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socket: &Socket) {
     // Create the event for the calling plugin.
-    let ev = PluginTerminatingEvent::new(plugin_uuid, plugin_name.clone());
+    let ev = PluginTerminatingEvent::new(plugin_uuid, plugin_name.to_string());
 
     // Serialize the event.
     let data = match ev.to_bytes() {
         Ok(d) => d,
         Err(e) => {
             // Log the error.
-            let err = Errors::EventToBytesError(plugin_name, ev.get_name(), e.to_string());
-            error!("{}", err.to_string());
+            let err = Errors::EventToBytesError(plugin_name.to_string(), ev.get_name(), e.to_string());
+            error!("{}", format!("{}", err));
             return ();
         }
     };
@@ -164,8 +164,8 @@ pub fn send_terminating_event(plugin_name: String, plugin_uuid: Uuid, pub_socket
         Ok(_) => (),
         Err(e) => {
             // Log the error.
-            let err = Errors::EventSendError(plugin_name, ev.get_name(), e.to_string());
-            error!("{}", err.to_string());
+            let err = Errors::EventSendError(plugin_name.to_string(), ev.get_name(), e.to_string());
+            error!("{}", format!("{}", err));
             ()
         },
     };

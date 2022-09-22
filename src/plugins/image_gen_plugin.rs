@@ -6,7 +6,7 @@ use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 
-use log::{info, error};
+use log::{info, error, debug};
 use std::{thread, time};
 
 struct ImageGenPlugin {
@@ -82,6 +82,7 @@ impl Plugin for ImageGenPlugin {
             let terminate = match gen_event.event_type().variant_name() {
                 Some("PluginTerminateEvent") => {
                     // Determine whether we are the target of this terminate event.
+                    debug!("{}", format!("{}", Errors::EventProcessing(self.name.clone(), "PluginTerminateEvent")));
                     traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
                 },
                 None => {
@@ -99,7 +100,7 @@ impl Plugin for ImageGenPlugin {
             // Determine if we should terminate our event read loop.
             if terminate {
                 // Clean up and send the terminating event.
-                traps_utils::send_terminating_event(self.name.clone(), self.id.clone(), &pub_socket);
+                traps_utils::send_terminating_event(&self.name, self.id.clone(), &pub_socket);
                 break;
             }
         }
