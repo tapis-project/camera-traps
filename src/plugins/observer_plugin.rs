@@ -79,9 +79,38 @@ impl Plugin for ObserverPlugin {
 
             // Process events we expect; log and disregard all others.
             let terminate = match gen_event.event_type().variant_name() {
+                Some("NewImageEvent") => {
+                    self.record_event("NewImageEvent");
+                    false
+                },
+                Some("ImageReceivedEvent") => {
+                    self.record_event("ImageReceivedEvent");
+                    false
+                },
+                Some("ImageScoredEvent") => {
+                    self.record_event("ImageScoredEvent");
+                    false
+                },
+                Some("ImageStoredEvent") => {
+                    self.record_event("ImageStoredEvent");
+                    false
+                },
+                Some("ImageDeletedEvent") => {
+                    self.record_event("ImageDeletedEvent");
+                    false
+                },
+                Some("PluginStartedEvent") => {
+                    self.record_event("PluginStartedEvent");
+                    false
+                },
+                Some("PluginTerminatingEvent") => {
+                    self.record_event("PluginTerminatingEvent");
+                    false
+                },
                 Some("PluginTerminateEvent") => {
-                    // Determine whether we are the target of this terminate event.
-                    debug!("{}", format!("{}", Errors::EventProcessing(self.name.clone(), "PluginTerminateEvent")));
+                    // Determine whether we are the target of this terminate event. The called method
+                    // will return true if this plugin should shutdown.
+                    self.record_event("PluginTerminateEvent");
                     traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
                 },
                 None => {
@@ -110,8 +139,16 @@ impl Plugin for ObserverPlugin {
 
     /// Return the event subscriptions, as a vector of strings, that this plugin is interested in.
     fn get_subscriptions(&self) -> Result<Vec<Box<dyn EventType>>, EngineError> {
-        Ok(vec![Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
-                Box::new(events::PluginTerminatingEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))), 
+        // This plugin subscribes to all events.  When events change so must this list.
+        Ok(vec![
+            Box::new(events::NewImageEvent::new(Uuid::new_v4(), String::from("fake"), vec![])),
+            Box::new(events::ImageReceivedEvent::new(Uuid::new_v4())),
+            Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), vec![])),
+            Box::new(events::ImageStoredEvent::new(Uuid::new_v4(), String::from("path"))),
+            Box::new(events::ImageDeletedEvent::new(Uuid::new_v4())),
+            Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
+            Box::new(events::PluginTerminatingEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))), 
+            Box::new(events::PluginStartedEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))),
         ])
     }
 
@@ -125,6 +162,11 @@ impl ObserverPlugin {
             name: "ObserverPlugin".to_string(),
             id: Uuid::new_v4(),
         }
+    }
+
+    // Just log receiving the event.
+    fn record_event(&self, event_name: &str) {
+        info!("\n  -> {} received event {}", self.name, String::from(event_name));
     }
 }
 
