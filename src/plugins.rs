@@ -1,8 +1,8 @@
-mod image_gen_plugin;
-mod image_recv_plugin;
-mod image_score_plugin;
-mod image_store_plugin;
-mod observer_plugin;
+pub mod image_gen_plugin;
+pub mod image_recv_plugin;
+pub mod image_score_plugin;
+pub mod image_store_plugin;
+pub mod observer_plugin;
 
 #[cfg(test)]
 mod tests {

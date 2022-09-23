@@ -5,6 +5,7 @@ use event_engine::errors::EngineError;
 use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
+use crate::Config;
 
 use log::{info, error, debug};
 use std::{thread, time};
@@ -12,6 +13,7 @@ use std::{thread, time};
 struct ObserverPlugin {
     name: String,
     id: Uuid,
+    config: &'static Config,
 }
 impl Plugin for ObserverPlugin {
 
@@ -157,10 +159,11 @@ impl Plugin for ObserverPlugin {
 }
 
 impl ObserverPlugin {
-    pub fn new() -> Self {
+    pub fn new(config: &'static Config) -> Self {
         ObserverPlugin {
             name: "ObserverPlugin".to_string(),
             id: Uuid::new_v4(),
+            config,
         }
     }
 

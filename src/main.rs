@@ -1,6 +1,7 @@
 // Stardard imports.
-use std::{env, fs};
+use std::{env, fs, sync::Arc};
 use toml;
+use lazy_static::lazy_static;
 
 // Logging imports.
 use log::{error, info};
@@ -14,6 +15,7 @@ mod events_generated;
 pub mod traps_utils;
 use config::config::{Config};
 use config::errors::{Errors};
+use plugins::{image_gen_plugin::ImageGenPlugin};
 
 // Event engine imports.
 use event_engine::App;
@@ -25,6 +27,15 @@ use event_engine::App;
 const LOG4RS_CONFIG_FILE  : &str = "resources/log4rs.yml";
 const ENV_CONFIG_FILE_KEY : &str = "TRAPS_CONFIG_FILE";
 const DEFAULT_CONFIG_FILE : &str = "~/traps.toml";
+
+// ***************************************************************************
+//                             Static Variables 
+// ***************************************************************************
+// Lazily initialize the parameters variable so that is has a 'static lifetime.
+// We exit if we can't read our parameters.
+lazy_static! {
+    static ref PARMS: Parms = get_parms().unwrap();
+}
 
 // ***************************************************************************
 //                                Functions
@@ -40,12 +51,11 @@ fn main() -> Result<()> {
     log4rs::init_file(LOG4RS_CONFIG_FILE, Default::default())
         .context(format!("{}", Errors::Log4rsInitialization(LOG4RS_CONFIG_FILE.to_string())))?;
 
-    // Read input parameters.
-    let parms = get_parms()?;
-    info!("{}", Errors::InputParms(format!("{:#?}", parms)));
+    // Force the reading of input parameters.
+    info!("{}", Errors::InputParms(format!("{:#?}", *PARMS)));
 
     // Start internal plugins.
-    let app = init_app(parms)?;
+    let app = init_app(&PARMS)?;
 
 
     // We're done.
@@ -55,12 +65,37 @@ fn main() -> Result<()> {
 // ---------------------------------------------------------------------------
 // initApp:
 // ---------------------------------------------------------------------------
-fn init_app(parms: Parms) -> Result<App>{
+fn init_app(parms: &Parms) -> Result<App>{
     
     // Create the app on the specified
     let app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
-    
+    let mut plugin_count = 0;
+
     // Register internal plugins.
+    let app_ref = &app;
+    for plugin_name in &parms.config.plugins.internal {
+        match plugin_name.as_str() {
+            "image_gen_plugin" => {
+//                app.register_plugin(Arc::new(Box::new(ImageGenPlugin::new(&PARMS.config))));
+                plugin_count += 1;
+            },
+            "image_recv_plugin" => {
+                plugin_count += 1;
+            },
+            "image_score_plugin" => {
+                plugin_count += 1;
+            },
+            "image_store_plugin" => {
+                plugin_count += 1;
+            },
+            "observer_plugin" => {
+                plugin_count += 1;
+            },
+           _ => {
+
+            },
+        }
+    }
 
 
     // Register external plugins.

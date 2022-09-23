@@ -5,13 +5,15 @@ use event_engine::errors::EngineError;
 use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
+use crate::Config;
 
 use log::{info, error, debug};
 use std::{thread, time};
 
-struct ImageGenPlugin {
+pub struct ImageGenPlugin {
     name: String,
     id: Uuid,
+    config: &'static Config,
 }
 
 impl Plugin for ImageGenPlugin {
@@ -119,10 +121,11 @@ impl Plugin for ImageGenPlugin {
 }
 
 impl ImageGenPlugin {
-    pub fn new() -> Self {
+    pub fn new(config:&'static Config) -> Self {
         ImageGenPlugin {
             name: "ImageGenPlugin".to_string(),
             id: Uuid::new_v4(),
+            config,
         }
     }
 }
