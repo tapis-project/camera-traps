@@ -15,10 +15,13 @@ mod events_generated;
 pub mod traps_utils;
 use config::config::{Config};
 use config::errors::{Errors};
-use plugins::{image_gen_plugin::ImageGenPlugin};
+use plugins::{image_gen_plugin::ImageGenPlugin, image_recv_plugin::ImageReceivePlugin,
+              image_score_plugin::ImageScorePlugin, image_store_plugin::ImageStorePlugin,
+              observer_plugin::ObserverPlugin};
 
 // Event engine imports.
 use event_engine::App;
+use event_engine::plugins::Plugin;
 
 // ***************************************************************************
 //                                Constants
@@ -68,34 +71,36 @@ fn main() -> Result<()> {
 fn init_app(parms: &Parms) -> Result<App>{
     
     // Create the app on the specified
-    let app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
-    let mut plugin_count = 0;
+    let mut app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
 
-    // Register internal plugins.
-    let app_ref = &app;
+    // Register internal plugins. First collect all the ones we are going
+    // to use in a vector and pass that vector to the App in one registration
+    // call.  The arguably more natural approach of registering each plugin
+    // as it's encountered is prohibited by move semantics.
+    let mut plugins: Vec<Arc<Box<dyn Plugin>>> = Vec::new();
     for plugin_name in &parms.config.plugins.internal {
         match plugin_name.as_str() {
             "image_gen_plugin" => {
-//                app.register_plugin(Arc::new(Box::new(ImageGenPlugin::new(&PARMS.config))));
-                plugin_count += 1;
+                plugins.push(Arc::new(Box::new(ImageGenPlugin::new(&PARMS.config))));
             },
             "image_recv_plugin" => {
-                plugin_count += 1;
+                plugins.push(Arc::new(Box::new(ImageReceivePlugin::new(&PARMS.config))));
             },
             "image_score_plugin" => {
-                plugin_count += 1;
+                plugins.push(Arc::new(Box::new(ImageScorePlugin::new(&PARMS.config))));
             },
             "image_store_plugin" => {
-                plugin_count += 1;
+                plugins.push(Arc::new(Box::new(ImageStorePlugin::new(&PARMS.config))));
             },
             "observer_plugin" => {
-                plugin_count += 1;
+                plugins.push(Arc::new(Box::new(ObserverPlugin::new(&PARMS.config))));
             },
            _ => {
 
             },
         }
     }
+    app.register_plugins(plugins);
 
 
     // Register external plugins.

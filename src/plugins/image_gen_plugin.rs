@@ -11,7 +11,7 @@ use log::{info, error, debug};
 use std::{thread, time};
 
 pub struct ImageGenPlugin {
-    name: String,
+    pub name: String,
     id: Uuid,
     config: &'static Config,
 }
