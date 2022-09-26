@@ -77,31 +77,28 @@ fn init_app(parms: &Parms) -> Result<App>{
     // to use in a vector and pass that vector to the App in one registration
     // call.  The arguably more natural approach of registering each plugin
     // as it's encountered is prohibited by move semantics.
-    let mut plugins: Vec<Arc<Box<dyn Plugin>>> = Vec::new();
     for plugin_name in &parms.config.plugins.internal {
         match plugin_name.as_str() {
             "image_gen_plugin" => {
-                plugins.push(Arc::new(Box::new(ImageGenPlugin::new(&PARMS.config))));
+                app = app.register_plugin(Arc::new(Box::new(ImageGenPlugin::new(&PARMS.config))));
             },
             "image_recv_plugin" => {
-                plugins.push(Arc::new(Box::new(ImageReceivePlugin::new(&PARMS.config))));
+                app = app.register_plugin(Arc::new(Box::new(ImageReceivePlugin::new(&PARMS.config))));
             },
             "image_score_plugin" => {
-                plugins.push(Arc::new(Box::new(ImageScorePlugin::new(&PARMS.config))));
+                app = app.register_plugin(Arc::new(Box::new(ImageScorePlugin::new(&PARMS.config))));
             },
             "image_store_plugin" => {
-                plugins.push(Arc::new(Box::new(ImageStorePlugin::new(&PARMS.config))));
+                app = app.register_plugin(Arc::new(Box::new(ImageStorePlugin::new(&PARMS.config))));
             },
             "observer_plugin" => {
-                plugins.push(Arc::new(Box::new(ObserverPlugin::new(&PARMS.config))));
+                app = app.register_plugin(Arc::new(Box::new(ObserverPlugin::new(&PARMS.config))));
             },
            _ => {
 
             },
         }
     }
-    app.register_plugins(plugins);
-
 
     // Register external plugins.
 
