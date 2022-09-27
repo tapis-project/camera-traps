@@ -50,7 +50,7 @@ impl Event for NewImageEvent {
         // Create the generated event offset object using the generated arguments.
         let args = gen_events::NewImageEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
-            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
             image_format: Some(fbuf.create_string(&self.image_format)),
             image: Some(fbuf.create_vector(&self.image)),
         };
@@ -190,7 +190,7 @@ impl Event for ImageReceivedEvent {
         // Create the generated event offset object using the generated arguments.
         let args = gen_events::ImageReceivedEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
-            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
         };
         let event_offset = gen_events::ImageReceivedEvent::create(&mut fbuf, &args);
 
@@ -363,7 +363,7 @@ impl Event for ImageScoredEvent {
         let mut image_label_scores = Vec::<flatbuffers::WIPOffset<gen_events::ImageLabelScore>>::new();
         for score in &self.scores {
             // Assign the string fields.
-            let image_uuid = Some(fbuf.create_string(&score.image_uuid.to_hyphenated().to_string()));
+            let image_uuid = Some(fbuf.create_string(&score.image_uuid.hyphenated().to_string()));
             let label = Some(fbuf.create_string(&score.label));
 
             // Create each generated score object 
@@ -383,7 +383,7 @@ impl Event for ImageScoredEvent {
         // Create the generated event offset object using the generated arguments.
         let args = gen_events::ImageScoredEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
-            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
             scores: Some(fbuf.create_vector(&image_label_scores)),
         };
         let event_offset = gen_events::ImageScoredEvent::create(&mut fbuf, &args);
@@ -544,7 +544,7 @@ impl Event for ImageStoredEvent {
         // Create the generated event offset object using the generated arguments.
         let args = gen_events::ImageStoredEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
-            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
             destination: Some(fbuf.create_string(&self.destination)),
         };
         let event_offset = gen_events::ImageStoredEvent::create(&mut fbuf, &args);
@@ -673,7 +673,7 @@ impl Event for ImageDeletedEvent {
         // Create the generated event offset object using the generated arguments.
         let args = gen_events::ImageDeletedEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
-            image_uuid: Some(fbuf.create_string(&self.image_uuid.to_hyphenated().to_string())),
+            image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
         };
         let event_offset = gen_events::ImageDeletedEvent::create(&mut fbuf, &args);
 
@@ -795,7 +795,7 @@ impl Event for PluginStartedEvent {
         let args = gen_events::PluginStartedEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             plugin_name: Some(fbuf.create_string(&self.plugin_name)),
-            plugin_uuid: Some(fbuf.create_string(&self.plugin_uuid.to_hyphenated().to_string())),
+            plugin_uuid: Some(fbuf.create_string(&self.plugin_uuid.hyphenated().to_string())),
         };
         let event_offset = gen_events::PluginStartedEvent::create(&mut fbuf, &args);
 
@@ -925,7 +925,7 @@ impl Event for PluginTerminatingEvent {
         let args = gen_events::PluginTerminatingEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             plugin_name: Some(fbuf.create_string(&self.plugin_name)),
-            plugin_uuid: Some(fbuf.create_string(&self.plugin_uuid.to_hyphenated().to_string())),
+            plugin_uuid: Some(fbuf.create_string(&self.plugin_uuid.hyphenated().to_string())),
         };
         let event_offset = gen_events::PluginTerminatingEvent::create(&mut fbuf, &args);
 
@@ -1055,7 +1055,7 @@ impl Event for PluginTerminateEvent {
         let args = gen_events::PluginTerminateEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             target_plugin_name: Some(fbuf.create_string(&self.target_plugin_name)),
-            target_plugin_uuid: Some(fbuf.create_string(&self.target_plugin_uuid.to_hyphenated().to_string())),
+            target_plugin_uuid: Some(fbuf.create_string(&self.target_plugin_uuid.hyphenated().to_string())),
         };
         let event_offset = gen_events::PluginTerminateEvent::create(&mut fbuf, &args);
 

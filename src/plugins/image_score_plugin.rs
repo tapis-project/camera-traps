@@ -29,7 +29,7 @@ impl Plugin for ImageScorePlugin {
     ) -> Result<(), EngineError> {
 
         // Announce our arrival.
-        info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().to_hyphenated().to_string())));
+        info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
         thread::sleep(time::Duration::new(1, 0));
 
         // Send our alive event.
@@ -40,7 +40,7 @@ impl Plugin for ImageScorePlugin {
                 // Log the error and abort if we can't serialize our start up message.
                 let msg = format!("{}", Errors::EventToBytesError(self.name.clone(), ev.get_name(), e.to_string()));
                 error!("{}", msg);
-                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().to_hyphenated().to_string(), msg));
+                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().hyphenated().to_string(), msg));
             } 
         };
 
@@ -51,7 +51,7 @@ impl Plugin for ImageScorePlugin {
                 // Log the error and abort if we can't send our start up message.
                 let msg = format!("{}", Errors::SocketSendError(self.name.clone(), ev.get_name(), e.to_string()));
                 error!("{}", msg);
-                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().to_hyphenated().to_string(), msg));
+                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().hyphenated().to_string(), msg));
             }
         };
 

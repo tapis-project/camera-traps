@@ -4,20 +4,20 @@ appenders:
   stdout:
     kind: console
     encoder:
-      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.36}:{L} - {m}{n}"
+      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.100}:{L} - {m}{n}"
 
   fout:
     kind: file
     path: "test.log"
     encoder:
-      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.36}:{L} - {m}{n}"
+      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.100}:{L} - {m}{n}"
 
   roller:
     kind: rolling_file
     append: true
     path: "logs/roller.log"
     encoder:
-      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.36}:{L} - {m}{n}"
+      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.100}:{L} - {m}{n}"
     policy:
       kind: compound
       trigger:

@@ -90,31 +90,31 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
                 let plugin = ImageGenPlugin::new(&PARMS.config);
                 let uuid = plugin.get_id().clone();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_gen_plugin".to_string(), uuid.to_hyphenated().to_string()));
+                info!("{}",Errors::PluginRegistered("image_gen_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_recv_plugin" => {
                 let plugin = ImageReceivePlugin::new(&PARMS.config);
                 let uuid = plugin.get_id().clone();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_recv_plugin".to_string(), uuid.to_hyphenated().to_string()));
+                info!("{}",Errors::PluginRegistered("image_recv_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_score_plugin" => {
                 let plugin = ImageScorePlugin::new(&PARMS.config);
                 let uuid = plugin.get_id().clone();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_score_plugin".to_string(), uuid.to_hyphenated().to_string()));
+                info!("{}",Errors::PluginRegistered("image_score_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_store_plugin" => {
                 let plugin =ImageStorePlugin::new(&PARMS.config);
                 let uuid = plugin.get_id().clone();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_store_plugin".to_string(), uuid.to_hyphenated().to_string()));
+                info!("{}",Errors::PluginRegistered("image_store_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "observer_plugin" => {
                 let plugin = ObserverPlugin::new(&PARMS.config);
                 let uuid = plugin.get_id().clone();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("observer_plugin".to_string(), uuid.to_hyphenated().to_string()));
+                info!("{}",Errors::PluginRegistered("observer_plugin".to_string(), uuid.hyphenated().to_string()));
             },
            other => {
                 // Aborting.
