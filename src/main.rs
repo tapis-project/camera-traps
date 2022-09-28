@@ -1,6 +1,5 @@
 // Stardard imports.
 use std::{env, fs, sync::Arc};
-use toml;
 use lazy_static::lazy_static;
 
 // Logging imports.
@@ -88,31 +87,31 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
         match plugin_name.as_str() {
             "image_gen_plugin" => {
                 let plugin = ImageGenPlugin::new(&PARMS.config);
-                let uuid = plugin.get_id().clone();
+                let uuid = plugin.get_id();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
                 info!("{}",Errors::PluginRegistered("image_gen_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_recv_plugin" => {
                 let plugin = ImageReceivePlugin::new(&PARMS.config);
-                let uuid = plugin.get_id().clone();
+                let uuid = plugin.get_id();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
                 info!("{}",Errors::PluginRegistered("image_recv_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_score_plugin" => {
                 let plugin = ImageScorePlugin::new(&PARMS.config);
-                let uuid = plugin.get_id().clone();
+                let uuid = plugin.get_id();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
                 info!("{}",Errors::PluginRegistered("image_score_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_store_plugin" => {
                 let plugin =ImageStorePlugin::new(&PARMS.config);
-                let uuid = plugin.get_id().clone();
+                let uuid = plugin.get_id();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
                 info!("{}",Errors::PluginRegistered("image_store_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "observer_plugin" => {
                 let plugin = ObserverPlugin::new(&PARMS.config);
-                let uuid = plugin.get_id().clone();
+                let uuid = plugin.get_id();
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
                 info!("{}",Errors::PluginRegistered("observer_plugin".to_string(), uuid.hyphenated().to_string()));
             },
@@ -176,7 +175,7 @@ fn get_parms() -> Result<Parms> {
         }
     };
 
-    Result::Ok(Parms { config_file: config_file_abs, config: config})
+    Result::Ok(Parms { config_file: config_file_abs, config})
 }
 
 // ***************************************************************************

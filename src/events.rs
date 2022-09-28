@@ -106,9 +106,9 @@ impl NewImageEvent {
     pub fn new(image_uuid: Uuid, image_format: String, image: Vec<u8>) -> Self {
         NewImageEvent {
             created: timestamp_str(),
-            image_uuid: image_uuid,
-            image_format: image_format,
-            image: image,
+            image_uuid,
+            image_format,
+            image,
         }
     }
 
@@ -152,7 +152,7 @@ impl NewImageEvent {
             created: String::from(created),
             image_uuid: uuid,
             image_format: String::from(format),
-            image: image,
+            image,
         })
     }
 }
@@ -244,7 +244,7 @@ impl ImageReceivedEvent {
     pub fn new(image_uuid: Uuid) -> Self {
         ImageReceivedEvent {
             created: timestamp_str(),
-            image_uuid: image_uuid,
+            image_uuid,
         }
     }
 
@@ -599,8 +599,8 @@ impl ImageStoredEvent {
     pub fn new(image_uuid: Uuid, destination: String) -> Self {
         ImageStoredEvent {
             created: timestamp_str(),
-            image_uuid: image_uuid,
-            destination: destination,
+            image_uuid,
+            destination,
         }
     }
 
@@ -727,7 +727,7 @@ impl ImageDeletedEvent {
     pub fn new(image_uuid: Uuid) -> Self {
         ImageDeletedEvent {
             created: timestamp_str(),
-            image_uuid: image_uuid,
+            image_uuid,
         }
     }
 

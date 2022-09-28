@@ -84,7 +84,7 @@ pub fn timestamp_str() -> String {
  * to a DateTime object.  The result will contain a parse error if the string
  * does not conform to rfc3339.
  */
-pub fn timestamp_str_to_datetime(ts: &String) -> Result<DateTime<FixedOffset>, ParseError> {
+pub fn timestamp_str_to_datetime(ts: &str) -> Result<DateTime<FixedOffset>, ParseError> {
     DateTime::parse_from_rfc3339(ts)
 }
 
@@ -155,7 +155,7 @@ pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socke
             // Log the error.
             let err = Errors::EventToBytesError(plugin_name.to_string(), ev.get_name(), e.to_string());
             error!("{}", format!("{}", err));
-            return ();
+            return;
         }
     };
 
@@ -166,7 +166,6 @@ pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socke
             // Log the error.
             let err = Errors::EventSendError(plugin_name.to_string(), ev.get_name(), e.to_string());
             error!("{}", format!("{}", err));
-            ()
         },
     };
 }

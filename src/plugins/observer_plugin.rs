@@ -8,7 +8,6 @@ use crate::traps_utils;
 use crate::Config;
 
 use log::{info, error};
-use std::{thread, time};
 
 pub struct ObserverPlugin {
     name: String,
@@ -29,10 +28,9 @@ impl Plugin for ObserverPlugin {
 
         // Announce our arrival.
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
-        thread::sleep(time::Duration::new(1, 0));
 
         // Send our alive event.
-        let ev = events::PluginStartedEvent::new(self.get_id().clone(), self.name.clone());
+        let ev = events::PluginStartedEvent::new(self.get_id(), self.name.clone());
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {
@@ -130,7 +128,7 @@ impl Plugin for ObserverPlugin {
             // Determine if we should terminate our event read loop.
             if terminate {
                 // Clean up and send the terminating event.
-                traps_utils::send_terminating_event(&self.name, self.id.clone(), &pub_socket);
+                traps_utils::send_terminating_event(&self.name, self.id, &pub_socket);
                 break;
             }
         }
@@ -155,7 +153,7 @@ impl Plugin for ObserverPlugin {
     }
 
     /// Returns the unique id for this plugin.
-    fn get_id(&self) -> Uuid {self.id.clone()}
+    fn get_id(&self) -> Uuid {self.id}
 }
 
 impl ObserverPlugin {
