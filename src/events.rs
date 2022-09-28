@@ -13,6 +13,61 @@ use crate::events_generated::gen_events;
 use crate::traps_utils::timestamp_str;
 
 // ***************************************************************************
+// CONSTANTS
+// ***************************************************************************
+// Each event is assigned a binary prefix that zqm uses to route incoming
+// binary streams to all of the event's subscribers.
+pub const NEW_IMAGE_PREFIX:          [u8; 2] = [0x01, 0x00];
+pub const IMAGE_RECEIVED_PREFIX:     [u8; 2] = [0x02, 0x00];
+pub const IMAGE_SCORED_PREFIX:       [u8; 2] = [0x03, 0x00];
+pub const IMAGE_STORED_PREFIX:       [u8; 2] = [0x04, 0x00];
+pub const IMAGE_DELETED_PREFIX:      [u8; 2] = [0x05, 0x00];
+pub const PLUGIN_STARTED_PREFIX:     [u8; 2] = [0x10, 0x00];
+pub const PLUGIN_TERMINATING_PREFIX: [u8; 2] = [0x11, 0x00];
+pub const PLUGIN_TERMINATE_PREFIX:   [u8; 2] = [0x12, 0x00];
+pub const EVENT_PREFIX_LEN: usize = NEW_IMAGE_PREFIX.len();
+
+// ***************************************************************************
+// PUBLIC FUNCTIONS
+// ***************************************************************************
+// ---------------------------------------------------------------------------
+// check_event_prefix:
+// ---------------------------------------------------------------------------
+/** Make sure zqm routing prefix matches the event is supposed to be associated
+ * with.  Return true if they match, false otherwise.
+ */
+pub fn check_event_prefix(prefix: [u8; 2], event_name: &str) -> bool {
+    let b = match prefix {
+        NEW_IMAGE_PREFIX => {
+            if event_name == "NewImageEvent" {true} else {false}
+        }
+        IMAGE_RECEIVED_PREFIX => {
+            if event_name == "ImageReceivedEvent" {true} else {false}
+        }
+        IMAGE_SCORED_PREFIX => {
+            if event_name == "ImageScoredEvent" {true} else {false}
+        }
+        IMAGE_STORED_PREFIX => {
+            if event_name == "ImageStoredEvent" {true} else {false}
+        }
+        IMAGE_DELETED_PREFIX => {
+            if event_name == "ImageDeletedEvent" {true} else {false}
+        }
+        PLUGIN_STARTED_PREFIX => {
+            if event_name == "PluginStartedEvent" {true} else {false}
+        }
+        PLUGIN_TERMINATING_PREFIX => {
+            if event_name == "PluginterminatingEvent" {true} else {false}
+        }
+        PLUGIN_TERMINATE_PREFIX => {
+            if event_name == "PluginTerminateEvent" {true} else {false}
+        }
+        _ => false
+    };
+    b
+}
+
+// ***************************************************************************
 // EVENTS
 // ***************************************************************************
 // ===========================================================================
@@ -32,6 +87,10 @@ impl EventType for NewImageEvent {
     fn get_name(&self) -> String {
         String::from("NewImageEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(NEW_IMAGE_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -41,7 +100,7 @@ impl Event for NewImageEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -64,13 +123,13 @@ impl Event for NewImageEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(NEW_IMAGE_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<NewImageEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -172,6 +231,10 @@ impl EventType for ImageReceivedEvent {
     fn get_name(&self) -> String {
         String::from("ImageReceivedEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(IMAGE_RECEIVED_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -181,7 +244,7 @@ impl Event for ImageReceivedEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -202,13 +265,13 @@ impl Event for ImageReceivedEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(IMAGE_RECEIVED_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageReceivedEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -344,6 +407,10 @@ impl EventType for ImageScoredEvent {
     fn get_name(&self) -> String {
         String::from("ImageScoredEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(IMAGE_SCORED_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -353,7 +420,7 @@ impl Event for ImageScoredEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -396,13 +463,13 @@ impl Event for ImageScoredEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(IMAGE_SCORED_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageScoredEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -526,6 +593,10 @@ impl EventType for ImageStoredEvent {
     fn get_name(&self) -> String {
         String::from("ImageStoredEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(IMAGE_STORED_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -535,7 +606,7 @@ impl Event for ImageStoredEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -557,13 +628,13 @@ impl Event for ImageStoredEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(IMAGE_STORED_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageStoredEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -655,6 +726,10 @@ impl EventType for ImageDeletedEvent {
     fn get_name(&self) -> String {
         String::from("ImageDeletedEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(IMAGE_DELETED_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -664,7 +739,7 @@ impl Event for ImageDeletedEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -685,13 +760,13 @@ impl Event for ImageDeletedEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(IMAGE_DELETED_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageDeletedEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -776,6 +851,10 @@ impl EventType for PluginStartedEvent {
     fn get_name(&self) -> String {
         String::from("PluginStartedEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(PLUGIN_STARTED_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -807,13 +886,13 @@ impl Event for PluginStartedEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(PLUGIN_STARTED_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<PluginStartedEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -906,6 +985,10 @@ impl EventType for PluginTerminatingEvent {
     fn get_name(&self) -> String {
         String::from("PluginTerminatingEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(PLUGIN_TERMINATING_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -915,7 +998,7 @@ impl Event for PluginTerminatingEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -937,13 +1020,13 @@ impl Event for PluginTerminatingEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(PLUGIN_TERMINATING_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<PluginTerminatingEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -1036,6 +1119,10 @@ impl EventType for PluginTerminateEvent {
     fn get_name(&self) -> String {
         String::from("PluginTerminateEvent")
     }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(PLUGIN_TERMINATE_PREFIX.to_vec())
+    }
 }
 
 // ------------------------------
@@ -1045,7 +1132,7 @@ impl Event for PluginTerminateEvent {
     // ----------------------------------------------------------------------
     // to_bytes:
     // ----------------------------------------------------------------------
-    /** Convert the event to a raw byte array. */
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
     fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
         // Create a new flatbuffer.
         let mut fbuf = FlatBufferBuilder::new();
@@ -1067,13 +1154,13 @@ impl Event for PluginTerminateEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(fbuf, union_args))
+        Ok(serialize_flatbuffer(PLUGIN_TERMINATE_PREFIX, fbuf, union_args))
     }
 
     // ----------------------------------------------------------------------
     // from_bytes:
     // ----------------------------------------------------------------------
-    /** Get a NewImageEvent from a vector raw event bytes. */
+    /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<PluginTerminateEvent, Box<dyn Error>>
     where
         Self: Sized {
@@ -1188,7 +1275,7 @@ fn check_event_type(expected: &str, event: &gen_events::Event) -> Result<(), Err
 // ---------------------------------------------------------------------------
 // serialize_flatbuffer:
 // ---------------------------------------------------------------------------
-fn serialize_flatbuffer(mut fbuf: FlatBufferBuilder, union_args: gen_events::EventArgs) -> Vec<u8> {
+fn serialize_flatbuffer(prefix: [u8; 2], mut fbuf: FlatBufferBuilder, union_args: gen_events::EventArgs) -> Vec<u8> {
     // Get the offset of the particular event already encoded in the union argument.    
     let union_offset = gen_events::Event::create(&mut fbuf, &union_args);
     
@@ -1197,7 +1284,8 @@ fn serialize_flatbuffer(mut fbuf: FlatBufferBuilder, union_args: gen_events::Eve
     let bytes = fbuf.finished_data();
 
     // Copy the raw data into a properly sized vector.
-    let mut byte_vec: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut byte_vec: Vec<u8> = Vec::with_capacity(bytes.len() + prefix.len());
+    byte_vec.extend_from_slice(&prefix);
     byte_vec.extend_from_slice(bytes);
     byte_vec
 }
@@ -1211,5 +1299,17 @@ mod tests {
     #[test]
     fn here_i_am() {
         println!("file test: events.rs");
+    }
+
+    const filter: [u8; 2] = [0x01, 0x00];
+
+    #[test]
+    fn buftest() {
+        let bytes: [u8; 4] = [65_u8,66_u8,67_u8,68_u8];
+        let mut vec: Vec<u8> = Vec::with_capacity(bytes.len() + filter.len());
+        println!("filter len={}, bytes len={}, capacity={}", filter.len(), bytes.len(), vec.capacity());
+        vec.extend_from_slice(&filter);
+        vec.extend_from_slice(&bytes);
+        println!("capacity={}, len={}", vec.capacity(), vec.len());
     }
 }

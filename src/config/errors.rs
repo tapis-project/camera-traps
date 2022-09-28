@@ -15,11 +15,17 @@ pub enum Errors {
     #[error("Unable to create an event from buffer contents: {0}")]
     EventFromFlatbuffer(String),
 
+    #[error("Plugin {0} received an ill-formed event length {0}.")]
+    EventInvalidLen(String, usize),
+
     #[error("Plugin {0} received an unknown event type which it is ignoring.")]
     EventNoneError(String),
 
     #[error("Plugin {0} received event type {1} which it does not handle.")]
     EventNotHandledError(String, String),
+
+    #[error("Plugin {0} received event with mismatched prefix ({1} and type ({2}).)")]
+    EventPrefixMismatch(String, String, String),
 
     #[error("Plugin {0} is processing event type {1}.")]
     EventProcessing(String, &'static str),
