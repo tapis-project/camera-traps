@@ -6,6 +6,7 @@ use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
+use crate::events::{EVENT_PREFIX_LEN, check_event_prefix, NEW_IMAGE_PREFIX, PLUGIN_TERMINATE_PREFIX};
 
 use log::{info, error, debug};
 
@@ -55,6 +56,7 @@ impl Plugin for ImageReceivePlugin {
 
         // Enter our infinite work loop.
         loop {
+            // ----------------- Retrieve and Slice Raw Bytes -----------------
             // Wait on the subsciption socket.
             let bytes = match sub_socket.recv_bytes(0) {
                 Ok(b) => b,
@@ -63,14 +65,25 @@ impl Plugin for ImageReceivePlugin {
                     // pause before continuing if there are too many errors in a short period
                     // of time.  This would avoid filling up the log file and burning cycles
                     // when things go sideways for a while.
-                    let msg = format!("{}", Errors::SocketRecvError(self.name.clone(), e.to_string()));
-                    error!("{}", msg);
+                    error!("{}", Errors::SocketRecvError(self.name.clone(), e.to_string()));
                     continue;
                 }
             };
 
+            // Basic buffer length checking to make sure we have
+            // the event prefix and at least 1 other byte.
+            if bytes.len() < EVENT_PREFIX_LEN + 1 {
+                error!("{}", Errors::EventInvalidLen(self.name.clone(), bytes.len()));
+                continue;
+            }
+
+            // Split the 2 zqm prefix bytes from the flatbuffer bytes.
+            let prefix_bytes = &bytes[0..EVENT_PREFIX_LEN];
+            let fbuf_bytes = &bytes[EVENT_PREFIX_LEN..];
+
+            // ----------------- Get the FBS Generated Event ------------------
             // Get the generated event and its type.
-            let gen_event = match traps_utils::bytes_to_gen_event(&bytes) {
+            let gen_event = match traps_utils::bytes_to_gen_event(fbuf_bytes) {
                 Ok(tuple)=> tuple,
                 Err(e)=> {
                     error!("{}", e.to_string());
@@ -78,21 +91,44 @@ impl Plugin for ImageReceivePlugin {
                 }
             };
 
-            // Process events we expect; log and disregard all others.
-            let terminate = match gen_event.event_type().variant_name() {
-                Some("PluginTerminateEvent") => {
-                    // Determine whether we are the target of this terminate event.
-                    debug!("{}", format!("{}", Errors::EventProcessing(self.name.clone(), "PluginTerminateEvent")));
-                    traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
-                },
+            // Get the event name from the generated event and check it against prefix slice.
+            let event_name = match gen_event.event_type().variant_name() {  
+                Some(n) => n,
                 None => {
-                    let msg = format!("{}", Errors::EventNoneError(self.name.clone()));
-                    error!("{}", msg);
+                    error!("{}", Errors::EventNoneError(self.name.clone()));
+                    continue;
+                },
+            };
+
+            // ----------------- Check the Prefix and Event -------------------
+            // Check that the prefix bytes match the event type. 
+            // False means a mismatch was detected and the 
+            let prefix_array = [prefix_bytes[0], prefix_bytes[1]];
+            if !check_event_prefix(prefix_array, event_name) {
+                let pre = format!("{:?}", prefix_array);
+                let name = event_name.to_string();
+                error!("{}", Errors::EventPrefixMismatch(self.name.clone(), pre, name));
+                continue;
+            }
+
+            // ----------------- Process Subscription Events ------------------
+            // Process events we expect; log and disregard all others.
+            let terminate = match prefix_array {
+                NEW_IMAGE_PREFIX => {
+                    debug!("\n  -> {} received event {}", self.name, String::from("NewImageEvent"));
                     false
                 },
-                Some(unexpected) => {
-                    let msg = format!("{}", Errors::EventNotHandledError(self.name.clone(), unexpected.to_string()));
-                    error!("{}", msg);
+                PLUGIN_TERMINATE_PREFIX => {
+                    // Determine whether we are the target of this terminate event. The called method
+                    // will return true if this plugin should shutdown.
+                    info!("\n  -> {} received event {}", self.name, String::from("PluginTerminateEvent"));
+                    traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
+                },
+                unexpected => {
+                    // This should only happen for valid events to which we are not subscribed.
+                    // Completely invalid event prefixes are detected above in check_event_prefix().
+                    let pre = format!("{:?}", unexpected);
+                    error!("{}", Errors::EventNotHandledError(self.name.clone(), pre));
                     false
                 }
             };
@@ -111,7 +147,10 @@ impl Plugin for ImageReceivePlugin {
 
     /// Return the event subscriptions, as a vector of strings, that this plugin is interested in.
     fn get_subscriptions(&self) -> Result<Vec<Box<dyn EventType>>, EngineError> {
-        Ok(vec![Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*")))])
+        Ok(vec![
+            Box::new(events::NewImageEvent::new(Uuid::new_v4(), String::from("fake"), vec![])),
+            Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
+        ])
     }
 
     /// Returns the unique id for this plugin.

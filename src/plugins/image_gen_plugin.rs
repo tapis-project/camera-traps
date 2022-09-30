@@ -121,7 +121,7 @@ impl Plugin for ImageGenPlugin {
             let terminate = match prefix_array {
                 PLUGIN_TERMINATE_PREFIX => {
                     // Determine whether we are the target of this terminate event.
-                    debug!("{}", format!("{}", Errors::EventProcessing(self.name.clone(), "PluginTerminateEvent")));
+                    info!("{}", format!("{}", Errors::EventProcessing(self.name.clone(), "PluginTerminateEvent")));
                     traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
                 },
                 unexpected => {

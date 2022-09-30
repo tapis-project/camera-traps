@@ -1300,16 +1300,4 @@ mod tests {
     fn here_i_am() {
         println!("file test: events.rs");
     }
-
-    const filter: [u8; 2] = [0x01, 0x00];
-
-    #[test]
-    fn buftest() {
-        let bytes: [u8; 4] = [65_u8,66_u8,67_u8,68_u8];
-        let mut vec: Vec<u8> = Vec::with_capacity(bytes.len() + filter.len());
-        println!("filter len={}, bytes len={}, capacity={}", filter.len(), bytes.len(), vec.capacity());
-        vec.extend_from_slice(&filter);
-        vec.extend_from_slice(&bytes);
-        println!("capacity={}, len={}", vec.capacity(), vec.len());
-    }
 }
