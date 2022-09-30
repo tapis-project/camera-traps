@@ -12,7 +12,7 @@ use log::{info, error, debug};
 use std::{thread, time};
 
 pub struct ImageGenPlugin {
-    pub name: String,
+    name: String,
     id: Uuid,
     config: &'static Config,
 }
@@ -150,7 +150,8 @@ impl Plugin for ImageGenPlugin {
         Ok(vec![Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*")))])
     }
 
-    /// Returns the unique id for this plugin.
+    /// Simple accessors for this plugin.
+    fn get_name(&self) -> String {self.name.clone()}
     fn get_id(&self) -> Uuid {self.id}
 }
 

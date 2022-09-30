@@ -11,7 +11,7 @@ use crate::events::{EVENT_PREFIX_LEN, check_event_prefix, IMAGE_RECEIVED_PREFIX,
 use log::{info, error, debug};
 
 pub struct ImageScorePlugin {
-    pub name: String,
+    name: String,
     id: Uuid,
     config: &'static Config,
 }
@@ -153,7 +153,8 @@ impl Plugin for ImageScorePlugin {
         ])
     }
 
-    /// Returns the unique id for this plugin.
+    /// Simple accessors for this plugin.
+    fn get_name(&self) -> String {self.name.clone()}
     fn get_id(&self) -> Uuid {self.id}
 }
 

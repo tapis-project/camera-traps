@@ -185,7 +185,8 @@ impl Plugin for ObserverPlugin {
         ])
     }
 
-    /// Returns the unique id for this plugin.
+    /// Simple accessors for this plugin.
+    fn get_name(&self) -> String {self.name.clone()}
     fn get_id(&self) -> Uuid {self.id}
 }
 
