@@ -8,7 +8,7 @@ use crate::traps_utils;
 use crate::Config;
 use crate::events::{EVENT_PREFIX_LEN, check_event_prefix, PLUGIN_TERMINATE_PREFIX};
 
-use log::{info, error, debug};
+use log::{info, error};
 use std::{thread, time};
 
 pub struct ImageGenPlugin {

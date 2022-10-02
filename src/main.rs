@@ -17,7 +17,7 @@ use config::errors::{Errors};
 use event_engine::plugins::Plugin;
 use plugins::{image_gen_plugin::ImageGenPlugin, image_recv_plugin::ImageReceivePlugin,
               image_score_plugin::ImageScorePlugin, image_store_plugin::ImageStorePlugin,
-              observer_plugin::ObserverPlugin};
+              observer_plugin::ObserverPlugin, external_app_plugin::ExternalAppPlugin};
 
 // Event engine imports.
 use event_engine::App;
@@ -125,9 +125,15 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     }
 
     // Register external plugins.
-    //  - probably need to statically define name, uuid, port and subscriptions in config file.
-    //  - subscriptions could be dynamically handled by plugin and engine if engine supports it
-    //    as an external command. 
+    for ext_plugin in &parms.config.plugins.external {
+        let app_plugin = match ExternalAppPlugin::new(ext_plugin) {
+            Ok(p) => p,
+            Err(e) => return Result::Err(e),
+        };
+
+        // Register the external plugin.
+        app = app.register_external_plugin(Arc::new(Box::new(app_plugin)));
+    }
 
     // Return the app.
     Result::Ok(app)

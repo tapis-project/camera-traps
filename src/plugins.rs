@@ -3,6 +3,7 @@ pub mod image_recv_plugin;
 pub mod image_score_plugin;
 pub mod image_store_plugin;
 pub mod observer_plugin;
+pub mod external_app_plugin;
 
 #[cfg(test)]
 mod tests {

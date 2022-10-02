@@ -26,12 +26,19 @@ impl Default for Config {
     }
 }
 
-
 #[derive(Debug, Deserialize, Default)]
 pub struct Plugins {
     pub internal: Vec<String>,
-    pub external: Vec<String>,
+    pub external: Vec<ExtPluginConfig>,
     pub run_gen_driver: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ExtPluginConfig {
+    pub plugin_name: String,
+    pub id: String,
+    pub external_port: u16,
+    pub subscriptions: Vec<String>,
 }
 
 #[cfg(test)]
