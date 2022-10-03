@@ -1,5 +1,4 @@
 use uuid::Uuid;
-use crate::Config;
 use crate::config::config::ExtPluginConfig;
 use crate::{events, config::errors::Errors};
 use event_engine::{plugins::ExternalPlugin};
@@ -85,17 +84,28 @@ impl ExternalAppPlugin {
     /// here to customize external plugin configuration. This method
     /// consumes the incoming configuration argument.
     pub fn new(ext_config: &ExtPluginConfig) -> Result<Self, Errors> {
+        // Make sure the terminate event is listed.
+        if !ext_config.subscriptions.contains(&String::from("PluginTerminateEvent")) {
+            let err = Errors::PluginMissingSubscription(ext_config.plugin_name.clone(), ext_config.id.clone());
+            error!("{}", err);
+            return Result::Err(err); 
+        }
+
+        // Convert the uuid's string represention into an object. 
         let uuid = match Uuid::parse_str(ext_config.id.as_str()) {
             Ok(u) => u,
             Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("ext_config.id"), e.to_string()))},
         };
 
+        // Create the camera app's external plugin.
         let app_plugin = ExternalAppPlugin {
             plugin_name: ext_config.plugin_name.clone(),
             id: uuid,
             external_port: ext_config.external_port,
             subscriptions: ext_config.subscriptions.clone(),
         };
+
+        // We're good.
         Ok(app_plugin)
     }
 }

@@ -48,7 +48,7 @@ pub enum Errors {
     #[error("Expected event type {}, but received event {} instead.", .0, .1)]
     EventUnexpectedError(String, String),
 
-    #[error("File IO error: {}", .0)]
+   #[error("File IO error: {}", .0)]
     FileIOError(String),
 
     /// Input parameter logging.
@@ -66,14 +66,20 @@ pub enum Errors {
     #[error("\n**** Plugin {} ({}) starting execution.", .0, .1)]
     PluginStarted(String, String),
 
-    #[error("Plugin {0} ({1})registered with event-engine.")]
-    PluginRegistered(String, String),
+    #[error("Plugin {0} ({1}) does not subscribe to the required PluginTerminateEvent event.")]
+    PluginMissingSubscription(String, String),
 
     #[error("Unknown plugin {0} could not be registered, aborting application.")]
     PluginUnknown(String),
 
     #[error("Reading application configuration file: {}", .0)]
     ReadingConfigFile(String),
+
+    #[error("\n  -- Registering external plugin {0} with UUID {1}, port {2}, and {3} subscriptions.")]
+    RegisteringExternalPlugin(String, String, i32, usize),
+
+    #[error("\n -- Registering internal plugin {0} with UUID {1}.")]
+    RegisteringInternalPlugin(String, String),
 
     #[error("Plugin {0} failed to read a byte stream from its subscription socket: {1}")]
     SocketRecvError(String, String),

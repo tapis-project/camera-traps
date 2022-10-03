@@ -14,7 +14,7 @@ mod events_generated;
 pub mod traps_utils;
 use config::config::{Config};
 use config::errors::{Errors};
-use event_engine::plugins::Plugin;
+use event_engine::plugins::{Plugin, ExternalPlugin};
 use plugins::{image_gen_plugin::ImageGenPlugin, image_recv_plugin::ImageReceivePlugin,
               image_score_plugin::ImageScorePlugin, image_store_plugin::ImageStorePlugin,
               observer_plugin::ObserverPlugin, external_app_plugin::ExternalAppPlugin};
@@ -82,38 +82,38 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     // Create the app on the specified
     let mut app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
 
-    // Register internal plugins. 
+    // Register internal plugins if any are defined. 
     for plugin_name in &parms.config.plugins.internal {
         match plugin_name.as_str() {
             "image_gen_plugin" => {
                 let plugin = ImageGenPlugin::new(&PARMS.config);
                 let uuid = plugin.get_id();
+                info!("{}",Errors::RegisteringInternalPlugin("image_gen_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_gen_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_recv_plugin" => {
                 let plugin = ImageReceivePlugin::new(&PARMS.config);
                 let uuid = plugin.get_id();
+                info!("{}",Errors::RegisteringInternalPlugin("image_recv_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_recv_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_score_plugin" => {
                 let plugin = ImageScorePlugin::new(&PARMS.config);
                 let uuid = plugin.get_id();
+                info!("{}",Errors::RegisteringInternalPlugin("image_score_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_score_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "image_store_plugin" => {
                 let plugin =ImageStorePlugin::new(&PARMS.config);
                 let uuid = plugin.get_id();
+                info!("{}",Errors::RegisteringInternalPlugin("image_store_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("image_store_plugin".to_string(), uuid.hyphenated().to_string()));
             },
             "observer_plugin" => {
                 let plugin = ObserverPlugin::new(&PARMS.config);
                 let uuid = plugin.get_id();
+                info!("{}", Errors::RegisteringInternalPlugin("observer_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
-                info!("{}",Errors::PluginRegistered("observer_plugin".to_string(), uuid.hyphenated().to_string()));
             },
            other => {
                 // Aborting.
@@ -124,14 +124,17 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
         }
     }
 
-    // Register external plugins.
+    // Register external plugins if any are defined.
     for ext_plugin in &parms.config.plugins.external {
         let app_plugin = match ExternalAppPlugin::new(ext_plugin) {
             Ok(p) => p,
             Err(e) => return Result::Err(e),
         };
 
-        // Register the external plugin.
+        // Register the external plugin
+        let cnt = app_plugin.get_subscriptions().unwrap().len();
+        let id = app_plugin.get_id().hyphenated().to_string();
+        info!("{}", Errors::RegisteringExternalPlugin(app_plugin.get_name(), id, app_plugin.get_tcp_port(), cnt));
         app = app.register_external_plugin(Arc::new(Box::new(app_plugin)));
     }
 
