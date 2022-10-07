@@ -17,20 +17,35 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     """
     Create a new image event flatubuffers object
     """
-    # create and serialize the individual fields first -----
-    # convert ts to string formatted 
-    ts = datetime.datetime.utcnow().isoformat()
+    # everything we do will utilize a builder; we can look at whether it would be better to share a singleton
+    # builder later.
     builder = flatbuffers.Builder(1024)
+
+    # ----- create and serialize the individual fields first -----
+    # generate a time stamp string formatted  via ISO 8601
+    ts = datetime.datetime.utcnow().isoformat()
     ts_fb = builder.CreateString(ts)
     uuid_fb = builder.CreateString(uuid)
     format_fb = builder.CreateString(format)
-    # loop over bytes of image in reverse order; 
-    #   cf., https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html
+    # for vectors, you need to call a "Start" method with the builder and the total length you plan to add
     NewImageEvent.NewImageEventStartImageVector(builder, len(image))
+    # add the bytes one at a time and be sure to loop over bytes of image in reverse order so they are added
+    # that way; 
+    # cf., https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html, specifically, the comment:
+    #     '''
+    #     If instead of creating a vector from an existing array you serialize elements individually one by one, 
+    #     take care to note that this happens in reverse order, as buffers are built back to front.
+    #     '''
     for i in reversed(range(len(image))):
         builder.PrependByte(image[i])
     image_fb = builder.EndVector()
-    # start the new image event, add the individual fields, then call End() -----
+
+    # ----- start the new image event, add the individual fields, then call End() -----
+    # every time you want o create a Table, you need to follow this pattern:
+    #    1) Start(builder)
+    #    2) AddField1(builder, data)
+    #    3) ... add more fields
+    #    4) End(builder)
     NewImageEvent.Start(builder)
     NewImageEvent.AddEventCreateTs(builder, ts_fb)
     NewImageEvent.AddImageUuid(builder, uuid_fb)
@@ -38,11 +53,14 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     NewImageEvent.AddImage(builder, image_fb)
     new_image_event = NewImageEvent.End(builder)
 
-    # create the "root" Event object
+    # ----- Create the "root" Event object -----
+    # we do this at the very end, as it is "filled" with the specific event bject type, in this case, 
+    # the NewImageEvent
     Event.Start(builder)
     Event.EventAddEventType(builder, EventType.NewImageEvent)
     Event.AddEvent(builder, new_image_event)
     root_event = Event.End(builder)
+
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
     return builder.Output() # Of type `bytearray`
@@ -82,27 +100,32 @@ def event_to_typed_event(event):
         union_image_deleted_event = ImageDeletedEvent.ImageDeletedEvent()
         union_image_deleted_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_image_deleted_event
+    # TODO -- add additional types
     raise Exception(f"Unrecognized event type {event_type_int}")
 
 
 def send_new_image_event(socket, uuid: String, format: String, image: bytearray):
     """ 
-    Public API for sending a new image event over ta ZMQ socket
+    Public API for sending a new image event over a ZMQ socket from the component parts.
     """
+    # generate the flatbuffer binary blob
     buf = _generate_new_image_fb_event(uuid, format, image)
     # send the message over the socket
     publish_msg(socket, buf)
 
 
 def test():
-
+    """
+    A basic test function to check that serializing and deserializing new image event flatbuffers
+    works as expected. 
+    """
     # create some test data --
     uuid_str = str(uuid.uuid4())
     format = 'jpg'
     with open('labrador-pup.jpg', 'rb') as f:
         image = f.read()    
     
-    # make a test new image flattbuffer
+    # make a test new image event flattbuffer
     new_image_fb = _generate_new_image_fb_event(uuid_str, format, image)
 
     # convert the flattbuffer back to a root event object 
@@ -112,17 +135,19 @@ def test():
     new_image_event = event_to_typed_event(e)
 
     # check the fields; each should match the previous test data we generated
-    # format should be "jpg", as bytes
+    # format should be the original "jpg", as bytes
     assert new_image_event.ImageFormat() == b'jpg'
 
     # ImageUuid of flatbuffer should match previous uuid string
     assert new_image_event.ImageUuid() == uuid_str.encode('utf-8')
 
-    # create an image; unfortunately, the flatbuffers API does not give us a simple wrapper method to do this, 
-    # so we build a bytearray using the Image(i) method, which grabs one byte at a time
+    # get the image field from the flatbuffer; unfortunately, the flatbuffers API does not give us a simple 
+    # wrapper method to do this, so we build a bytearray using the provided Image(i) method, which grabs the 
+    # byte at the i^th position.
     image_from_fb = bytearray()
     for i in range(new_image_event.ImageLength()):
         image_from_fb.append(new_image_event.Image(i))
+    # the image we built from the flatbuffer should match the original image
     assert image_from_fb == image
     
     # TODO -- incorporate zmq...
