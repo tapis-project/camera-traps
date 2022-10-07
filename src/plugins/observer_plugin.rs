@@ -32,27 +32,10 @@ impl Plugin for ObserverPlugin {
         // Announce our arrival.
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
-        // Send our alive event.
-        let ev = events::PluginStartedEvent::new(self.get_id(), self.name.clone());
-        let bytes = match ev.to_bytes() {
-            Ok(v) => v,
-            Err(e) => {
-                // Log the error and abort if we can't serialize our start up message.
-                let msg = format!("{}", Errors::EventToBytesError(self.name.clone(), ev.get_name(), e.to_string()));
-                error!("{}", msg);
-                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().hyphenated().to_string(), msg));
-            } 
-        };
-
-        // Send the event serialization succeeded.
-        match pub_socket.send(bytes, 0) {
+        // Send the plugin start up event.
+        match traps_utils::send_started_event(self, &pub_socket) {
             Ok(_) => (),
-            Err(e) => {
-                // Log the error and abort if we can't send our start up message.
-                let msg = format!("{}", Errors::SocketSendError(self.name.clone(), ev.get_name(), e.to_string()));
-                error!("{}", msg);
-                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().hyphenated().to_string(), msg));
-            }
+            Err(e) => return Err(e),
         };
 
         // Enter our infinite work loop.

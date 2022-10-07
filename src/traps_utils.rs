@@ -1,6 +1,8 @@
 use std::ops::Deref;
 use std::path::Path;
-use event_engine::events::{Event, EventType};
+use event_engine::events::{Event, EventType,};
+use event_engine::plugins::Plugin;
+use event_engine::errors::EngineError;
 use shellexpand;
 use path_absolutize::Absolutize;
 use chrono::{Utc, DateTime, FixedOffset, ParseError};
@@ -168,6 +170,37 @@ pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socke
             error!("{}", format!("{}", err));
         },
     };
+}
+
+// ---------------------------------------------------------------------------
+// send_started_event:
+// ---------------------------------------------------------------------------
+pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<(), EngineError> {
+    // Send our alive event.
+    let ev = PluginStartedEvent::new(plugin.get_id(), plugin.get_name().clone());
+        let bytes = match ev.to_bytes() {
+        Ok(v) => v,
+        Err(e) => {
+            // Log the error and abort if we can't serialize our start up message.
+            let msg = format!("{}", Errors::EventToBytesError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+            error!("{}", msg);
+            return Err(EngineError::PluginExecutionError(plugin.get_name().clone(), plugin.get_id().hyphenated().to_string(), msg));
+        } 
+    };
+
+    // Send the event serialization succeeded.
+    match pub_socket.send(bytes, 0) {
+        Ok(_) => (),
+        Err(e) => {
+            // Log the error and abort if we can't send our start up message.
+            let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+            error!("{}", msg);
+            return Err(EngineError::PluginExecutionError(plugin.get_name().clone(), plugin.get_id().hyphenated().to_string(), msg));
+        }
+    };
+    
+    // All good.
+    Result::Ok(())
 }
 
 // ***************************************************************************
