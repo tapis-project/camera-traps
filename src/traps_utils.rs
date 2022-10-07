@@ -176,6 +176,10 @@ pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socke
 // ---------------------------------------------------------------------------
 // send_started_event:
 // ---------------------------------------------------------------------------
+/** Plugins call this method to send their initial event announcing their execution.
+ * If the transmission fails for any reason the calling plugin will receive an error
+ * and should abort.
+ */
 pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<(), EngineError> {
     // Send our alive event.
     let ev = PluginStartedEvent::new(plugin.get_id(), plugin.get_name().clone());
@@ -207,6 +211,8 @@ pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<()
 // ***************************************************************************
 // INCOMING EVENT COMMON PROCESSING
 // ***************************************************************************
+/// Container for incoming events that have been marshalled into prefix
+/// and flatbuffer event. 
 pub struct IncomingEvent<'a> {
     pub prefix_array: [u8; 2],
     pub gen_event: gen_events::Event<'a>,
@@ -215,6 +221,18 @@ pub struct IncomingEvent<'a> {
 // ---------------------------------------------------------------------------
 // marshal_next_event:
 // ---------------------------------------------------------------------------
+/** This method is called by pluging in their main event reading loop.  This
+ * method performs the following:
+ * 
+ *  - Wait for the next event to arrive
+ *  - Copy the raw bytes into the caller's buffer
+ *  - Validate the minimum input length
+ *  - Parse the flatbuffer into a generated event type
+ *  - Validate that the prefix bytes and the event name agree
+ *  - Return the prefix bytes and generated event
+ * 
+ * Any failure skips the rest of the processing and returns None. 
+ */
 pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &'a mut Vec<u8>)
     -> Option<IncomingEvent<'a>> {
     // ----------------- Retrieve and Slice Raw Bytes -----------------
