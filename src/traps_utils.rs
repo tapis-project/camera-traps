@@ -9,7 +9,8 @@ use chrono::{Utc, DateTime, FixedOffset, ParseError};
 use uuid::Uuid;
 use zmq::Socket;
 
-use crate::events_generated::gen_events::{self};
+use crate::events_generated::gen_events;
+use crate::events;
 use crate::config::errors::Errors;
 use crate::events::{NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent,
                     ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent};
@@ -201,6 +202,79 @@ pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<()
     
     // All good.
     Result::Ok(())
+}
+
+// ***************************************************************************
+// INCOMING EVENT COMMON PROCESSING
+// ***************************************************************************
+pub struct IncomingEvent<'a> {
+    pub prefix_array: [u8; 2],
+    pub gen_event: gen_events::Event<'a>,
+}
+
+// ---------------------------------------------------------------------------
+// marshal_next_event:
+// ---------------------------------------------------------------------------
+pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &'a mut Vec<u8>)
+    -> Option<IncomingEvent<'a>> {
+    // ----------------- Retrieve and Slice Raw Bytes -----------------
+    // Wait on the subsciption socket.
+    let temp = match sub_socket.recv_bytes(0) {
+        Ok(b) => b,
+        Err(e) => {
+            // We log error and then move on. It would probably be a good idea to 
+            // pause before continuing if there are too many errors in a short period
+            // of time.  This would avoid filling up the log file and burning cycles
+            // when things go sideways for a while.
+            error!("{}", Errors::SocketRecvError(plugin.get_name().clone(), e.to_string()));
+            return Option::None;
+        }
+    };
+    bytes.extend_from_slice(&temp);
+
+    // Basic buffer length checking to make sure we have
+    // the event prefix and at least 1 other byte.
+    if bytes.len() < events::EVENT_PREFIX_LEN + 1 {
+        error!("{}", Errors::EventInvalidLen(plugin.get_name().clone(), bytes.len()));
+        return Option::None;
+    }
+
+    // Split the 2 zqm prefix bytes from the flatbuffer bytes.
+    let prefix_bytes = &bytes[0..events::EVENT_PREFIX_LEN];
+    let fbuf_bytes = &bytes[events::EVENT_PREFIX_LEN..];
+
+    // ----------------- Get the FBS Generated Event ------------------
+    // Get the generated event and its type.
+    let gen_event = match bytes_to_gen_event(fbuf_bytes) {
+        Ok(tuple)=> tuple,
+        Err(e)=> {
+            error!("{}", e.to_string());
+            return Option::None;
+        }
+    };
+
+    // Get the event name from the generated event and check it against prefix slice.
+    let event_name = match gen_event.event_type().variant_name() {  
+        Some(n) => n,
+        None => {
+            error!("{}", Errors::EventNoneError(plugin.get_name().clone()));
+            return Option::None;
+        },
+    };
+
+    // ----------------- Check the Prefix and Event -------------------
+    // Check that the prefix bytes match the event type. 
+    // False means a mismatch was detected and the 
+    let prefix_array = [prefix_bytes[0], prefix_bytes[1]];
+    if !events::check_event_prefix(prefix_array, event_name) {
+        let pre = format!("{:?}", prefix_array);
+        let name = event_name.to_string();
+        error!("{}", Errors::EventPrefixMismatch(plugin.get_name().clone(), pre, name));
+        return Option::None;
+    }
+
+    // Pass back the event components.
+    Option::Some(IncomingEvent { prefix_array, gen_event})
 }
 
 // ***************************************************************************

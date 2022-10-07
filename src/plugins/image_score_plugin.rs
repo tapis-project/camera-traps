@@ -6,7 +6,7 @@ use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
-use crate::events::{EVENT_PREFIX_LEN, check_event_prefix, IMAGE_RECEIVED_PREFIX, PLUGIN_TERMINATE_PREFIX};
+use crate::events::{IMAGE_RECEIVED_PREFIX, PLUGIN_TERMINATE_PREFIX};
 
 use log::{info, error, debug};
 
@@ -39,64 +39,23 @@ impl Plugin for ImageScorePlugin {
 
         // Enter our infinite work loop.
         loop {
-            // ----------------- Retrieve and Slice Raw Bytes -----------------
-            // Wait on the subsciption socket.
-            let bytes = match sub_socket.recv_bytes(0) {
-                Ok(b) => b,
-                Err(e) => {
-                    // We log error and then move on. It would probably be a good idea to 
-                    // pause before continuing if there are too many errors in a short period
-                    // of time.  This would avoid filling up the log file and burning cycles
-                    // when things go sideways for a while.
-                    error!("{}", Errors::SocketRecvError(self.name.clone(), e.to_string()));
-                    continue;
-                }
+            // ----------------- Wait on the Next Event -----------------------
+            // The bytes vector is an output parameter populated by the marshalling function 
+            // with raw event bytes. The ev_in.gen_event field references these raw bytes
+            // so the bytes vector must must of a lifetime at least as long as ev_in.
+            //
+            // The marshalling function returns None when the incoming event is unreadable
+            // or improperly constructed.  The problem is logged where it occurs and we 
+            // simple wait for the next event to arrive.
+            let mut bytes: Vec<u8> = vec![];
+            let ev_in = match traps_utils::marshal_next_event(self, &sub_socket, &mut bytes) {
+                Some(ev) => ev,
+                None => continue,
             };
-
-            // Basic buffer length checking to make sure we have
-            // the event prefix and at least 1 other byte.
-            if bytes.len() < EVENT_PREFIX_LEN + 1 {
-                error!("{}", Errors::EventInvalidLen(self.name.clone(), bytes.len()));
-                continue;
-            }
-
-            // Split the 2 zqm prefix bytes from the flatbuffer bytes.
-            let prefix_bytes = &bytes[0..EVENT_PREFIX_LEN];
-            let fbuf_bytes = &bytes[EVENT_PREFIX_LEN..];
-
-            // ----------------- Get the FBS Generated Event ------------------
-            // Get the generated event and its type.
-            let gen_event = match traps_utils::bytes_to_gen_event(fbuf_bytes) {
-                Ok(tuple)=> tuple,
-                Err(e)=> {
-                    error!("{}", e.to_string());
-                    continue;
-                }
-            };
-
-            // Get the event name from the generated event and check it against prefix slice.
-            let event_name = match gen_event.event_type().variant_name() {  
-                Some(n) => n,
-                None => {
-                    error!("{}", Errors::EventNoneError(self.name.clone()));
-                    continue;
-                },
-            };
-
-            // ----------------- Check the Prefix and Event -------------------
-            // Check that the prefix bytes match the event type. 
-            // False means a mismatch was detected and the 
-            let prefix_array = [prefix_bytes[0], prefix_bytes[1]];
-            if !check_event_prefix(prefix_array, event_name) {
-                let pre = format!("{:?}", prefix_array);
-                let name = event_name.to_string();
-                error!("{}", Errors::EventPrefixMismatch(self.name.clone(), pre, name));
-                continue;
-            }
 
             // ----------------- Process Subscription Events ------------------
             // Process events we expect; log and disregard all others.
-            let terminate = match prefix_array {
+            let terminate = match ev_in.prefix_array {
                 IMAGE_RECEIVED_PREFIX => {
                     debug!("\n  -> {} received event {}", self.name, String::from("ImageReceivedEvent"));
                     false
@@ -105,7 +64,7 @@ impl Plugin for ImageScorePlugin {
                     // Determine whether we are the target of this terminate event. The called method
                     // will return true if this plugin should shutdown.
                     info!("\n  -> {} received event {}", self.name, String::from("PluginTerminateEvent"));
-                    traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
+                    traps_utils::process_plugin_terminate_event(ev_in.gen_event, &self.id, &self.name)
                 },
                 unexpected => {
                     // This should only happen for valid events to which we are not subscribed.
