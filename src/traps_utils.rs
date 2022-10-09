@@ -248,6 +248,9 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
             return Option::None;
         }
     };
+    // We copy the incoming bytes to the caller's vector and then use that vector 
+    // for all further processing. Specifically, the references returned by this
+    // function are backed by the caller's vector which has the required lifetime. 
     bytes.extend_from_slice(&temp);
 
     // Basic buffer length checking to make sure we have
