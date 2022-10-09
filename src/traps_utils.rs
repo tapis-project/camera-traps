@@ -221,7 +221,7 @@ pub struct IncomingEvent<'a> {
 // ---------------------------------------------------------------------------
 // marshal_next_event:
 // ---------------------------------------------------------------------------
-/** This method is called by pluging in their main event reading loop.  This
+/** This method is called by plugins in their main event reading loop.  This
  * method performs the following:
  * 
  *  - Wait for the next event to arrive
