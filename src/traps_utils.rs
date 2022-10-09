@@ -295,7 +295,7 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
     }
 
     // Pass back the event components.
-    Option::Some(IncomingEvent { prefix_array, gen_event})
+    Option::Some(IncomingEvent { prefix_array, gen_event })
 }
 
 // ***************************************************************************
