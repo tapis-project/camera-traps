@@ -1,8 +1,9 @@
+from cProfile import label
 import datetime
 import uuid
 from tokenize import String
 import flatbuffers
-from gen_events import NewImageEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent
+from gen_events import NewImageEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore
 from gen_events import Event
 from gen_events.EventType import EventType
 
@@ -65,6 +66,57 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     builder.Finish(root_event)
     return builder.Output() # Of type `bytearray`
 
+# type Score(dict):
+#     # list fields and types
+#     label: str
+#     probability: float
+#     image_uuid: uuid.uuid4
+
+def _generate_new_image_scored_event(image_uuid, scores: "list(dict)"):
+    """
+    Create a new image scored event flatubuffers object
+    """    
+    builder = flatbuffers.Builder(1024)
+    # ----- create and serialize the individual fields first -----
+    # generate a time stamp string formatted  via ISO 8601
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    uuid_fb = builder.CreateString(image_uuid)
+
+    scores_fb = []
+    for score in scores:
+        label_fb = builder.CreateString(score['label'])
+        uuid_fb = builder.CreateString(str(score['image_uuid']))
+        prob_fb = score['probability']
+        scores_fb.append({'label': label_fb, 'uuid': uuid_fb, 'prob': prob_fb})
+    
+    image_label_scores = []
+    for score in scores_fb:    
+        ImageLabelScore.ImageLabelScoreStart(builder)
+        ImageLabelScore.AddImageUuid(builder, score['uuid'])
+        ImageLabelScore.AddLabel(builder, score['label'])
+        ImageLabelScore.AddProbability(builder, score['prob'])
+        image_label_score = ImageLabelScore.ImageLabelScoreEnd(builder)
+        image_label_scores.append(image_label_score)
+    ImageScoredEvent.ImageScoredEventStartScoresVector(builder, len(image_label_scores))
+    for s in image_label_scores:
+        builder.PrependUOffsetTRelative(s)
+    scores_fb_vector = builder.EndVector()
+    ImageScoredEvent.Start(builder)
+    ImageScoredEvent.AddScores(builder, scores_fb_vector)
+    ImageScoredEvent.AddEventCreateTs(builder, ts_fb)
+    ImageScoredEvent.AddImageUuid(builder, uuid_fb)
+    image_scored_event = ImageScoredEvent.End(builder)
+
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.ImageScoredEvent)
+    Event.AddEvent(builder, image_scored_event)
+    root_event = Event.End(builder)
+
+    # call finish to instruct the builder that we are done
+    builder.Finish(root_event)
+    return builder.Output() # Of type `bytearray`
+
 
 def _bytes_to_event(b: bytearray):
     """
@@ -114,7 +166,7 @@ def send_new_image_event(socket, uuid: String, format: String, image: bytearray)
     publish_msg(socket, buf)
 
 
-def test():
+def test_new_image_event_fb():
     """
     A basic test function to check that serializing and deserializing new image event flatbuffers
     works as expected. 
@@ -157,7 +209,33 @@ def test():
     # send_new_image_event(socket, uuid_str, format, image)
 
 
+def test_image_scored_event_fb():
+    scores = [
+        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95},
+        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "golden_retriever", "probability": 0.05},
+    ]
+    image_uuid = "8f5f3962-d301-4e96-9994-3bd63c472ce8"
+    image_scored_fb = _generate_new_image_scored_event(image_uuid, scores)
+    # convert the flattbuffer back to a root event object 
+    e = _bytes_to_event(image_scored_fb)
+    # convert the root event object to a typed event (of type new image)
+    image_scored_event = event_to_typed_event(e)
+    # test that image_scored_event has the same data on it as the original input data...
+    assert "8f5f3962-d301-4e96-9994-3bd63c472ce8" == image_scored_event.ImageUuid().decode('utf-8')
+    now = datetime.datetime.utcnow().isoformat()
+    # assert times have the same year --
+    assert now[:4] == image_scored_event.EventCreateTs().decode('utf-8')[:4]
+    for i in range(image_scored_event.ScoresLength()):
+        # check each field..
+        assert image_scored_event.Scores(i).ImageUuid().decode('utf-8') == scores[i]['image_uuid']
+        # TODO -- also check label and probability...
+    
+    return image_scored_event
+
+
+
 if __name__ == "__main__":
-    test()    
+    test_new_image_event_fb()
+    test_image_scored_event_fb()
 
     
