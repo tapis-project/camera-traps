@@ -10,7 +10,7 @@ from gen_events.EventType import EventType
 import zmq
 
 # event engine helper lib
-from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
+#from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
 
 PYPLUGIN_TCP_PORT = 6000
 
@@ -118,6 +118,139 @@ def _generate_new_image_scored_event(image_uuid, scores: "list(dict)"):
     return builder.Output() # Of type `bytearray`
 
 
+def _score_image_event(image_uuid: String, destination: String)-> bytearray:
+    """
+    Create a new event to indicate image has been written to external destination
+    """
+    builder = flatbuffers.Builder(1024)
+
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    image_uuid_fb = builder.CreateString(image_uuid)
+    destination_fb = builder.CreateString(destination)
+
+    ImageStoredEvent.Start(builder)
+    ImageStoredEvent.AddEventCreateTs(builder, ts_fb)
+    ImageStoredEvent.AddImageUuid(builder, image_uuid_fb)
+    ImageStoredEvent.AddDestination(builder, destination_fb)
+    
+    image_stored_event = ImageStoredEvent.End(builder)
+
+
+    # -- root object --
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.ImageStoredEvent)
+    Event.AddEvent(builder, image_stored_event)
+    root_event = Event.End(builder)
+
+    builder.Finish(root_event)
+    return builder.Output()
+
+
+def _delete_image_event(image_uuid: String)-> bytearray:
+    """
+    Create an event that indicates image has been deleted from database
+    """
+    builder = flatbuffers.Builder(1024)
+
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    image_uuid_fb = builder.CreateString(image_uuid)
+
+    ImageDeletedEvent.Start(builder)
+    ImageDeletedEvent.AddEventCreateTs(builder, ts_fb)
+    ImageDeletedEvent.AddImageUuid(builder, image_uuid_fb)
+    
+    image_deleted_event = ImageDeletedEvent.End(builder)
+
+
+    # -- root object --
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.ImageDeletedEvent)
+    Event.AddEvent(builder, image_deleted_event)
+    root_event = Event.End(builder)
+
+    builder.Finish(root_event)
+    return builder.Output()
+
+def _start_plugin_event(plugin_name: String, plugin_uuid: String)-> bytearray:
+    """
+    Create a plugin started event flatubuffers object
+    """
+    builder = flatbuffers.Builder(1024)
+
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    plugin_name_fb = builder.CreateString(plugin_name)
+    plugin_uuid_fb = builder.CreateString(plugin_uuid)
+
+    PluginStartedEvent.Start(builder)
+    PluginStartedEvent.AddEventCreateTs(builder, ts_fb)
+    PluginStartedEvent.AddPluginUuid(builder, plugin_uuid_fb)
+    PluginStartedEvent.AddPluginName(builder, plugin_name_fb)
+    
+    plugin_started_event = PluginStartedEvent.End(builder)
+
+
+    # -- root object --
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.PluginStartedEvent)
+    Event.AddEvent(builder, plugin_started_event)
+    root_event = Event.End(builder)
+
+def _terminating_plugin_event(plugin_name: String, plugin_uuid: String)-> bytearray:
+    """
+    Create a plugin terminating event flatubuffers object
+    """
+    builder = flatbuffers.Builder(1024)
+
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    plugin_name_fb = builder.CreateString(plugin_name)
+    plugin_uuid_fb = builder.CreateString(plugin_uuid)
+
+    PluginTerminatingEvent.Start(builder)
+    PluginTerminatingEvent.AddEventCreateTs(builder, ts_fb)
+    PluginTerminatingEvent.AddPluginUuid(builder, plugin_uuid_fb)
+    PluginTerminatingEvent.AddPluginName(builder, plugin_name_fb)
+    
+    plugin_terminating_event = PluginTerminatingEvent.End(builder)
+
+
+    # -- root object --
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.PluginTerminatingEvent)
+    Event.AddEvent(builder, plugin_terminating_event)
+    root_event = Event.End(builder)
+
+    builder.Finish(root_event)
+    return builder.Output()
+
+def _terminate_plugin_event(target_plugin_name: String, target_plugin_uuid: String)-> bytearray:
+    builder = flatbuffers.Builder(1024)
+
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    target_plugin_name_fb = builder.CreateString(target_plugin_name)
+    target_plugin_uuid_fb = builder.CreateString(target_plugin_uuid)
+
+    PluginTerminateEvent.Start(builder)
+    PluginTerminateEvent.AddEventCreateTs(builder, ts_fb)
+    PluginTerminateEvent.AddTargetPluginUuid(builder, target_plugin_uuid_fb)
+    PluginTerminateEvent.AddTargetPluginName(builder, target_plugin_name_fb)
+    
+    plugin_terminate_event = PluginTerminateEvent.End(builder)
+
+
+    # -- root object --
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.PluginTerminateEvent)
+    Event.AddEvent(builder, plugin_terminate_event)
+    root_event = Event.End(builder)
+
+    builder.Finish(root_event)
+    return builder.Output()
+
 def _bytes_to_event(b: bytearray):
     """
     Takes a bytes array, b, and returns the raw Flatbuffers event object associated with it.
@@ -175,17 +308,23 @@ def test_new_image_event_fb():
     uuid_str = str(uuid.uuid4())
     format = 'jpg'
     with open('labrador-pup.jpg', 'rb') as f:
-        image = f.read()    
-    
+        image = f.read()
+    destination = "destination"
+        
     # make a test new image event flattbuffer
     new_image_fb = _generate_new_image_fb_event(uuid_str, format, image)
 
+    # all other tests
+    score_image_fb = _score_image_event(uuid_str, destination)
+    delete_image_fb = _delete_image_event(uuid_str)
+    
+    
     # convert the flattbuffer back to a root event object 
     e = _bytes_to_event(new_image_fb)
 
     # convert the root event object to a typed event (of type new image)
     new_image_event = event_to_typed_event(e)
-
+    
     # check the fields; each should match the previous test data we generated
     # format should be the original "jpg", as bytes
     assert new_image_event.ImageFormat() == b'jpg'
