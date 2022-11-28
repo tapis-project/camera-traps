@@ -7,10 +7,10 @@ from gen_events import NewImageEvent, ImageScoredEvent, ImageStoredEvent, ImageD
 from gen_events import Event
 from gen_events.EventType import EventType
 
+# zmq and socket helper lib
 import zmq
+from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
 
-# event engine helper lib
-#from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
 
 PYPLUGIN_TCP_PORT = 6000
 
@@ -65,6 +65,16 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
     return builder.Output() # Of type `bytearray`
+
+def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearray) -> str:
+    """
+    Send a new image event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    data = _generate_new_image_fb_event(uuid, format, image)
+    return publish_msg(socket, data)
+
 
 # type Score(dict):
 #     # list fields and types
@@ -473,6 +483,15 @@ def test_image_scored_event_fb():
         # print("from py dict: " + str(scores[i]['probability']))
     return image_scored_event
 
+
+def test_send_new_image_event():
+    # create the zmq context object
+    context = zmq.Context()
+    port = 6000
+    socket = get_plugin_socket(context, port)
+    # TODO -- the following call hangs without a receiver on the other end...
+    # reply = send_new_image_event(socket, uuid.uuid4(), format="jpg", image=b'12345abcde')
+    print(reply)
 
 
 if __name__ == "__main__":
