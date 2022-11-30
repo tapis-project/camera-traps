@@ -14,6 +14,44 @@ from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_comma
 
 PYPLUGIN_TCP_PORT = 6000
 
+EVENT_TYPE_BYTE_PREFIX = {
+    "NEW_IMAGE": b'\x01\x00',
+    "IMAGE_RECEIVED": b'\x02\x00',
+    "IMAGE_SCORED": b'\x03\x00',
+    "IMAGE_STORED": b'\x04\x00',
+    "IMAGE_DELETED": b'\x05\x00',
+    "PLUGIN_STARTED": b'\x10\x00',
+    "PLUGIN_TERMINATING": b'\x11\x00',
+    "PLUGIN_TERMINATE": b'\x12\x00',
+}
+
+
+def _prepend_event_prefix(msg_type, fb_data):
+    """
+    Add the event prefix bytes, used for zmq message filtering based on subscriptions, to the front of 
+    a flatbuffer message.
+    """
+    for key, value in EVENT_TYPE_BYTE_PREFIX.items():
+        if msg_type == key:
+            # add the event bytes prefix to the beginning of the byte array.
+            fb_data[0:0] = value
+            return fb_data
+    # if we are here, the msg_type was not recognized
+    raise Exception(f"Unrecognized message type {msg_type}")
+
+
+def _remove_event_prefix(data):
+    """
+    Remove the event prefix bytes, which appear at the beginning of a zmq message and are used for filtering
+    the messages delivered to a specific plugin based on the plugin's subscriptions, from the front of a 
+    zmq message. The result should be a valid flatbuffers message payload.
+    """
+    # delete one byte from the beginning of data for each byte in an (arbitrary) event type prefix -- they 
+    # will all be the same length.
+    for i in range(len(EVENT_TYPE_BYTE_PREFIX['NEW_IMAGE'])):
+        del data[0]
+    return data
+
 def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray) -> bytearray:
     """
     Create a new image event flatubuffers object
@@ -64,7 +102,10 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
 
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
-    return builder.Output() # Of type `bytearray`
+    fb_data = builder.Output() # Of type `bytearray`
+    # still need to prepend the event type bytes prefix
+    fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
+    return fb_data
 
 def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearray) -> str:
     """
@@ -125,7 +166,10 @@ def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
 
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
-    return builder.Output() # Of type `bytearray`
+    fb_data = builder.Output() # Of type `bytearray`
+    # still need to prepend the event type bytes prefix
+    fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
+    return fb_data
 
 
 def _generate_store_image_fb_event(image_uuid: String, destination: String)-> bytearray:
@@ -268,6 +312,8 @@ def _bytes_to_event(b: bytearray):
     """
     Takes a bytes array, b, and returns the raw Flatbuffers event object associated with it.
     """
+    # first, remove the event type byte prefix
+    b = _remove_event_prefix(b)
     try:
         event = Event.Event.GetRootAs(b, 0)
         return event
@@ -458,7 +504,7 @@ def test_image_scored_event_fb():
     scores = [
         {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95},
         {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "golden_retriever", "probability": 0.05},
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "pug", "probability": 0.5}
+        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "pug", "probability": 0.012}
     ]
     image_uuid = "8f5f3962-d301-4e96-9994-3bd63c472ce8"
     image_scored_fb = _generate_image_scored_fb_event(image_uuid, scores)
