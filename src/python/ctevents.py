@@ -31,13 +31,12 @@ def _prepend_event_prefix(msg_type, fb_data):
     Add the event prefix bytes, used for zmq message filtering based on subscriptions, to the front of 
     a flatbuffer message.
     """
-    for key, value in EVENT_TYPE_BYTE_PREFIX.items():
-        if msg_type == key:
-            # add the event bytes prefix to the beginning of the byte array.
-            fb_data[0:0] = value
-            return fb_data
-    # if we are here, the msg_type was not recognized
-    raise Exception(f"Unrecognized message type {msg_type}")
+    try:
+        byte_prefix = EVENT_TYPE_BYTE_PREFIX[msg_type]
+    except KeyError:
+        raise Exception(f"Unrecognized message type {msg_type}")    
+    fb_data[0:0] = byte_prefix
+    return fb_data
 
 
 def _remove_event_prefix(data):
@@ -54,7 +53,7 @@ def _remove_event_prefix(data):
 
 def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray) -> bytearray:
     """
-    Create a new image event flatubuffers object
+    Create a new image event flatbuffers object
     """
     # everything we do will utilize a builder; we can look at whether it would be better to share a singleton
     # builder later.
@@ -102,10 +101,20 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
 
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
-    fb_data = builder.Output() # Of type `bytearray`
-    # still need to prepend the event type bytes prefix
-    fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
-    return fb_data
+    return builder.Output() # Of type `bytearray`
+    # fb_data = builder.Output() # Of type `bytearray`
+    # # still need to prepend the event type bytes prefix
+    # fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
+    # return fb_data
+
+
+def _generate_new_image_fb_with_prefix(uuid: String, format: String, image: bytearray) -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_new_image_fb_event(uuid, format, image)
+    return _prepend_event_prefix("NEW_IMAGE", fb)
+
 
 def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearray) -> str:
     """
@@ -113,8 +122,11 @@ def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearr
     Returns a string which is the reply from the event-engine thread or raises an 
     exception on error.
     """
+    # data = _generate_new_image_fb_with_prefix(uuid, format, image)
+    # return publish_msg(socket, data)
     data = _generate_new_image_fb_event(uuid, format, image)
-    return publish_msg(socket, data)
+    result = _prepend_event_prefix("NEW_IMAGE", data)
+    return publish_msg(socket, result)
 
 
 # type Score(dict):
@@ -168,7 +180,7 @@ def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
     builder.Finish(root_event)
     fb_data = builder.Output() # Of type `bytearray`
     # still need to prepend the event type bytes prefix
-    fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
+    fb_data = _prepend_event_prefix("IMAGE_SCORED", fb_data)
     return fb_data
 
 
@@ -229,7 +241,7 @@ def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
 
 def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
-    Create a plugin started event flatubuffers object
+    Create a plugin started event flatbuffers object
     """
     builder = flatbuffers.Builder(1024)
 
@@ -257,7 +269,7 @@ def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> 
 
 def _generate_terminating_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
-    Create a plugin terminating event flatubuffers object
+    Create a plugin terminating event flatbuffers object
     """
     builder = flatbuffers.Builder(1024)
 
@@ -308,18 +320,24 @@ def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugi
     builder.Finish(root_event)
     return builder.Output()
 
+
 def _bytes_to_event(b: bytearray):
     """
-    Takes a bytes array, b, and returns the raw Flatbuffers event object associated with it.
+    Takes a bytes array, b, (conceptually, this `b` represents a message coming off the zmq socket), and 
+    returns the raw Flatbuffers event object associated with it.
     """
-    # first, remove the event type byte prefix
-    b = _remove_event_prefix(b)
     try:
         event = Event.Event.GetRootAs(b, 0)
         return event
     except Exception as e:
         print(f"Got exception from GetRootAs: {e}")
     return None
+
+
+def _socket_message_to_event(msg: bytearray):
+    # first, remove the event type byte prefix
+    b = _remove_event_prefix(msg)
+    return _bytes_to_event(b)
 
 
 def event_to_typed_event(event):
@@ -369,6 +387,42 @@ def send_new_image_event(socket, uuid: String, format: String, image: bytearray)
     publish_msg(socket, buf)
 
 
+def test_new_image_event_with_prefix():
+    # create some test data --
+    uuid_str = str(uuid.uuid4())
+    format = 'jpg'
+    with open('labrador-pup.jpg', 'rb') as f:
+        image = f.read()
+        
+    # make a test new image event flattbuffer with prefix
+    new_image_fb = _generate_new_image_fb_with_prefix(uuid_str, format, image)  
+    
+    # check that prefix is the right thing
+    assert new_image_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['NEW_IMAGE']
+    
+    # convert the flattbuffer with prefix back to a root event object 
+    e = _socket_message_to_event(new_image_fb)
+
+    # convert the root event object to a typed event (of type new image)
+    new_image_event = event_to_typed_event(e)
+    
+    # check the fields; each should match the previous test data we generated
+    # format should be the original "jpg", as bytes
+    assert new_image_event.ImageFormat() == b'jpg'
+
+    # ImageUuid of flatbuffer should match previous uuid string
+    assert new_image_event.ImageUuid() == uuid_str.encode('utf-8')
+
+    # get the image field from the flatbuffer; unfortunately, the flatbuffers API does not give us a simple 
+    # wrapper method to do this, so we build a bytearray using the provided Image(i) method, which grabs the 
+    # byte at the i^th position.
+    image_from_fb = bytearray()
+    for i in range(new_image_event.ImageLength()):
+        image_from_fb.append(new_image_event.Image(i))
+    # the image we built from the flatbuffer should match the original image
+    assert image_from_fb == image
+
+
 def test_new_image_event_fb():
     """
     A basic test function to check that serializing and deserializing new image event flatbuffers
@@ -379,7 +433,6 @@ def test_new_image_event_fb():
     format = 'jpg'
     with open('labrador-pup.jpg', 'rb') as f:
         image = f.read()
-    destination = "destination"
         
     # make a test new image event flattbuffer
     new_image_fb = _generate_new_image_fb_event(uuid_str, format, image)  
