@@ -43,11 +43,11 @@ impl Plugin for ObserverPlugin {
             // ----------------- Wait on the Next Event -----------------------
             // The bytes vector is an output parameter populated by the marshalling function 
             // with raw event bytes. The ev_in.gen_event field references these raw bytes
-            // so the bytes vector must must of a lifetime at least as long as ev_in.
+            // so the bytes vector must be of a lifetime at least as long as ev_in.
             //
             // The marshalling function returns None when the incoming event is unreadable
             // or improperly constructed.  The problem is logged where it occurs and we 
-            // simple wait for the next event to arrive.
+            // simply wait for the next event to arrive.
             let mut bytes: Vec<u8> = vec![];
             let ev_in = match traps_utils::marshal_next_event(self, &sub_socket, &mut bytes) {
                 Some(ev) => ev,

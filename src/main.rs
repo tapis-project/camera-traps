@@ -82,6 +82,11 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     // Create the app on the specified
     let mut app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
 
+    // Help make the log more readable.
+    let delimiter = "\n".to_string() + "-".repeat(70).as_str();
+    info!("{}", delimiter.clone() + 
+           (format!("{}",Errors::RegisteringNumInternalPlugins(parms.config.plugins.internal.len())).to_string() + delimiter.as_str()).as_str());
+
     // Register internal plugins if any are defined. 
     for plugin_name in &parms.config.plugins.internal {
         match plugin_name.as_str() {
@@ -124,6 +129,11 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
         }
     }
 
+    // End internal plugin registration.
+    info!("{}", delimiter.clone() + 
+           (format!("{}",Errors::RegisteringNumExternalPlugins(parms.config.plugins.external.len())).to_string() + delimiter.as_str()).as_str());
+
+
     // Register external plugins if any are defined.
     for ext_plugin in &parms.config.plugins.external {
         let app_plugin = match ExternalAppPlugin::new(ext_plugin) {
@@ -137,6 +147,9 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
         info!("{}", Errors::RegisteringExternalPlugin(app_plugin.get_name(), id, app_plugin.get_tcp_port(), cnt));
         app = app.register_external_plugin(Arc::new(Box::new(app_plugin)));
     }
+
+    // End plugin registration.
+    if parms.config.plugins.external.len() > 0 {info!("{}", delimiter);}
 
     // Return the app.
     Result::Ok(app)
