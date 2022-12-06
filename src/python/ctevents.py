@@ -72,7 +72,10 @@ def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearr
     Returns a string which is the reply from the event-engine thread or raises an 
     exception on error.
     """
-    data = _generate_new_image_fb_event(uuid, format, image)
+    fb_data = _generate_new_image_fb_event(uuid, format, image)
+    # add byte prefix
+    data = _prepend_event_prefix(msg_type, fb_data)
+    # send the message over the socket
     return publish_msg(socket, data)
 
 
