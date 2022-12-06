@@ -2,7 +2,7 @@ use uuid::Uuid;
 use zmq::Socket;
 use event_engine::plugins::Plugin;
 use event_engine::errors::EngineError;
-use event_engine::events::{Event, EventType};
+use event_engine::events::{EventType};
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;

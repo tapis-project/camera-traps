@@ -1,6 +1,6 @@
 use uuid::Uuid;
 use zmq::Socket;
-use event_engine::{plugins::Plugin, events::Event};
+use event_engine::{plugins::Plugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
@@ -9,7 +9,6 @@ use crate::Config;
 use crate::events::{PLUGIN_TERMINATE_PREFIX};
 
 use log::{info, error};
-use std::{thread, time};
 
 pub struct ImageGenPlugin {
     name: String,
