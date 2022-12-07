@@ -1,8 +1,8 @@
-use uuid::Uuid;
-use event_engine::events::{Event, EventType};
 use event_engine::errors::EngineError;
+use event_engine::events::{Event, EventType};
 use flatbuffers::{FlatBufferBuilder, InvalidFlatbuffer};
 use std::error::Error;
+use uuid::Uuid;
 
 // Logging imports.
 use anyhow::Result;
@@ -17,14 +17,14 @@ use crate::traps_utils::timestamp_str;
 // ***************************************************************************
 // Each event is assigned a binary prefix that zqm uses to route incoming
 // binary streams to all of the event's subscribers.
-pub const NEW_IMAGE_PREFIX:          [u8; 2] = [0x01, 0x00];
-pub const IMAGE_RECEIVED_PREFIX:     [u8; 2] = [0x02, 0x00];
-pub const IMAGE_SCORED_PREFIX:       [u8; 2] = [0x03, 0x00];
-pub const IMAGE_STORED_PREFIX:       [u8; 2] = [0x04, 0x00];
-pub const IMAGE_DELETED_PREFIX:      [u8; 2] = [0x05, 0x00];
-pub const PLUGIN_STARTED_PREFIX:     [u8; 2] = [0x10, 0x00];
+pub const NEW_IMAGE_PREFIX: [u8; 2] = [0x01, 0x00];
+pub const IMAGE_RECEIVED_PREFIX: [u8; 2] = [0x02, 0x00];
+pub const IMAGE_SCORED_PREFIX: [u8; 2] = [0x03, 0x00];
+pub const IMAGE_STORED_PREFIX: [u8; 2] = [0x04, 0x00];
+pub const IMAGE_DELETED_PREFIX: [u8; 2] = [0x05, 0x00];
+pub const PLUGIN_STARTED_PREFIX: [u8; 2] = [0x10, 0x00];
 pub const PLUGIN_TERMINATING_PREFIX: [u8; 2] = [0x11, 0x00];
-pub const PLUGIN_TERMINATE_PREFIX:   [u8; 2] = [0x12, 0x00];
+pub const PLUGIN_TERMINATE_PREFIX: [u8; 2] = [0x12, 0x00];
 pub const EVENT_PREFIX_LEN: usize = NEW_IMAGE_PREFIX.len();
 
 // ***************************************************************************
@@ -39,30 +39,62 @@ pub const EVENT_PREFIX_LEN: usize = NEW_IMAGE_PREFIX.len();
 pub fn check_event_prefix(prefix: [u8; 2], event_name: &str) -> bool {
     let b = match prefix {
         NEW_IMAGE_PREFIX => {
-            if event_name == "NewImageEvent" {true} else {false}
+            if event_name == "NewImageEvent" {
+                true
+            } else {
+                false
+            }
         }
         IMAGE_RECEIVED_PREFIX => {
-            if event_name == "ImageReceivedEvent" {true} else {false}
+            if event_name == "ImageReceivedEvent" {
+                true
+            } else {
+                false
+            }
         }
         IMAGE_SCORED_PREFIX => {
-            if event_name == "ImageScoredEvent" {true} else {false}
+            if event_name == "ImageScoredEvent" {
+                true
+            } else {
+                false
+            }
         }
         IMAGE_STORED_PREFIX => {
-            if event_name == "ImageStoredEvent" {true} else {false}
+            if event_name == "ImageStoredEvent" {
+                true
+            } else {
+                false
+            }
         }
         IMAGE_DELETED_PREFIX => {
-            if event_name == "ImageDeletedEvent" {true} else {false}
+            if event_name == "ImageDeletedEvent" {
+                true
+            } else {
+                false
+            }
         }
         PLUGIN_STARTED_PREFIX => {
-            if event_name == "PluginStartedEvent" {true} else {false}
+            if event_name == "PluginStartedEvent" {
+                true
+            } else {
+                false
+            }
         }
         PLUGIN_TERMINATING_PREFIX => {
-            if event_name == "PluginterminatingEvent" {true} else {false}
+            if event_name == "PluginterminatingEvent" {
+                true
+            } else {
+                false
+            }
         }
         PLUGIN_TERMINATE_PREFIX => {
-            if event_name == "PluginTerminateEvent" {true} else {false}
+            if event_name == "PluginTerminateEvent" {
+                true
+            } else {
+                false
+            }
         }
-        _ => false
+        _ => false,
     };
     b
 }
@@ -132,18 +164,23 @@ impl Event for NewImageEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<NewImageEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "NewImageEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_new_image_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -179,7 +216,7 @@ impl NewImageEvent {
         // Create and populate the image vector.
         let raw = match ev.image() {
             Some(raw) => raw,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("image")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image"))),
         };
         let mut image = Vec::with_capacity(raw.len());
         image.extend_from_slice(raw);
@@ -187,25 +224,30 @@ impl NewImageEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the uuid.
         let u = match ev.image_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("image_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Get the image format string.
         let format = match ev.image_format() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format"))),
         };
-    
+
         // Finally...
         Result::Ok(NewImageEvent {
             created: String::from(created),
@@ -265,7 +307,11 @@ impl Event for ImageReceivedEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(IMAGE_RECEIVED_PREFIX, fbuf, union_args))
+        Ok(serialize_flatbuffer(
+            IMAGE_RECEIVED_PREFIX,
+            fbuf,
+            union_args,
+        ))
     }
 
     // ----------------------------------------------------------------------
@@ -274,18 +320,23 @@ impl Event for ImageReceivedEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageReceivedEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "ImageReceivedEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_image_received_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -319,17 +370,22 @@ impl ImageReceivedEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the uuid.
         let u = match ev.image_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("image_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Finally...
@@ -366,22 +422,27 @@ impl ImageLabelScore {
         // Get the uuid.
         let u = match ev.image_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("image_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Get the image label string.
         let label = match ev.label() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("label")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("label"))),
         };
 
         // Get the label's probability value.
-        let probability = ev.probability(); 
-        
+        let probability = ev.probability();
+
         // Return the object.
         Result::Ok(ImageLabelScore {
             image_uuid: uuid,
@@ -427,13 +488,14 @@ impl Event for ImageScoredEvent {
 
         // Create a vector of gen_events::ImageLabelScores from this object's scores.
         // First create a vector to hold the gen_events::ImageLabelScore objects.
-        let mut image_label_scores = Vec::<flatbuffers::WIPOffset<gen_events::ImageLabelScore>>::new();
+        let mut image_label_scores =
+            Vec::<flatbuffers::WIPOffset<gen_events::ImageLabelScore>>::new();
         for score in &self.scores {
             // Assign the string fields.
             let image_uuid = Some(fbuf.create_string(&score.image_uuid.hyphenated().to_string()));
             let label = Some(fbuf.create_string(&score.label));
 
-            // Create each generated score object 
+            // Create each generated score object
             let im_score = gen_events::ImageLabelScore::create(
                 &mut fbuf,
                 &gen_events::ImageLabelScoreArgs {
@@ -472,18 +534,23 @@ impl Event for ImageScoredEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageScoredEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "ImageScoredEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_image_scored_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -518,17 +585,22 @@ impl ImageScoredEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the uuid.
         let u = match ev.image_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("image_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Get the list of scores.
@@ -543,19 +615,32 @@ impl ImageScoredEvent {
             // Extract the imaget uuid.
             let u = match gen_score.image_uuid() {
                 Some(u) => u,
-                None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("ImageLabelScore.image_uuid")))},
+                None => {
+                    return Result::Err(Errors::EventReadFlatbuffer(String::from(
+                        "ImageLabelScore.image_uuid",
+                    )))
+                }
             };
             let image_uuid = match Uuid::parse_str(u) {
                 Ok(u) => u,
-                Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("ImageLabelScore.image_uuid"), e.to_string()))},
+                Err(e) => {
+                    return Result::Err(Errors::UUIDParseError(
+                        String::from("ImageLabelScore.image_uuid"),
+                        e.to_string(),
+                    ))
+                }
             };
 
             // Extract the label.
             let label = match gen_score.label() {
-                Some(s)=> s,
-                None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("ImageLabelScore.label")))},
+                Some(s) => s,
+                None => {
+                    return Result::Err(Errors::EventReadFlatbuffer(String::from(
+                        "ImageLabelScore.label",
+                    )))
+                }
             };
-            
+
             // Extract the probability.
             let probability = gen_score.probability();
 
@@ -637,18 +722,23 @@ impl Event for ImageStoredEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageStoredEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "ImageStoredEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_image_stored_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -683,23 +773,28 @@ impl ImageStoredEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the uuid.
         let u = match ev.image_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("image_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Get the destination.
         let destination = match ev.destination() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("destination")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("destination"))),
         };
 
         // Finally...
@@ -769,18 +864,23 @@ impl Event for ImageDeletedEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<ImageDeletedEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "ImageDeletedEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_image_deleted_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -814,17 +914,22 @@ impl ImageDeletedEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the uuid.
         let u = match ev.image_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("image_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("image_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Finally...
@@ -886,7 +991,11 @@ impl Event for PluginStartedEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(PLUGIN_STARTED_PREFIX, fbuf, union_args))
+        Ok(serialize_flatbuffer(
+            PLUGIN_STARTED_PREFIX,
+            fbuf,
+            union_args,
+        ))
     }
 
     // ----------------------------------------------------------------------
@@ -895,18 +1004,23 @@ impl Event for PluginStartedEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<PluginStartedEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "PluginStartedEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_plugin_started_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -941,23 +1055,28 @@ impl PluginStartedEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the plugin_name.
         let plugin_name = match ev.plugin_name() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("plugin_name")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("plugin_name"))),
         };
 
         // Get the uuid.
         let u = match ev.plugin_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("plugin_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("plugin_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Finally...
@@ -1020,7 +1139,11 @@ impl Event for PluginTerminatingEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(PLUGIN_TERMINATING_PREFIX, fbuf, union_args))
+        Ok(serialize_flatbuffer(
+            PLUGIN_TERMINATING_PREFIX,
+            fbuf,
+            union_args,
+        ))
     }
 
     // ----------------------------------------------------------------------
@@ -1029,18 +1152,23 @@ impl Event for PluginTerminatingEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<PluginTerminatingEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "PluginTerminatingEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_plugin_terminating_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -1075,23 +1203,28 @@ impl PluginTerminatingEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the plugin_name.
         let plugin_name = match ev.plugin_name() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("plugin_name")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("plugin_name"))),
         };
 
         // Get the uuid.
         let u = match ev.plugin_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("plugin_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("plugin_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Finally...
@@ -1142,7 +1275,9 @@ impl Event for PluginTerminateEvent {
         let args = gen_events::PluginTerminateEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             target_plugin_name: Some(fbuf.create_string(&self.target_plugin_name)),
-            target_plugin_uuid: Some(fbuf.create_string(&self.target_plugin_uuid.hyphenated().to_string())),
+            target_plugin_uuid: Some(
+                fbuf.create_string(&self.target_plugin_uuid.hyphenated().to_string()),
+            ),
         };
         let event_offset = gen_events::PluginTerminateEvent::create(&mut fbuf, &args);
 
@@ -1154,7 +1289,11 @@ impl Event for PluginTerminateEvent {
         };
 
         // All event serializations are completed in the same way.
-        Ok(serialize_flatbuffer(PLUGIN_TERMINATE_PREFIX, fbuf, union_args))
+        Ok(serialize_flatbuffer(
+            PLUGIN_TERMINATE_PREFIX,
+            fbuf,
+            union_args,
+        ))
     }
 
     // ----------------------------------------------------------------------
@@ -1163,18 +1302,23 @@ impl Event for PluginTerminateEvent {
     /** Get a NewImageEvent from raw event bytes that do NOT include the zqm prefix. */
     fn from_bytes(bytes: Vec<u8>) -> Result<PluginTerminateEvent, Box<dyn Error>>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         // Get the union of all possible generated events.
         let event = bytes_to_gen_event(&bytes)?;
 
         // Validate that we recieved the expected type of event.
         let event_type = "PluginTerminateEvent";
         check_event_type(event_type, &event)?;
-    
+
         // Create the generated event from the raw flatbuffer.
         let flatbuf_event = match event.event_as_plugin_terminate_event() {
             Some(ev) => ev,
-            None =>  return Err(Box::new(Errors::EventCreateFromFlatbuffer(event_type.to_string()))), 
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
         };
 
         // Return a camera-trap event given the flatbuffer generated event.
@@ -1209,23 +1353,32 @@ impl PluginTerminateEvent {
         // Get the timestamp.
         let created = match ev.event_create_ts() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("created")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
         };
 
         // Get the plugin_name.
         let target_plugin_name = match ev.target_plugin_name() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("target_plugin_name")))},
+            None => {
+                return Result::Err(Errors::EventReadFlatbuffer(String::from(
+                    "target_plugin_name",
+                )))
+            }
         };
 
         // Get the uuid.
         let u = match ev.target_plugin_uuid() {
             Some(s) => s,
-            None => {return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid")))},
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
         };
         let uuid = match Uuid::parse_str(u) {
             Ok(u) => u,
-            Err(e) => {return Result::Err(Errors::UUIDParseError(String::from("target_plugin_uuid"), e.to_string()))},
+            Err(e) => {
+                return Result::Err(Errors::UUIDParseError(
+                    String::from("target_plugin_uuid"),
+                    e.to_string(),
+                ))
+            }
         };
 
         // Finally...
@@ -1260,12 +1413,17 @@ fn check_event_type(expected: &str, event: &gen_events::Event) -> Result<(), Err
     // Get the event type as a string reference.
     let event_type = match (*event).event_type().variant_name() {
         Some(etype) => etype,
-        None => {return Err(Errors::EventReadTypeError(expected.to_string()));}
+        None => {
+            return Err(Errors::EventReadTypeError(expected.to_string()));
+        }
     };
 
     // Check that we got the expected event type.
     if expected != event_type {
-        return Err(Errors::EventUnexpectedError(expected.to_string(), event_type.to_string())); 
+        return Err(Errors::EventUnexpectedError(
+            expected.to_string(),
+            event_type.to_string(),
+        ));
     };
 
     // Success.
@@ -1275,10 +1433,14 @@ fn check_event_type(expected: &str, event: &gen_events::Event) -> Result<(), Err
 // ---------------------------------------------------------------------------
 // serialize_flatbuffer:
 // ---------------------------------------------------------------------------
-fn serialize_flatbuffer(prefix: [u8; 2], mut fbuf: FlatBufferBuilder, union_args: gen_events::EventArgs) -> Vec<u8> {
-    // Get the offset of the particular event already encoded in the union argument.    
+fn serialize_flatbuffer(
+    prefix: [u8; 2],
+    mut fbuf: FlatBufferBuilder,
+    union_args: gen_events::EventArgs,
+) -> Vec<u8> {
+    // Get the offset of the particular event already encoded in the union argument.
     let union_offset = gen_events::Event::create(&mut fbuf, &union_args);
-    
+
     // Complete the flatbuffer and extract its data as a byte array.
     fbuf.finish(union_offset, None);
     let bytes = fbuf.finished_data();
@@ -1295,9 +1457,40 @@ fn serialize_flatbuffer(prefix: [u8; 2], mut fbuf: FlatBufferBuilder, union_args
 // ***************************************************************************
 #[cfg(test)]
 mod tests {
+    use event_engine::events::Event;
+
+    use super::{ImageLabelScore, ImageScoredEvent, EVENT_PREFIX_LEN};
 
     #[test]
     fn here_i_am() {
         println!("file test: events.rs");
+    }
+
+    #[test]
+    fn test_image_scored_event() {
+        let image_uuid_1 = uuid::Uuid::new_v4();
+        let image_uuid_2 = uuid::Uuid::new_v4();
+        let image_uuid_3 = uuid::Uuid::new_v4();
+        let prob_1: f32 = 0.85;
+        let prob_2: f32 = 0.125;
+        let prob_3: f32 = 0.025;
+        let scores = vec![
+            ImageLabelScore::new(image_uuid_1, "test1".to_string(), prob_1),
+            ImageLabelScore::new(image_uuid_2, "test2".to_string(), prob_2),
+            ImageLabelScore::new(image_uuid_3, "test3".to_string(), prob_3),
+        ];
+        let image_scored_event = ImageScoredEvent::new(image_uuid_1, scores);
+        let image_scored_event_bytes = image_scored_event.to_bytes().unwrap();
+        let fbuf_bytes = &image_scored_event_bytes[EVENT_PREFIX_LEN..];
+        let image_scored_event_deser =
+            ImageScoredEvent::from_bytes(fbuf_bytes.to_vec()).unwrap();
+        // println!("image scored event deser: {:?}", image_scored_event_deser);
+        // check that the serialization and deserialization produced the original
+        assert_eq!(image_scored_event_deser.scores[0].probability, prob_1);
+        assert_eq!(image_scored_event_deser.scores[1].probability, prob_2);
+        assert_eq!(image_scored_event_deser.scores[2].probability, prob_3);
+        for s in image_scored_event_deser.scores {
+            println!("deserialized score probability: {:?}", s.probability);
+        }
     }
 }

@@ -4,9 +4,27 @@ import glob
 import uuid
 from collections import OrderedDict
 
+import zmq
+
+import ctevents
+from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
+
+# get the port assigned to the Image Generating plugin
+PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+
+
+def get_socket():
+    # create the zmq context object
+    context = zmq.Context()
+    return get_plugin_socket(context, PORT)  
+
+
+
+
 with open('input.json') as f:
     data = json.load(f)
 user_input = data['path']
+print(f"user_input: {user_input}")
 start = int(data['timestamp'])
 
 def simpleNext(i,value_index):
@@ -101,8 +119,9 @@ def randomImage(timestamp_min,index):
     return timestamp_min,index
 
 
-list_of_files = filter(os.path.isfile, glob.glob(user_input + '*'))
+list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
 list_of_files = sorted(list_of_files, key=os.path.getmtime)
+print(f"list_of_files: {list_of_files}")
 img_dict = OrderedDict()
 for file_name_full in list_of_files:
     if ('.DS_Store' not in file_name_full):
@@ -117,6 +136,10 @@ timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
 initial_index = 0
 index = 0
 indexvalue = 0
+
+socket = get_socket()
+done = False
+# while not done:
 for i in range(0,15):
     if data['callingFunction'] == "nextImage":
         print("Timed Next")
@@ -134,3 +157,9 @@ for i in range(0,15):
     else:
         print("Simple Next")
         index,indexvalue = simpleNext(index,indexvalue)
+    image_path, image_uuid, image_format = get_image_stuff(index, ....)
+    # send the new image event:
+    # we need each "next_image" function to return for us a image_uuid, image_format and an image_path to the image.
+    with open(image_path, 'r') as f:
+        data = f.read()
+    ctevents.send_new_image_fb_event(socket, image_uuid, image_format, data)
