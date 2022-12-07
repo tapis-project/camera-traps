@@ -81,6 +81,12 @@ pub enum Errors {
     #[error("\n -- Registering internal plugin {0} with UUID {1}.")]
     RegisteringInternalPlugin(String, String),
 
+    #[error("\nRegistering {0} external plugin(s).")]
+    RegisteringNumExternalPlugins(usize),
+
+    #[error("\nRegistering {0} internal plugin(s).")]
+    RegisteringNumInternalPlugins(usize),
+
     #[error("Plugin {0} failed to read a byte stream from its subscription socket: {1}")]
     SocketRecvError(String, String),
 

@@ -30,7 +30,6 @@ impl Default for Config {
 pub struct Plugins {
     pub internal: Vec<String>,
     pub external: Vec<ExtPluginConfig>,
-    pub run_gen_driver: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]

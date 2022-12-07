@@ -1,13 +1,16 @@
 use std::ops::Deref;
 use std::path::Path;
-use event_engine::events::{Event, EventType};
+use event_engine::events::{Event, EventType,};
+use event_engine::plugins::Plugin;
+use event_engine::errors::EngineError;
 use shellexpand;
 use path_absolutize::Absolutize;
 use chrono::{Utc, DateTime, FixedOffset, ParseError};
 use uuid::Uuid;
 use zmq::Socket;
 
-use crate::events_generated::gen_events::{self};
+use crate::events_generated::gen_events;
+use crate::events;
 use crate::config::errors::Errors;
 use crate::events::{NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent,
                     ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent};
@@ -168,6 +171,131 @@ pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socke
             error!("{}", format!("{}", err));
         },
     };
+}
+
+// ---------------------------------------------------------------------------
+// send_started_event:
+// ---------------------------------------------------------------------------
+/** Plugins call this method to send their initial event announcing their execution.
+ * If the transmission fails for any reason the calling plugin will receive an error
+ * and should abort.
+ */
+pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<(), EngineError> {
+    // Send our alive event.
+    let ev = PluginStartedEvent::new(plugin.get_id(), plugin.get_name().clone());
+        let bytes = match ev.to_bytes() {
+        Ok(v) => v,
+        Err(e) => {
+            // Log the error and abort if we can't serialize our start up message.
+            let msg = format!("{}", Errors::EventToBytesError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+            error!("{}", msg);
+            return Err(EngineError::PluginExecutionError(plugin.get_name().clone(), plugin.get_id().hyphenated().to_string(), msg));
+        } 
+    };
+
+    // Send the event serialization succeeded.
+    match pub_socket.send(bytes, 0) {
+        Ok(_) => (),
+        Err(e) => {
+            // Log the error and abort if we can't send our start up message.
+            let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+            error!("{}", msg);
+            return Err(EngineError::PluginExecutionError(plugin.get_name().clone(), plugin.get_id().hyphenated().to_string(), msg));
+        }
+    };
+    
+    // All good.
+    Result::Ok(())
+}
+
+// ***************************************************************************
+// INCOMING EVENT COMMON PROCESSING
+// ***************************************************************************
+/// Container for incoming events that have been marshalled into prefix
+/// and flatbuffer event. 
+pub struct IncomingEvent<'a> {
+    pub prefix_array: [u8; 2],
+    pub gen_event: gen_events::Event<'a>,
+}
+
+// ---------------------------------------------------------------------------
+// marshal_next_event:
+// ---------------------------------------------------------------------------
+/** This method is called by plugins in their main event reading loop.  This
+ * method performs the following:
+ * 
+ *  - Wait for the next event to arrive
+ *  - Copy the raw bytes into the caller's buffer
+ *  - Validate the minimum input length
+ *  - Parse the flatbuffer into a generated event type
+ *  - Validate that the prefix bytes and the event name agree
+ *  - Return the prefix bytes and generated event
+ * 
+ * Any failure skips the rest of the processing and returns None. 
+ */
+pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &'a mut Vec<u8>)
+    -> Option<IncomingEvent<'a>> {
+    // ----------------- Retrieve and Slice Raw Bytes -----------------
+    // Wait on the subsciption socket.
+    let temp = match sub_socket.recv_bytes(0) {
+        Ok(b) => b,
+        Err(e) => {
+            // We log error and then move on. It would probably be a good idea to 
+            // pause before continuing if there are too many errors in a short period
+            // of time.  This would avoid filling up the log file and burning cycles
+            // when things go sideways for a while.
+            error!("{}", Errors::SocketRecvError(plugin.get_name().clone(), e.to_string()));
+            return Option::None;
+        }
+    };
+    // We copy the incoming bytes to the caller's vector and then use that vector 
+    // for all further processing. Specifically, the references returned by this
+    // function are backed by the caller's vector which has the required lifetime. 
+    bytes.extend_from_slice(&temp);
+
+    // Basic buffer length checking to make sure we have
+    // the event prefix and at least 1 other byte.
+    if bytes.len() < events::EVENT_PREFIX_LEN + 1 {
+        error!("{}", Errors::EventInvalidLen(plugin.get_name().clone(), bytes.len()));
+        return Option::None;
+    }
+
+    // Split the 2 zqm prefix bytes from the flatbuffer bytes.
+    let prefix_bytes = &bytes[0..events::EVENT_PREFIX_LEN];
+    let fbuf_bytes = &bytes[events::EVENT_PREFIX_LEN..];
+
+    // ----------------- Get the FBS Generated Event ------------------
+    // Get the generated event and its type.
+    let gen_event = match bytes_to_gen_event(fbuf_bytes) {
+        Ok(tuple)=> tuple,
+        Err(e)=> {
+            error!("{}", e.to_string());
+            return Option::None;
+        }
+    };
+
+    // Get the event name from the generated event and check it against prefix slice.
+    let event_name = match gen_event.event_type().variant_name() {  
+        Some(n) => n,
+        None => {
+            error!("{}", Errors::EventNoneError(plugin.get_name().clone()));
+            return Option::None;
+        },
+    };
+
+    // ----------------- Check the Prefix and Event -------------------
+    // Check that the prefix bytes match the event type. 
+    // False means a mismatch was detected and the 
+    let prefix_array = [prefix_bytes[0], prefix_bytes[1]];
+    if !events::check_event_prefix(prefix_array, event_name) {
+        let pre = format!("{:?}", prefix_array);
+        let name = event_name.to_string();
+        error!("{}", Errors::EventPrefixMismatch(plugin.get_name().clone(), pre, name));
+        return Option::None;
+    }
+
+    // Pass back the event components.
+    Option::Some(IncomingEvent { prefix_array, gen_event })
 }
 
 // ***************************************************************************
