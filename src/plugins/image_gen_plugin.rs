@@ -1,15 +1,14 @@
 use uuid::Uuid;
 use zmq::Socket;
-use event_engine::{plugins::Plugin, events::Event};
+use event_engine::{plugins::Plugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
-use crate::events::{EVENT_PREFIX_LEN, check_event_prefix, PLUGIN_TERMINATE_PREFIX};
+use crate::events::{PLUGIN_TERMINATE_PREFIX};
 
 use log::{info, error};
-use std::{thread, time};
 
 pub struct ImageGenPlugin {
     name: String,
@@ -32,97 +31,35 @@ impl Plugin for ImageGenPlugin {
         // Announce our arrival.
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
-        // Send our alive event.
-        let ev = events::PluginStartedEvent::new(self.get_id(), self.name.clone());
-        let bytes = match ev.to_bytes() {
-            Ok(v) => v,
-            Err(e) => {
-                // Log the error and abort if we can't serialize our start up message.
-                let msg = format!("{}", Errors::EventToBytesError(self.name.clone(), ev.get_name(), e.to_string()));
-                error!("{}", msg);
-                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().hyphenated().to_string(), msg));
-            } 
-        };
-
-        // Send the event serialization succeeded.
-        match pub_socket.send(bytes, 0) {
+        // Send the plugin start up event.
+        match traps_utils::send_started_event(self, &pub_socket) {
             Ok(_) => (),
-            Err(e) => {
-                // Log the error and abort if we can't send our start up message.
-                let msg = format!("{}", Errors::SocketSendError(self.name.clone(), ev.get_name(), e.to_string()));
-                error!("{}", msg);
-                return Err(EngineError::PluginExecutionError(self.name.clone(), self.get_id().hyphenated().to_string(), msg));
-            }
+            Err(e) => return Err(e),
         };
 
-        // Send optional test events. 
-        if self.config.plugins.run_gen_driver.expect("Config.run_gen_driver was not a valid bool!") {
-            self.run_test_driver(&pub_socket);
-        };
 
         // Enter our infinite work loop.
         loop {
-            // ----------------- Retrieve and Slice Raw Bytes -----------------
-            // Wait on the subsciption socket.
-            let bytes = match sub_socket.recv_bytes(0) {
-                Ok(b) => b,
-                Err(e) => {
-                    // We log error and then move on. It would probably be a good idea to 
-                    // pause before continuing if there are too many errors in a short period
-                    // of time.  This would avoid filling up the log file and burning cycles
-                    // when things go sideways for a while.
-                    error!("{}", Errors::SocketRecvError(self.name.clone(), e.to_string()));
-                    continue;
-                }
+            // ----------------- Wait on the Next Event -----------------------
+            // The bytes vector is an output parameter populated by the marshalling function 
+            // with raw event bytes. The ev_in.gen_event field references these raw bytes
+            // so the bytes vector must must of a lifetime at least as long as ev_in.
+            //
+            // The marshalling function returns None when the incoming event is unreadable
+            // or improperly constructed.  The problem is logged where it occurs and we 
+            // simple wait for the next event to arrive.
+            let mut bytes: Vec<u8> = vec![];
+            let ev_in = match traps_utils::marshal_next_event(self, &sub_socket, &mut bytes) {
+                Some(ev) => ev,
+                None => continue,
             };
-
-            // Basic buffer length checking to make sure we have
-            // the event prefix and at least 1 other byte.
-            if bytes.len() < EVENT_PREFIX_LEN + 1 {
-                error!("{}", Errors::EventInvalidLen(self.name.clone(), bytes.len()));
-                continue;
-            }
-
-            // Split the 2 zqm prefix bytes from the flatbuffer bytes.
-            let prefix_bytes = &bytes[0..EVENT_PREFIX_LEN];
-            let fbuf_bytes = &bytes[EVENT_PREFIX_LEN..];
-
-            // ----------------- Get the FBS Generated Event ------------------
-            // Get the generated event and its type.
-            let gen_event = match traps_utils::bytes_to_gen_event(fbuf_bytes) {
-                Ok(tuple)=> tuple,
-                Err(e)=> {
-                    error!("{}", e.to_string());
-                    continue;
-                }
-            };
-
-            // Get the event name from the generated event and check it against prefix slice.
-            let event_name = match gen_event.event_type().variant_name() {  
-                Some(n) => n,
-                None => {
-                    error!("{}", Errors::EventNoneError(self.name.clone()));
-                    continue;
-                },
-            };
-
-            // ----------------- Check the Prefix and Event -------------------
-            // Check that the prefix bytes match the event type. 
-            // False means a mismatch was detected and the 
-            let prefix_array = [prefix_bytes[0], prefix_bytes[1]];
-            if !check_event_prefix(prefix_array, event_name) {
-                let pre = format!("{:?}", prefix_array);
-                let name = event_name.to_string();
-                error!("{}", Errors::EventPrefixMismatch(self.name.clone(), pre, name));
-                continue;
-            }
 
             // Process events we expect; log and disregard all others.
-            let terminate = match prefix_array {
+            let terminate = match ev_in.prefix_array {
                 PLUGIN_TERMINATE_PREFIX => {
                     // Determine whether we are the target of this terminate event.
                     info!("{}", format!("{}", Errors::EventProcessing(self.name.clone(), "PluginTerminateEvent")));
-                    traps_utils::process_plugin_terminate_event(gen_event, &self.id, &self.name)
+                    traps_utils::process_plugin_terminate_event(ev_in.gen_event, &self.id, &self.name)
                 },
                 unexpected => {
                     // This should only happen for valid events to which we are not subscribed.
@@ -162,34 +99,6 @@ impl ImageGenPlugin {
             id: Uuid::new_v4(),
             config,
         }
-    }
-
-    fn run_test_driver(&self, pub_socket: &Socket) {
-
-        thread::sleep(time::Duration::new(3, 0));
-        info!("{}", "---------------- run_test_driver Waking UP!");
-
-        // Create event.
-        let ev = events::ImageReceivedEvent::new(Uuid::new_v4());
-        let bytes = match ev.to_bytes() {
-            Ok(v) => v,
-            Err(e) => {
-                // Log the error and just return.
-                let msg = format!("{}", Errors::EventToBytesError(self.name.clone(), ev.get_name(), e.to_string()));
-                error!("{}", msg);
-                return
-            } 
-        };
-
-        // Send the event.
-        match pub_socket.send(bytes, 0) {
-            Ok(_) => (),
-            Err(e) => {
-                // Log the error and abort if we can't send our start up message.
-                let msg = format!("{}", Errors::SocketSendError(self.name.clone(), ev.get_name(), e.to_string()));
-                error!("{}", msg);
-            }
-        };
     }
 }
 
