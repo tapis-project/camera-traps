@@ -18,7 +18,7 @@ fn inject_new_image() {
     println!("{}", format!("{:#?}", parms));
 
     // Create this process's zqm context.
-    let mut context = Context::new();
+    let context = Context::new();
 
     // Plugin socket utilizes REQ socket type connect to the camera-traps application.
     let socket = context.socket(zmq::REQ).expect("Failed to create socket.");
@@ -52,6 +52,5 @@ fn inject_new_image() {
 
     // Disconnect from the camera-traps application.
     socket.disconnect(socket_connect_str.as_str()).expect("Failed to close socket.");
-    context.destroy().expect("Failed to destroy context.");
 
 }
