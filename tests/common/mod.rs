@@ -1,5 +1,6 @@
 // Stardard imports.
 use std::{env, fs};
+use std::io::{Read, BufReader};
 use std::ops::Deref;
 use std::path::Path;
 
@@ -44,6 +45,41 @@ pub fn get_parms() -> Result<Parms> {
     };
 
     Result::Ok(Parms { config_file: config_file_abs, config})
+}
+
+// ---------------------------------------------------------------------------
+// read_first_file_from_dir:
+// ---------------------------------------------------------------------------
+/** Read the bytes of the first file in the specified directory.
+ */
+pub fn read_first_file_from_dir(image_dir: &String) -> Result<Vec<u8>> {
+    // Read the first file name from the directory.
+    
+    let abspath = get_absolute_path(image_dir);
+    let mut paths = fs::read_dir(abspath.clone())?;
+    let entry = paths.nth(0).unwrap()?.file_name().clone();
+
+    // Build the absolute file path name.
+    let mut filename = abspath;
+    filename.push('/');
+    filename.push_str(entry.to_str().unwrap());
+
+    // Read all bytes into a vector.
+    read_file_bytes(&filename)
+}
+
+// ---------------------------------------------------------------------------
+// read_file_bytes:
+// ---------------------------------------------------------------------------
+/** Open the named file and read its content into a vector as bytes.  The
+ * file is automatically closed.
+ */
+pub fn read_file_bytes(filename: &String)  -> Result<Vec<u8>> {
+    let f = fs::File::open(filename)?;
+    let mut reader = BufReader::new(f);
+    let mut vec = Vec::new();
+    reader.read_to_end(&mut vec)?;
+    Ok(vec)
 }
 
 // ***************************************************************************

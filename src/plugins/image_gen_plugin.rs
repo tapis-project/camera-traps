@@ -17,7 +17,9 @@ pub struct ImageGenPlugin {
 }
 
 impl Plugin for ImageGenPlugin {
-
+    // ---------------------------------------------------------------------------
+    // start:
+    // ---------------------------------------------------------------------------
     /// The entry point for the plugin. The engine will start the plugin in its own
     /// thread and execute this function.  The pub_socket is used by the plugin to 
     /// publish new events.  The sub_socket is used by the plugin to get events 

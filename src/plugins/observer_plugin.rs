@@ -18,7 +18,9 @@ pub struct ObserverPlugin {
     config: &'static Config,
 }
 impl Plugin for ObserverPlugin {
-
+    // ---------------------------------------------------------------------------
+    // start:
+    // ---------------------------------------------------------------------------
     /// The entry point for the plugin. The engine will start the plugin in its own
     /// thread and execute this function.  The pub_socket is used by the plugin to 
     /// publish new events.  The sub_socket is used by the plugin to get events 
@@ -133,6 +135,9 @@ impl Plugin for ObserverPlugin {
 }
 
 impl ObserverPlugin {
+    // ---------------------------------------------------------------------------
+    // new:
+    // ---------------------------------------------------------------------------
     pub fn new(config: &'static Config) -> Self {
         ObserverPlugin {
             name: "ObserverPlugin".to_string(),
@@ -141,6 +146,9 @@ impl ObserverPlugin {
         }
     }
 
+    // ---------------------------------------------------------------------------
+    // record_event:
+    // ---------------------------------------------------------------------------
     // Just log receiving the event.
     fn record_event(&self, event_name: &str) {
         info!("\n  -> {} received event {}", self.name, String::from(event_name));

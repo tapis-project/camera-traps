@@ -3,6 +3,8 @@ use zmq::Socket;
 use event_engine::{plugins::Plugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
+use event_engine::events::Event;
+use crate::events_generated::gen_events;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
@@ -18,7 +20,9 @@ pub struct ImageStorePlugin {
 }
 
 impl Plugin for ImageStorePlugin {
-
+    // ---------------------------------------------------------------------------
+    // start:
+    // ---------------------------------------------------------------------------
     /// The entry point for the plugin. The engine will start the plugin in its own
     /// thread and execute this function.  The pub_socket is used by the plugin to 
     /// publish new events.  The sub_socket is used by the plugin to get events 
@@ -59,6 +63,7 @@ impl Plugin for ImageStorePlugin {
             let terminate = match ev_in.prefix_array {
                 IMAGE_SCORED_PREFIX => {
                     debug!("\n  -> {} received event {}", self.name, String::from("ImageScoredEvent"));
+                    self.send_event(ev_in.gen_event, &pub_socket);
                     false
                 },
                 PLUGIN_TERMINATE_PREFIX => {
@@ -102,12 +107,92 @@ impl Plugin for ImageStorePlugin {
 }
 
 impl ImageStorePlugin {
+    // ---------------------------------------------------------------------------
+    // new:
+    // ---------------------------------------------------------------------------
     pub fn new(config:&'static Config) -> Self {
         ImageStorePlugin {
             name: "ImageStorePlugin".to_string(),
             id: Uuid::new_v4(),
             config,
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // send_event:
+    // ---------------------------------------------------------------------------
+    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket) {
+        // Extract the image uuid from the new image event.
+        let new_image_event = match event.event_as_image_scored_event() {
+            Some(ev) => ev,
+            None => {
+                // Log the error and just return.
+                error!("{}", "event_as_new_image_event deserialize error".to_string());
+                return
+            }
+        };
+        let uuid_str = match new_image_event.image_uuid() {
+            Some(s) => s,
+            None => {
+                // Log the error and just return.
+                error!("{}", "uuid access error".to_string());
+                return
+            }
+        };
+        let uuid = match Uuid::parse_str(uuid_str){
+            Ok(u) => u,
+            Err(e) => {
+                // Log the error and just return.
+                error!("{}", e.to_string());
+                return
+            }
+        };
+
+        // Determine the destination based on the first score.
+        let labels= match new_image_event.scores() {
+            Some(v) => v,
+            None => {
+                // Log the error and just return.
+                error!("{}", "uuid access error".to_string());
+                return
+            }
+        };
+
+        // Make sure we got at least one score.
+        if labels.len() < 1 {
+            error!("{}", "No scores received".to_string());
+            return
+        }
+
+        // Get the first score.
+        let first = labels.get(0);
+        let mut dest = "deleted";
+        if first.probability() > 0.5 {
+            dest = "saved";
+        }
+
+        // Create the image received event and serialize it.
+        let ev = events::ImageStoredEvent::new(uuid, dest.to_string());
+        let bytes = match ev.to_bytes() {
+            Ok(v) => v,
+            Err(e) => {
+                // Log the error and just return.
+                error!("{}", e.to_string());
+                return
+            } 
+        };
+
+        // Publish the event.
+        // Send the event serialization succeeded.
+        match pub_socket.send(bytes, 0) {
+            Ok(_) => (),
+            Err(e) => {
+                // Log the error and abort if we can't send our start up message.
+                //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
+                error!("{}", msg);
+            }
+        };
     }
 }
 

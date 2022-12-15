@@ -1,8 +1,11 @@
 use uuid::Uuid;
 use zmq::Socket;
+use rand::Rng;
 use event_engine::{plugins::Plugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
+use event_engine::events::Event;
+use crate::events_generated::gen_events;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
@@ -17,7 +20,9 @@ pub struct ImageScorePlugin {
 }
 
 impl Plugin for ImageScorePlugin {
-
+    // ---------------------------------------------------------------------------
+    // start:
+    // ---------------------------------------------------------------------------
     /// The entry point for the plugin. The engine will start the plugin in its own
     /// thread and execute this function.  The pub_socket is used by the plugin to 
     /// publish new events.  The sub_socket is used by the plugin to get events 
@@ -58,6 +63,7 @@ impl Plugin for ImageScorePlugin {
             let terminate = match ev_in.prefix_array {
                 IMAGE_RECEIVED_PREFIX => {
                     debug!("\n  -> {} received event {}", self.name, String::from("ImageReceivedEvent"));
+                    self.send_event(ev_in.gen_event, &pub_socket);
                     false
                 },
                 PLUGIN_TERMINATE_PREFIX => {
@@ -101,12 +107,76 @@ impl Plugin for ImageScorePlugin {
 }
 
 impl ImageScorePlugin {
+    // ---------------------------------------------------------------------------
+    // new:
+    // ---------------------------------------------------------------------------
     pub fn new(config:&'static Config) -> Self {
         ImageScorePlugin {
             name: "ImageScorePlugin".to_string(),
             id: Uuid::new_v4(),
             config,
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // send_event:
+    // ---------------------------------------------------------------------------
+    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket) {
+        // Extract the image uuid from the new image event.
+        let new_image_event = match event.event_as_image_received_event() {
+            Some(ev) => ev,
+            None => {
+                // Log the error and just return.
+                error!("{}", "event_as_image_scored_event deserialize error".to_string());
+                return
+            }
+        };
+        let uuid_str = match new_image_event.image_uuid() {
+            Some(s) => s,
+            None => {
+                // Log the error and just return.
+                error!("{}", "uuid access error".to_string());
+                return
+            }
+        };
+        let uuid = match Uuid::parse_str(uuid_str){
+            Ok(u) => u,
+            Err(e) => {
+                // Log the error and just return.
+                error!("{}", e.to_string());
+                return
+            }
+        };
+
+        // Create the image label and put it in a vector.
+        let mut rng = rand::thread_rng();
+        let prob = rng.gen_range(0.0..1.0);
+        let image_label = 
+            events::ImageLabelScore::new(uuid, "cow".to_string(), prob);
+        let labels = vec![image_label];
+
+        // Create the image received event and serialize it.
+        let ev = events::ImageScoredEvent::new(uuid, labels);
+        let bytes = match ev.to_bytes() {
+            Ok(v) => v,
+            Err(e) => {
+                // Log the error and just return.
+                error!("{}", e.to_string());
+                return
+            } 
+        };
+
+        // Publish the event.
+        // Send the event serialization succeeded.
+        match pub_socket.send(bytes, 0) {
+            Ok(_) => (),
+            Err(e) => {
+                // Log the error and abort if we can't send our start up message.
+                //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
+                error!("{}", msg);
+            }
+        };
     }
 }
 

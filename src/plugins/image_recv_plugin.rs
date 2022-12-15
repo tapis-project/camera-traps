@@ -3,6 +3,8 @@ use zmq::Socket;
 use event_engine::{plugins::Plugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
+use event_engine::events::Event;
+use crate::events_generated::gen_events;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
@@ -17,7 +19,9 @@ pub struct ImageReceivePlugin {
 }
 
 impl Plugin for ImageReceivePlugin {
-
+    // ---------------------------------------------------------------------------
+    // start:
+    // ---------------------------------------------------------------------------
     /// The entry point for the plugin. The engine will start the plugin in its own
     /// thread and execute this function.  The pub_socket is used by the plugin to 
     /// publish new events.  The sub_socket is used by the plugin to get events 
@@ -58,6 +62,7 @@ impl Plugin for ImageReceivePlugin {
             let terminate = match ev_in.prefix_array {
                 NEW_IMAGE_PREFIX => {
                     debug!("\n  -> {} received event {}", self.name, String::from("NewImageEvent"));
+                    self.send_event(ev_in.gen_event, &pub_socket);
                     false
                 },
                 PLUGIN_TERMINATE_PREFIX => {
@@ -101,6 +106,9 @@ impl Plugin for ImageReceivePlugin {
 }
 
 impl ImageReceivePlugin {
+    // ---------------------------------------------------------------------------
+    // new:
+    // ---------------------------------------------------------------------------
     pub fn new(config:&'static Config) -> Self {
         ImageReceivePlugin {
             name: "ImageReceivePlugin".to_string(),
@@ -108,8 +116,62 @@ impl ImageReceivePlugin {
             config,
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // send_event:
+    // ---------------------------------------------------------------------------
+    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket) {
+        // Extract the image uuid from the new image event.
+        let new_image_event = match event.event_as_new_image_event() {
+            Some(ev) => ev,
+            None => {
+                // Log the error and just return.
+                error!("{}", "event_as_new_image_event deserialize error".to_string());
+                return
+            }
+        };
+        let uuid_str = match new_image_event.image_uuid() {
+            Some(s) => s,
+            None => {
+                // Log the error and just return.
+                error!("{}", "uuid access error".to_string());
+                return
+            }
+        };
+        let uuid = match Uuid::parse_str(uuid_str){
+            Ok(u) => u,
+            Err(e) => {
+                // Log the error and just return.
+                error!("{}", e.to_string());
+                return
+            }
+        };
+
+        // Create the image received event and serialize it.
+        let ev = events::ImageReceivedEvent::new(uuid);
+        let bytes = match ev.to_bytes() {
+            Ok(v) => v,
+            Err(e) => {
+                // Log the error and just return.
+                error!("{}", e.to_string());
+                return
+            } 
+        };
+
+        // Publish the event.
+        // Send the event serialization succeeded.
+        match pub_socket.send(bytes, 0) {
+            Ok(_) => (),
+            Err(e) => {
+                // Log the error and abort if we can't send our start up message.
+                //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
+                error!("{}", msg);
+            }
+        };
 }
 
+}
 
 
 #[cfg(test)]

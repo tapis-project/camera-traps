@@ -25,11 +25,18 @@ fn inject_new_image() {
     let socket_connect_str = "tcp://localhost:".to_string() + &parms.config.external_plugin_config.external_port.to_string();    
     socket.connect(socket_connect_str.as_str()).expect("Failed to connect socket to camera-traps application.");
 
+    // Read the first image file from the input directory.
+    let image = common::read_first_file_from_dir(&parms.config.image_input_dir).
+                                  expect(("Could not read image file: ".to_string() + 
+                                               &parms.config.image_input_dir).as_str()); 
+
     // Main loop runs a configurable number of iterations.
     let mut iterations = parms.config.iterations;
     while iterations > 0 {
         // Create an event and serialize it for transmission to camera-traps.
-        let ev = events::ImageReceivedEvent::new(Uuid::new_v4());
+        let ev = events::NewImageEvent::new(Uuid::new_v4(), 
+                                                           "png".to_string(), 
+                                                           image.clone());
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {

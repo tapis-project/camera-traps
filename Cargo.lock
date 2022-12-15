@@ -53,6 +53,7 @@ dependencies = [
  "log",
  "log4rs",
  "path-absolutize",
+ "rand",
  "serde",
  "serde_derive",
  "shellexpand",
