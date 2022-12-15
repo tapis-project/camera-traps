@@ -166,10 +166,9 @@ impl ImageStorePlugin {
 
         // Get the first score.
         let first = labels.get(0);
-        let mut dest = "deleted";
-        if first.probability() > 0.5 {
-            dest = "saved";
-        }
+        let dest;
+        if first.probability() > 0.5 {dest = "saved";} 
+            else {dest = "deleted";}
 
         // Create the image received event and serialize it.
         let ev = events::ImageStoredEvent::new(uuid, dest.to_string());

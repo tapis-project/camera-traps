@@ -7,6 +7,54 @@ use event_engine::events::{Event};
 
 mod common;
 
+/** This integration test injects a NewImageEvent into a running camera-traps application.
+ * At the time of this writing the rust implementation of these camera-traps plugins are 
+ * simply chained together:
+ * 
+ *  - image_recv_plugin
+ *  - image_score_plugin
+ *  - image_store_plugin
+ * 
+ * Upon receiving an image event to which they are subscribed, the plugin generates a new
+ * output event containing dummy data.
+ * 
+ * *Set Up*
+ *  
+ * This test looks for its configuration file path in the TRAPS_INTEGRATION_CONFIG_FILE
+ * environment variable.  If this variable is not found, the test looks in the user's
+ * ~/traps-integration.toml file.  If a configuration cannot be loaded, the test aborts.
+ * See common/mod.rs for configuration details. Here is an example configuration:
+ * 
+ *  iterations = 1000
+ *  image_input_dir = "~/traps/input"
+ *  image_output_dir = "~/traps/output"
+ * 
+ *  [external_plugin_config] 
+ *      plugin_name = "ext_image_gen_plugin"
+ *      id = "d3266646-41ec-11ed-a96f-5391348bab46"
+ *      external_port = 6000
+ *      subscriptions = [
+ *          "PluginTerminateEvent"
+ *      ]
+ * The input directory should contain at least one .png image file.
+ * 
+ * *Execution*
+ *   
+ * The camera-traps application must be running before staring this this test.  An easy
+ * way to invoke the application is to type "cargo run" into a terminal where the 
+ * current directory is the camera-traps top-level directory.
+ * 
+ * This test can be easy started in two ways.  The first is to click on the virtual 
+ * "Run Test|Debug" prompt that is displayed above the inject_new_image() function
+ * definition in Visual Studio.  The other way is to type one of these commands in a 
+ * terminal with current directory the camera-traps top-level directory:
+ * 
+ *  - cargo test --test integration_tests
+ * 
+ *  - cargo test --test integration_tests -- --show-output
+ *  
+ * Logging in the camera-traps application terminal will indicate progress.
+ */
 #[test]
 fn inject_new_image() {
     // Write to stdout.  To make this appear when running cargo,
