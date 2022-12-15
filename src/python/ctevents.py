@@ -183,6 +183,18 @@ def _generate_image_scored_fb_with_prefix(image_uuid, scores: "list(dict)") -> b
     fb = _generate_image_scored_fb_event(image_uuid, scores)
     return _prepend_event_prefix("IMAGE_SCORED", fb)
 
+def send_image_scored_fb_event(socket, image_uuid, scores: "list(dict)") -> str:
+    """
+    Send an image scored event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    fb_data = _generate_image_scored_fb_with_prefix(image_uuid, scores)
+    # add byte prefix
+    data = _prepend_event_prefix('IMAGE_SCORED ', fb_data)
+    # send the message over the socket
+    return publish_msg(socket, data)
+
 def _generate_store_image_fb_event(image_uuid: String, destination: String)-> bytearray:
     """
     Create a new event to indicate image has been written to external destination
@@ -201,7 +213,6 @@ def _generate_store_image_fb_event(image_uuid: String, destination: String)-> by
     
     image_stored_event = ImageStoredEvent.End(builder)
 
-
     # -- root object --
     Event.Start(builder)
     Event.EventAddEventType(builder, EventType.ImageStoredEvent)
@@ -213,7 +224,7 @@ def _generate_store_image_fb_event(image_uuid: String, destination: String)-> by
 
 def _generate_store_image_fb_with_prefix(image_uuid: String, destination: String) -> bytearray:
     """
-    Create a new image event message with prefix.
+    Create a store image event message with prefix.
     """
     fb = _generate_store_image_fb_event(image_uuid, destination)
     return _prepend_event_prefix("IMAGE_STORED", fb)
@@ -245,7 +256,7 @@ def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
 
 def _generate_delete_image_fb_with_prefix(image_uuid: String) -> bytearray:
     """
-    Create a new image event message with prefix.
+    Create a delete image event message with prefix.
     """
     fb = _generate_delete_image_fb_event(image_uuid)
     return _prepend_event_prefix("IMAGE_DELETED", fb)
@@ -279,7 +290,7 @@ def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> 
 
 def _generate_start_plugin_fb_with_prefix(plugin_name: String, plugin_uuid: String) -> bytearray:
     """
-    Create a new image event message with prefix.
+    Create a start plugin event message with prefix.
     """
     fb = _generate_start_plugin_fb_event(plugin_name, plugin_uuid)
     return _prepend_event_prefix("PLUGIN_STARTED", fb)
@@ -314,12 +325,15 @@ def _generate_terminating_plugin_fb_event(plugin_name: String, plugin_uuid: Stri
 
 def _generate_terminating_plugin_fb_with_prefix(plugin_name: String, plugin_uuid: String) -> bytearray:
     """
-    Create a new image event message with prefix.
+    Create a terminating plugin event message with prefix.
     """
     fb = _generate_terminating_plugin_fb_event(plugin_name, plugin_uuid)
     return _prepend_event_prefix("PLUGIN_TERMINATING", fb)
 
 def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugin_uuid: String)-> bytearray:
+    """
+    Create a terminate plugin flatbuffers object event
+    """
     builder = flatbuffers.Builder(1024)
 
     ts = datetime.datetime.utcnow().isoformat()
@@ -334,7 +348,6 @@ def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugi
     
     plugin_terminate_event = PluginTerminateEvent.End(builder)
 
-
     # -- root object --
     Event.Start(builder)
     Event.EventAddEventType(builder, EventType.PluginTerminateEvent)
@@ -346,7 +359,7 @@ def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugi
 
 def _generate_terminate_plugin_fb_with_prefix(target_plugin_name: String, target_plugin_uuid: String) -> bytearray:
     """
-    Create a new image event message with prefix.
+    Create a terminate plugin event message with prefix.
     """
     fb = _generate_terminate_plugin_fb_event(target_plugin_name, target_plugin_uuid)
     return _prepend_event_prefix("PLUGIN_TERMINATE", fb)
@@ -362,7 +375,6 @@ def _bytes_to_event(b: bytearray):
     except Exception as e:
         print(f"Got exception from GetRootAs: {e}")
     return None
-
 
 def _socket_message_to_event(msg: bytearray):
     # first, remove the event type byte prefix

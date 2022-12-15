@@ -63,6 +63,10 @@ def test_new_image_event_fb():
     # send_new_image_event(socket, uuid_str, format, image)
 
 def test_new_image_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing new image event flatbuffers
+    with prefix works as expected. 
+    """
     # create some test data --
     uuid_str = str(uuid.uuid4())
     format = 'jpg'
@@ -76,11 +80,15 @@ def test_new_image_event_with_prefix():
     assert new_image_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['NEW_IMAGE']
 
 def test_image_stored_event_fb():
+    """
+    A basic test function to check that serializing and deserializing image stored event flatbuffers
+    works as expected. 
+    """
     # create some test data --
     uuid_str = str(uuid.uuid4())
     destination = "/data"
         
-    # make a test new image event flattbuffer
+    # make a test image scored event flattbuffer
     stored_image_fb = _generate_store_image_fb_event(uuid_str, destination)  
     
     # convert the flattbuffer back to a root event object 
@@ -94,21 +102,29 @@ def test_image_stored_event_fb():
     assert store_image_event.Destination() == destination.encode('utf-8')
 
 def test_image_stored_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing image stored event flatbuffers
+    with prefix works as expected. 
+    """
     # create some test data --
     uuid_str = str(uuid.uuid4())
     destination = "/data"
         
-    # make a test new image event flattbuffer
+    # make a test image stored event flattbuffer
     stored_image_fb = _generate_store_image_fb_with_prefix(uuid_str, destination) 
     
     # check that prefix is the right thing
     assert stored_image_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['IMAGE_STORED']
     
 def test_delete_image_event_fb():
+    """
+    A basic test function to check that serializing and deserializing delete image event flatbuffers
+    works as expected. 
+    """
     # create some test data --
     uuid_str = str(uuid.uuid4())
         
-    # make a test new image event flattbuffer
+    # make a test delete image event flattbuffer
     delete_image_fb = _generate_delete_image_fb_event(uuid_str)  
     
     # convert the flattbuffer back to a root event object 
@@ -121,18 +137,10 @@ def test_delete_image_event_fb():
     assert delete_image_event.ImageUuid() == uuid_str.encode('utf-8')
 
 def test_delete_image_event_with_prefix():
-    # create some test data --
-    uuid_str = str(uuid.uuid4())
-        
-    # make a test new image event flattbuffer
-    delete_image_fb = _generate_delete_image_fb_event(uuid_str) 
-    
-    # check that prefix is the right thing
-    #assert delete_image_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['IMAGE_DELETED']
-    print(delete_image_fb[0:2])
-    print(EVENT_TYPE_BYTE_PREFIX['IMAGE_DELETED'])
-
-def test_delete_image_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing delete image event flatbuffers
+    with prefix works as expected. 
+    """
     # create some test data --
     uuid_str = str(uuid.uuid4())
         
@@ -143,11 +151,15 @@ def test_delete_image_event_with_prefix():
     assert delete_image_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['IMAGE_DELETED']
 
 def test_start_plugin_event_fb():
+    """
+    A basic test function to check that serializing and deserializing start plugin event flatbuffers
+    works as expected. 
+    """
     # create some test data --
     plugin_name = "plugin_test"
     uuid_str = str(uuid.uuid4())
         
-    # make a test new image event flattbuffer
+    # make a test start plugin event flattbuffer
     start_plugin_fb = _generate_start_plugin_fb_event(plugin_name, uuid_str)  
     
     # convert the flattbuffer back to a root event object 
@@ -161,6 +173,10 @@ def test_start_plugin_event_fb():
     assert start_plugin_event.PluginName() == plugin_name.encode('utf-8')
 
 def test_start_plugin_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing start plugin event flatbuffers
+    with prefix works as expected. 
+    """
     # create some test data --
     plugin_name = "plugin_test"
     uuid_str = str(uuid.uuid4())
@@ -172,6 +188,10 @@ def test_start_plugin_event_with_prefix():
     assert start_plugin_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['PLUGIN_STARTED']
 
 def test_terminating_plugin_event_fb():
+    """
+    A basic test function to check that serializing and deserializing terminating plugin event flatbuffers
+    works as expected. 
+    """
     # create some test data --
     plugin_name = "plugin_test"
     uuid_str = str(uuid.uuid4())
@@ -190,6 +210,10 @@ def test_terminating_plugin_event_fb():
     assert terminating_plugin_event.PluginName() == plugin_name.encode('utf-8')
 
 def test_terminating_plugin_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing terminating plugin event flatbuffers
+    with prefix works as expected. 
+    """
      # create some test data --
     plugin_name = "plugin_test"
     uuid_str = str(uuid.uuid4())
@@ -201,6 +225,10 @@ def test_terminating_plugin_event_with_prefix():
     assert terminating_plugin_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['PLUGIN_TERMINATING']
 
 def test_terminate_plugin_event_fb():
+    """
+    A basic test function to check that serializing and deserializing terminate plugin event flatbuffers
+    works as expected. 
+    """
     # create some test data --
     target_plugin_name = "target_plugin_test"
     uuid_str = str(uuid.uuid4())
@@ -219,6 +247,10 @@ def test_terminate_plugin_event_fb():
     assert terminate_plugin_event.TargetPluginName() == target_plugin_name.encode('utf-8')
 
 def test_terminate_plugin_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing terminate plugin event flatbuffers
+    with prefix works as expected. 
+    """
     # create some test data --
     target_plugin_name = "target_plugin_test"
     uuid_str = str(uuid.uuid4())
@@ -230,6 +262,10 @@ def test_terminate_plugin_event_with_prefix():
     assert terminate_plugin_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['PLUGIN_TERMINATE']
 
 def test_image_scored_event_fb():
+    """
+    A basic test function to check that serializing and deserializing image scored event flatbuffers
+    works as expected. 
+    """
     # create test data
     scores = [
         {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95},
@@ -238,6 +274,7 @@ def test_image_scored_event_fb():
     ]
     image_uuid = "8f5f3962-d301-4e96-9994-3bd63c472ce8"
 
+    # make an image scored flatbuffers object
     image_scored_fb = _generate_image_scored_fb_event(image_uuid, scores)
 
     # convert the flattbuffer back to a root event object 
@@ -265,6 +302,10 @@ def test_image_scored_event_fb():
     return image_scored_event
 
 def test_image_scored_event_with_prefix():
+    """
+    A basic test function to check that serializing and deserializing image scored event flatbuffers
+    works as expected. 
+    """
     # create test data
     scores = [
         {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95},
