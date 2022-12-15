@@ -107,7 +107,6 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     # fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
     # return fb_data
 
-
 def _generate_new_image_fb_with_prefix(uuid: String, format: String, image: bytearray) -> bytearray:
     """
     Create a new image event message with prefix.
@@ -115,19 +114,17 @@ def _generate_new_image_fb_with_prefix(uuid: String, format: String, image: byte
     fb = _generate_new_image_fb_event(uuid, format, image)
     return _prepend_event_prefix("NEW_IMAGE", fb)
 
-
 def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearray) -> str:
     """
     Send a new image event over the zmq socket.
     Returns a string which is the reply from the event-engine thread or raises an 
     exception on error.
     """
-    fb_data = _generate_new_image_fb_event(uuid, format, image)
+    fb_data = _generate_new_image_fb_event_with_prefix(uuid, format, image)
     # add byte prefix
     data = _prepend_event_prefix(msg_type, fb_data)
     # send the message over the socket
     return publish_msg(socket, data)
-
 
 # type Score(dict):
 #     # list fields and types
@@ -229,7 +226,6 @@ def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
     
     image_deleted_event = ImageDeletedEvent.End(builder)
 
-
     # -- root object --
     Event.Start(builder)
     Event.EventAddEventType(builder, EventType.ImageDeletedEvent)
@@ -256,7 +252,6 @@ def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> 
     PluginStartedEvent.AddPluginName(builder, plugin_name_fb)
     
     plugin_started_event = PluginStartedEvent.End(builder)
-
 
     # -- root object --
     Event.Start(builder)
@@ -375,16 +370,6 @@ def event_to_typed_event(event):
         union_plugin_terminate_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_plugin_terminate_event
     raise Exception(f"Unrecognized event type {event_type_int}")
-
-
-def send_new_image_event(socket, uuid: String, format: String, image: bytearray):
-    """ 
-    Public API for sending a new image event over a ZMQ socket from the component parts.
-    """
-    # generate the flatbuffer binary blob
-    buf = _generate_new_image_fb_event(uuid, format, image)
-    # send the message over the socket
-    publish_msg(socket, buf)
 
 
 def test_new_image_event_with_prefix():
@@ -536,7 +521,7 @@ def test_terminating_plugin_event_fb():
     assert terminating_plugin_event.PluginName() == plugin_name.encode('utf-8')
 
 def test_terminate_plugin_event_fb():
-        # create some test data --
+    # create some test data --
     target_plugin_name = "target_plugin_test"
     uuid_str = str(uuid.uuid4())
         
