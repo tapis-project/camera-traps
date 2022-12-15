@@ -9,8 +9,7 @@ from gen_events.EventType import EventType
 
 # zmq and socket helper lib
 import zmq
-from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
-
+from events import publish_msg
 
 PYPLUGIN_TCP_PORT = 6000
 
@@ -120,9 +119,9 @@ def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearr
     Returns a string which is the reply from the event-engine thread or raises an 
     exception on error.
     """
-    fb_data = _generate_new_image_fb_event_with_prefix(uuid, format, image)
+    fb_data = _generate_new_image_fb_with_prefix(uuid, format, image)
     # add byte prefix
-    data = _prepend_event_prefix(msg_type, fb_data)
+    data = _prepend_event_prefix('NEW_IMAGE', fb_data)
     # send the message over the socket
     return publish_msg(socket, data)
 
@@ -175,11 +174,14 @@ def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
 
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
-    fb_data = builder.Output() # Of type `bytearray`
-    # still need to prepend the event type bytes prefix
-    fb_data = _prepend_event_prefix("IMAGE_SCORED", fb_data)
-    return fb_data
+    return builder.Output() # Of type `bytearray`
 
+def _generate_image_scored_fb_with_prefix(image_uuid, scores: "list(dict)") -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_image_scored_fb_event(image_uuid, scores)
+    return _prepend_event_prefix("IMAGE_SCORED", fb)
 
 def _generate_store_image_fb_event(image_uuid: String, destination: String)-> bytearray:
     """
@@ -209,6 +211,12 @@ def _generate_store_image_fb_event(image_uuid: String, destination: String)-> by
     builder.Finish(root_event)
     return builder.Output()
 
+def _generate_store_image_fb_with_prefix(image_uuid: String, destination: String) -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_store_image_fb_event(image_uuid, destination)
+    return _prepend_event_prefix("IMAGE_STORED", fb)
 
 def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
     """
@@ -234,6 +242,13 @@ def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
 
     builder.Finish(root_event)
     return builder.Output()
+
+def _generate_delete_image_fb_with_prefix(image_uuid: String) -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_delete_image_fb_event(image_uuid)
+    return _prepend_event_prefix("IMAGE_DELETED", fb)
 
 def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
@@ -261,6 +276,13 @@ def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> 
 
     builder.Finish(root_event)
     return builder.Output()
+
+def _generate_start_plugin_fb_with_prefix(plugin_name: String, plugin_uuid: String) -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_start_plugin_fb_event(plugin_name, plugin_uuid)
+    return _prepend_event_prefix("PLUGIN_STARTED", fb)
 
 def _generate_terminating_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
@@ -290,6 +312,13 @@ def _generate_terminating_plugin_fb_event(plugin_name: String, plugin_uuid: Stri
     builder.Finish(root_event)
     return builder.Output()
 
+def _generate_terminating_plugin_fb_with_prefix(plugin_name: String, plugin_uuid: String) -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_terminating_plugin_fb_event(plugin_name, plugin_uuid)
+    return _prepend_event_prefix("PLUGIN_TERMINATING", fb)
+
 def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugin_uuid: String)-> bytearray:
     builder = flatbuffers.Builder(1024)
 
@@ -315,6 +344,12 @@ def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugi
     builder.Finish(root_event)
     return builder.Output()
 
+def _generate_terminate_plugin_fb_with_prefix(target_plugin_name: String, target_plugin_uuid: String) -> bytearray:
+    """
+    Create a new image event message with prefix.
+    """
+    fb = _generate_terminate_plugin_fb_event(target_plugin_name, target_plugin_uuid)
+    return _prepend_event_prefix("PLUGIN_TERMINATE", fb)
 
 def _bytes_to_event(b: bytearray):
     """
@@ -335,7 +370,7 @@ def _socket_message_to_event(msg: bytearray):
     return _bytes_to_event(b)
 
 
-def event_to_typed_event(event):
+def _event_to_typed_event(event):
     """
     Takes a raw Event.Event object and returns a specialized typed event (e.g., NewImageEvent, 
     ImageScoredEvent, etc.) by first checking the type.
@@ -371,218 +406,3 @@ def event_to_typed_event(event):
         return union_plugin_terminate_event
     raise Exception(f"Unrecognized event type {event_type_int}")
 
-
-def test_new_image_event_with_prefix():
-    # create some test data --
-    uuid_str = str(uuid.uuid4())
-    format = 'jpg'
-    with open('labrador-pup.jpg', 'rb') as f:
-        image = f.read()
-        
-    # make a test new image event flattbuffer with prefix
-    new_image_fb = _generate_new_image_fb_with_prefix(uuid_str, format, image)  
-    
-    # check that prefix is the right thing
-    assert new_image_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['NEW_IMAGE']
-    
-    # convert the flattbuffer with prefix back to a root event object 
-    e = _socket_message_to_event(new_image_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    new_image_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    # format should be the original "jpg", as bytes
-    assert new_image_event.ImageFormat() == b'jpg'
-
-    # ImageUuid of flatbuffer should match previous uuid string
-    assert new_image_event.ImageUuid() == uuid_str.encode('utf-8')
-
-    # get the image field from the flatbuffer; unfortunately, the flatbuffers API does not give us a simple 
-    # wrapper method to do this, so we build a bytearray using the provided Image(i) method, which grabs the 
-    # byte at the i^th position.
-    image_from_fb = bytearray()
-    for i in range(new_image_event.ImageLength()):
-        image_from_fb.append(new_image_event.Image(i))
-    # the image we built from the flatbuffer should match the original image
-    assert image_from_fb == image
-
-
-def test_new_image_event_fb():
-    """
-    A basic test function to check that serializing and deserializing new image event flatbuffers
-    works as expected. 
-    """
-    # create some test data --
-    uuid_str = str(uuid.uuid4())
-    format = 'jpg'
-    with open('labrador-pup.jpg', 'rb') as f:
-        image = f.read()
-        
-    # make a test new image event flattbuffer
-    new_image_fb = _generate_new_image_fb_event(uuid_str, format, image)  
-    
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(new_image_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    new_image_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    # format should be the original "jpg", as bytes
-    assert new_image_event.ImageFormat() == b'jpg'
-
-    # ImageUuid of flatbuffer should match previous uuid string
-    assert new_image_event.ImageUuid() == uuid_str.encode('utf-8')
-
-    # get the image field from the flatbuffer; unfortunately, the flatbuffers API does not give us a simple 
-    # wrapper method to do this, so we build a bytearray using the provided Image(i) method, which grabs the 
-    # byte at the i^th position.
-    image_from_fb = bytearray()
-    for i in range(new_image_event.ImageLength()):
-        image_from_fb.append(new_image_event.Image(i))
-    # the image we built from the flatbuffer should match the original image
-    assert image_from_fb == image
-    
-    # TODO -- incorporate zmq...
-    # create the zmq context and socket objects
-    # context = zmq.Context()
-    # socket = get_plugin_socket(context, PYPLUGIN_TCP_PORT)  
-    # send_new_image_event(socket, uuid_str, format, image)
-
-def test_image_stored_event_fb():
-    # create some test data --
-    uuid_str = str(uuid.uuid4())
-    destination = "/data"
-        
-    # make a test new image event flattbuffer
-    stored_image_fb = _generate_store_image_fb_event(uuid_str, destination)  
-    
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(stored_image_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    store_image_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    assert store_image_event.ImageUuid() == uuid_str.encode('utf-8')
-    assert store_image_event.Destination() == destination.encode('utf-8')
-    
-def test_delete_image_event_fb():
-    # create some test data --
-    uuid_str = str(uuid.uuid4())
-        
-    # make a test new image event flattbuffer
-    delete_image_fb = _generate_delete_image_fb_event(uuid_str)  
-    
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(delete_image_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    delete_image_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    assert delete_image_event.ImageUuid() == uuid_str.encode('utf-8')
-
-def test_start_plugin_event_fb():
-    # create some test data --
-    plugin_name = "plugin_test"
-    uuid_str = str(uuid.uuid4())
-        
-    # make a test new image event flattbuffer
-    start_plugin_fb = _generate_start_plugin_fb_event(plugin_name, uuid_str)  
-    
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(start_plugin_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    start_plugin_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    assert start_plugin_event.PluginUuid() == uuid_str.encode('utf-8')
-    assert start_plugin_event.PluginName() == plugin_name.encode('utf-8')
-
-def test_terminating_plugin_event_fb():
-    # create some test data --
-    plugin_name = "plugin_test"
-    uuid_str = str(uuid.uuid4())
-        
-    # make a test new image event flattbuffer
-    terminating_plugin_fb = _generate_terminating_plugin_fb_event(plugin_name, uuid_str)  
-    
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(terminating_plugin_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    terminating_plugin_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    assert terminating_plugin_event.PluginUuid() == uuid_str.encode('utf-8')
-    assert terminating_plugin_event.PluginName() == plugin_name.encode('utf-8')
-
-def test_terminate_plugin_event_fb():
-    # create some test data --
-    target_plugin_name = "target_plugin_test"
-    uuid_str = str(uuid.uuid4())
-        
-    # make a test new image event flattbuffer
-    terminate_plugin_fb = _generate_terminate_plugin_fb_event(target_plugin_name, uuid_str)  
-    
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(terminate_plugin_fb)
-
-    # convert the root event object to a typed event (of type new image)
-    terminate_plugin_event = event_to_typed_event(e)
-    
-    # check the fields; each should match the previous test data we generated
-    assert terminate_plugin_event.TargetPluginUuid() == uuid_str.encode('utf-8')
-    assert terminate_plugin_event.TargetPluginName() == target_plugin_name.encode('utf-8')
-
-def test_image_scored_event_fb():
-    scores = [
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95},
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "golden_retriever", "probability": 0.05},
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "pug", "probability": 0.012}
-    ]
-    image_uuid = "8f5f3962-d301-4e96-9994-3bd63c472ce8"
-    image_scored_fb = _generate_image_scored_fb_event(image_uuid, scores)
-    # convert the flattbuffer back to a root event object 
-    e = _bytes_to_event(image_scored_fb)
-    # convert the root event object to a typed event (of type new image)
-    image_scored_event = event_to_typed_event(e)
-    # test that image_scored_event has the same data on it as the original input data...
-    assert "8f5f3962-d301-4e96-9994-3bd63c472ce8" == image_scored_event.ImageUuid().decode('utf-8')
-    now = datetime.datetime.utcnow().isoformat()
-    # assert times have the same year --
-    assert now[:4] == image_scored_event.EventCreateTs().decode('utf-8')[:4]
-    for i in range(image_scored_event.ScoresLength()):
-        # check each field..
-        assert image_scored_event.Scores(i).ImageUuid().decode('utf-8') == scores[i]['image_uuid']
-        # TODO -- also check label and probability...
-        assert image_scored_event.Scores(i).Label().decode('utf-8') == scores[i]['label']
-        # print("from fb: " + image_scored_event.Scores(i).Label().decode('utf-8'))
-        # print("from py dict: " + scores[i]['label'])
-        assert abs(image_scored_event.Scores(i).Probability() - scores[i]['probability']) < 0.1
-        # print("from fb: " + str(image_scored_event.Scores(i).Probability()))
-        # print("from py dict: " + str(scores[i]['probability']))
-    return image_scored_event
-
-
-def test_send_new_image_event():
-    # create the zmq context object
-    context = zmq.Context()
-    port = 6000
-    socket = get_plugin_socket(context, port)
-    # TODO -- the following call hangs without a receiver on the other end...
-    # reply = send_new_image_event(socket, uuid.uuid4(), format="jpg", image=b'12345abcde')
-    print(reply)
-
-
-if __name__ == "__main__":
-    test_new_image_event_fb()
-    test_image_scored_event_fb()
-    test_image_stored_event_fb()
-    test_delete_image_event_fb()
-    test_start_plugin_event_fb()
-    test_terminating_plugin_event_fb()
-    test_terminate_plugin_event_fb()
