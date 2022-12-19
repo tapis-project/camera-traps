@@ -191,7 +191,7 @@ def send_image_scored_fb_event(socket, image_uuid, scores: "list(dict)") -> str:
     """
     fb_data = _generate_image_scored_fb_with_prefix(image_uuid, scores)
     # add byte prefix
-    data = _prepend_event_prefix('IMAGE_SCORED ', fb_data)
+    data = _prepend_event_prefix('IMAGE_SCORED', fb_data)
     # send the message over the socket
     return publish_msg(socket, data)
 
@@ -229,6 +229,18 @@ def _generate_store_image_fb_with_prefix(image_uuid: String, destination: String
     fb = _generate_store_image_fb_event(image_uuid, destination)
     return _prepend_event_prefix("IMAGE_STORED", fb)
 
+def send_store_image_fb_event(socket, image_uuid, destination) -> str:
+    """
+    Send a store image event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    fb_data = _generate_store_image_fb_with_prefix(image_uuid, destination)
+    # add byte prefix
+    data = _prepend_event_prefix('IMAGE_STORED', fb_data)
+    # send the message over the socket
+    return publish_msg(socket, data)
+
 def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
     """
     Create an event that indicates image has been deleted from database
@@ -260,6 +272,18 @@ def _generate_delete_image_fb_with_prefix(image_uuid: String) -> bytearray:
     """
     fb = _generate_delete_image_fb_event(image_uuid)
     return _prepend_event_prefix("IMAGE_DELETED", fb)
+
+def send_delete_image_fb_event(socket, image_uuid) -> str:
+    """
+    Send a delete image event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    fb_data = _generate_delete_image_fb_with_prefix(image_uuid)
+    # add byte prefix
+    data = _prepend_event_prefix('IMAGE_DELETED', fb_data)
+    # send the message over the socket
+    return publish_msg(socket, data)
 
 def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
@@ -294,6 +318,18 @@ def _generate_start_plugin_fb_with_prefix(plugin_name: String, plugin_uuid: Stri
     """
     fb = _generate_start_plugin_fb_event(plugin_name, plugin_uuid)
     return _prepend_event_prefix("PLUGIN_STARTED", fb)
+
+def send_start_plugin_fb_event(socket, plugin_name, plugin_uuid) -> str:
+    """
+    Send a start plugin event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    fb_data = _generate_store_image_fb_with_prefix(plugin_name, plugin_uuid)
+    # add byte prefix
+    data = _prepend_event_prefix('PLUGIN_STARTED', fb_data)
+    # send the message over the socket
+    return publish_msg(socket, data)
 
 def _generate_terminating_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
@@ -330,6 +366,18 @@ def _generate_terminating_plugin_fb_with_prefix(plugin_name: String, plugin_uuid
     fb = _generate_terminating_plugin_fb_event(plugin_name, plugin_uuid)
     return _prepend_event_prefix("PLUGIN_TERMINATING", fb)
 
+def send_terminating_plugin_fb_event(socket, plugin_name, plugin_uuid) -> str:
+    """
+    Send a terminating plugin event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    fb_data = _generate_terminating_plugin_fb_with_prefix(plugin_name, plugin_uuid)
+    # add byte prefix
+    data = _prepend_event_prefix('PLUGIN_TERMINATING', fb_data)
+    # send the message over the socket
+    return publish_msg(socket, data)
+
 def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugin_uuid: String)-> bytearray:
     """
     Create a terminate plugin flatbuffers object event
@@ -363,6 +411,18 @@ def _generate_terminate_plugin_fb_with_prefix(target_plugin_name: String, target
     """
     fb = _generate_terminate_plugin_fb_event(target_plugin_name, target_plugin_uuid)
     return _prepend_event_prefix("PLUGIN_TERMINATE", fb)
+
+def send_terminate_plugin_fb_event(socket, target_plugin_name, target_plugin_uuid) -> str:
+    """
+    Send a terminating plugin event over the zmq socket.
+    Returns a string which is the reply from the event-engine thread or raises an 
+    exception on error.
+    """
+    fb_data = _generate_terminate_plugin_fb_with_prefix(target_plugin_name, target_plugin_uuid)
+    # add byte prefix
+    data = _prepend_event_prefix('PLUGIN_TERMINATE', fb_data)
+    # send the message over the socket
+    return publish_msg(socket, data)
 
 def _bytes_to_event(b: bytearray):
     """
