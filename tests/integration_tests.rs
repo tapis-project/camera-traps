@@ -15,7 +15,7 @@ mod common;
  *  - image_score_plugin
  *  - image_store_plugin
  * 
- * Upon receiving an image event to which they are subscribed, the plugin generates a new
+ * Upon receiving an image event to which they are subscribed, each plugin generates a new
  * output event containing dummy data.
  * 
  * *Set Up*
@@ -44,7 +44,7 @@ mod common;
  * way to invoke the application is to type "cargo run" into a terminal where the 
  * current directory is the camera-traps top-level directory.
  * 
- * This test can be easy started in two ways.  The first is to click on the virtual 
+ * This test can be easily started in two ways.  The first is to click on the virtual 
  * "Run Test|Debug" prompt that is displayed above the inject_new_image() function
  * definition in Visual Studio.  The other way is to type one of these commands in a 
  * terminal with current directory the camera-traps top-level directory:
