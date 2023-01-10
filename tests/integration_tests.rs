@@ -88,9 +88,8 @@ fn inject_new_image() {
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {
-                // Log the error and just return.
-                println!("{}", e.to_string());
-                return
+                // Game over.
+                panic!("{}", e.to_string());
             } 
         };
 
