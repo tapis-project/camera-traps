@@ -9,6 +9,7 @@ use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
 use crate::events::{IMAGE_SCORED_PREFIX, PLUGIN_TERMINATE_PREFIX};
+use crate::plugins::actions::image_store_actions::select_action;
 
 
 use log::{info, error, debug};
@@ -35,6 +36,16 @@ impl Plugin for ImageStorePlugin {
 
         // Announce our arrival.
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
+
+        // Get this plugin's required action function pointer.
+        let action = match select_action(self.config) {
+            Ok(a) => a,
+            Err(e) => {
+                return Err(EngineError::PluginExecutionError(self.name.clone(), 
+                                                             self.get_id().hyphenated().to_string(), 
+                                                             e.to_string()));
+            }
+        };
 
         // Send the plugin start up event.
         match traps_utils::send_started_event(self, &pub_socket) {

@@ -3,6 +3,12 @@ use thiserror::Error;
 /// Error enumerates the errors returned by this application.
 #[derive(Error, Debug)]
 pub enum Errors {
+    #[error("Internal plugin {0} is configured with action {1}.)")]
+    ActionConfigured(String, String),
+
+    #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
+    ActionNotFound(String, String),
+
     #[error("Camera-Traps application shutting down due to error: {0}")]
     AppErrorShutdown(String),
 

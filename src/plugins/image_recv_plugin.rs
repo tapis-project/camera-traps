@@ -9,8 +9,10 @@ use crate::{events, config::errors::Errors};
 use crate::traps_utils;
 use crate::Config;
 use crate::events::{NEW_IMAGE_PREFIX, PLUGIN_TERMINATE_PREFIX};
+use crate::plugins::actions::image_recv_actions::select_action;
 
 use log::{info, error, debug};
+
 
 pub struct ImageReceivePlugin {
     name: String,
@@ -34,6 +36,16 @@ impl Plugin for ImageReceivePlugin {
 
         // Announce our arrival.
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
+
+        // Get this plugin's required action function pointer.
+        let action = match select_action(self.config) {
+            Ok(a) => a,
+            Err(e) => {
+                return Err(EngineError::PluginExecutionError(self.name.clone(), 
+                                                             self.get_id().hyphenated().to_string(), 
+                                                             e.to_string()));
+            }
+        };
 
         // Send the plugin start up event.
         match traps_utils::send_started_event(self, &pub_socket) {
@@ -62,7 +74,7 @@ impl Plugin for ImageReceivePlugin {
             let terminate = match ev_in.prefix_array {
                 NEW_IMAGE_PREFIX => {
                     debug!("\n  -> {} received event {}", self.name, String::from("NewImageEvent"));
-                    self.send_event(ev_in.gen_event, &pub_socket);
+                    self.send_event(ev_in.gen_event, &pub_socket, action);
                     false
                 },
                 PLUGIN_TERMINATE_PREFIX => {
@@ -106,6 +118,7 @@ impl Plugin for ImageReceivePlugin {
 }
 
 impl ImageReceivePlugin {
+
     // ---------------------------------------------------------------------------
     // new:
     // ---------------------------------------------------------------------------
@@ -120,7 +133,7 @@ impl ImageReceivePlugin {
     // ---------------------------------------------------------------------------
     // send_event:
     // ---------------------------------------------------------------------------
-    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket) {
+    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket, action: fn(&ImageReceivePlugin)) {
         // Extract the image uuid from the new image event.
         let new_image_event = match event.event_as_new_image_event() {
             Some(ev) => ev,
@@ -147,6 +160,9 @@ impl ImageReceivePlugin {
             }
         };
 
+        // Execute the action function.
+        action(self);
+
         // Create the image received event and serialize it.
         let ev = events::ImageReceivedEvent::new(uuid);
         let bytes = match ev.to_bytes() {
@@ -163,13 +179,12 @@ impl ImageReceivePlugin {
         match pub_socket.send(bytes, 0) {
             Ok(_) => (),
             Err(e) => {
-                // Log the error and abort if we can't send our start up message.
-                //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+                // Log the error and return if we can't send the message.
                 let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
                 error!("{}", msg);
             }
         };
-}
+    }
 
 }
 

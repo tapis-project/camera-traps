@@ -29,6 +29,7 @@ impl Default for Config {
 #[derive(Debug, Deserialize, Default)]
 pub struct Plugins {
     pub internal: Vec<String>,
+    pub internal_actions: Vec<String>,
     pub external: Vec<ExtPluginConfig>,
 }
 
