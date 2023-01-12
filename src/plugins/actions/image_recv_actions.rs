@@ -1,6 +1,7 @@
 use crate::Config;
 use crate::plugins::image_recv_plugin::ImageReceivePlugin;
 use crate::{config::errors::Errors};
+use crate::events_generated::gen_events::NewImageEvent;
 use anyhow::{Result, anyhow};
 
 use log::{info, error};
@@ -23,7 +24,7 @@ const PREFIX: &str  = "image_recv_";
  * Each action function associated with this plugin requires an arm in the match 
  * statement, which requires maintenance when new action functions are developed. 
  */
-pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin)> {
+pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin, &NewImageEvent)> {
     
     // Iterate through all configured actions looking for the one
     // that targets this plugin.  The convention is that a plugin's
@@ -57,9 +58,9 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin)>
 
 /** No-op action. */
 #[allow(unused)]
-pub fn image_recv_noop_action(plugin: &ImageReceivePlugin) {}
+pub fn image_recv_noop_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {}
 
 /** Write image to file. */
-pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin) {
+pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {
     info!("************************** image_recv_write_file_action");
 }

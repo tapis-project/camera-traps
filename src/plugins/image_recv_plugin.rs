@@ -133,7 +133,8 @@ impl ImageReceivePlugin {
     // ---------------------------------------------------------------------------
     // send_event:
     // ---------------------------------------------------------------------------
-    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket, action: fn(&ImageReceivePlugin)) {
+    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket, 
+                  action: fn(&ImageReceivePlugin, &gen_events::NewImageEvent)) {
         // Extract the image uuid from the new image event.
         let new_image_event = match event.event_as_new_image_event() {
             Some(ev) => ev,
@@ -161,7 +162,7 @@ impl ImageReceivePlugin {
         };
 
         // Execute the action function.
-        action(self);
+        action(self, &new_image_event);
 
         // Create the image received event and serialize it.
         let ev = events::ImageReceivedEvent::new(uuid);
