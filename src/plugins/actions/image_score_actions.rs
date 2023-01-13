@@ -1,5 +1,6 @@
 use crate::Config;
 use crate::plugins::image_score_plugin::ImageScorePlugin;
+use crate::events_generated::gen_events::ImageReceivedEvent;
 use crate::{config::errors::Errors};
 use anyhow::{Result, anyhow};
 
@@ -23,7 +24,7 @@ const PREFIX: &str  = "image_score_";
  * Each action function associated with this plugin requires an arm in the match 
  * statement, which requires maintenance when new action functions are developed. 
  */
-pub fn select_action(config: &'static Config) -> Result<fn(&ImageScorePlugin)> {
+pub fn select_action(config: &'static Config) -> Result<fn(&ImageScorePlugin, &ImageReceivedEvent)> {
     
     // Iterate through all configured actions looking for the one
     // that targets this plugin.  The convention is that a plugin's
@@ -53,4 +54,4 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageScorePlugin)> {
 
 /** No-op action. */
 #[allow(unused)]
-pub fn image_score_noop_action(plugin: &ImageScorePlugin) {}
+pub fn image_score_noop_action(plugin: &ImageScorePlugin, event: &ImageReceivedEvent) {}

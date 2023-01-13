@@ -1,5 +1,6 @@
 use crate::Config;
 use crate::plugins::image_store_plugin::ImageStorePlugin;
+use crate::events_generated::gen_events::ImageScoredEvent;
 use crate::{config::errors::Errors};
 use anyhow::{Result, anyhow};
 
@@ -23,7 +24,7 @@ const PREFIX: &str  = "image_store_";
  * Each action function associated with this plugin requires an arm in the match 
  * statement, which requires maintenance when new action functions are developed. 
  */
-pub fn select_action(config: &'static Config) -> Result<fn(&ImageStorePlugin)> {
+pub fn select_action(config: &'static Config) -> Result<fn(&ImageStorePlugin, &ImageScoredEvent)> {
     
     // Iterate through all configured actions looking for the one
     // that targets this plugin.  The convention is that a plugin's
@@ -53,4 +54,4 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageStorePlugin)> {
 
 /** No-op action. */
 #[allow(unused)]
-pub fn image_store_noop_action(plugin: &ImageStorePlugin) {}
+pub fn image_store_noop_action(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {}
