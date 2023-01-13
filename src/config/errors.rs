@@ -69,6 +69,15 @@ pub enum Errors {
     #[error("Unable to access the Log4rs configuration file: {}", .0)]
     Log4rsInitialization(String),
 
+    #[error("Plugin {0} failed to deserialize expected {1} event.")]
+    PluginEventDeserializationError(String, String),
+
+    #[error("Plugin {0} failed when trying to access a {1} event's image_uuid.")]
+    PluginEventAccessUuidError(String, String),
+
+    #[error("Plugin {0} failed when trying to parse a {1} event's image_uuid: {2}")]
+    PluginEventParseUuidError(String, String, String),
+
     #[error("\n**** Plugin {} ({}) starting execution.", .0, .1)]
     PluginStarted(String, String),
 

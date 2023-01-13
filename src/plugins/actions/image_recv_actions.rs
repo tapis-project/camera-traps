@@ -1,5 +1,6 @@
 use crate::Config;
 use crate::plugins::image_recv_plugin::ImageReceivePlugin;
+use event_engine::{plugins::Plugin};
 use crate::{config::errors::Errors};
 use crate::events_generated::gen_events::NewImageEvent;
 use anyhow::{Result, anyhow};
@@ -63,4 +64,20 @@ pub fn image_recv_noop_action(plugin: &ImageReceivePlugin, event: &NewImageEvent
 /** Write image to file. */
 pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {
     info!("************************** image_recv_write_file_action");
+
+    // Get the uuid string for use in the file name.
+    let uuid_str = match event.image_uuid() {
+        Some(s) => s,
+        None => {
+            // Log the error and just return.
+            let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                      plugin.get_name().clone(), "NewImageEvent".to_string()));
+            error!("{}", msg);
+            return
+        }
+    };
+
+
+
+
 }

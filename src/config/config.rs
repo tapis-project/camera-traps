@@ -7,6 +7,9 @@ pub struct Config {
     pub plugins: Plugins,
     pub publish_port: u16,
     pub subscribe_port: u16,
+    pub images_dir: String,
+    pub image_file_prefix: String,
+
 }
 
 impl Config {
@@ -22,6 +25,8 @@ impl Default for Config {
             plugins: Default::default(),
             publish_port: 5559,
             subscribe_port: 5560,
+            images_dir: "~/camera-traps/images".to_string(),
+            image_file_prefix: "".to_string(),
         }
     }
 }

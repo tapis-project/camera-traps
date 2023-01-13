@@ -140,7 +140,9 @@ impl ImageReceivePlugin {
             Some(ev) => ev,
             None => {
                 // Log the error and just return.
-                error!("{}", "event_as_new_image_event deserialize error".to_string());
+                let msg = format!("{}", Errors::PluginEventDeserializationError(
+                                        self.get_name().clone(), "NewImageEvent".to_string()));
+                error!("{}", msg);
                 return
             }
         };
@@ -148,7 +150,9 @@ impl ImageReceivePlugin {
             Some(s) => s,
             None => {
                 // Log the error and just return.
-                error!("{}", "uuid access error".to_string());
+                let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                          self.get_name().clone(), "NewImageEvent".to_string()));
+                error!("{}", msg);
                 return
             }
         };
@@ -156,7 +160,9 @@ impl ImageReceivePlugin {
             Ok(u) => u,
             Err(e) => {
                 // Log the error and just return.
-                error!("{}", e.to_string());
+                let msg = format!("{}", Errors::PluginEventParseUuidError(
+                                          self.get_name().clone(), "NewImageEvent".to_string(), e.to_string()));
+                error!("{}", msg);
                 return
             }
         };
