@@ -37,6 +37,7 @@ const DEFAULT_CONFIG_FILE : &str = "~/traps.toml";
 // We exit if we can't read our parameters.
 lazy_static! {
     static ref PARMS: Parms = get_parms().unwrap();
+    pub static ref ABS_IMAGE_PATH: String = init_image_dir().unwrap();
 }
 
 // ***************************************************************************
@@ -55,6 +56,10 @@ fn main() -> Result<()> {
 
     // Force the reading of input parameters.
     info!("{}", Errors::InputParms(format!("{:#?}", *PARMS)));
+
+    // File/dir creation and checking.
+    //traps_utils::validate_image_dir(&ABS_IMAGE_PATH)?;
+    traps_utils::validate_image_dir(&PARMS.config, &ABS_IMAGE_PATH)?;
 
     // Configure plugins.
     let app = init_app(&PARMS)?;
@@ -198,6 +203,15 @@ fn get_parms() -> Result<Parms> {
     };
 
     Result::Ok(Parms { config_file: config_file_abs, config})
+}
+
+// ---------------------------------------------------------------------------
+// init_image_dir:
+// ---------------------------------------------------------------------------
+fn init_image_dir() -> Result<String> {
+    // Get the absolute filepath to the images directory.
+    let abs_dir = traps_utils::get_absolute_path(PARMS.config.images_dir.as_str());
+    return Result::Ok(abs_dir);
 }
 
 // ***************************************************************************

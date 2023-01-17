@@ -1,3 +1,5 @@
+use std::fs::OpenOptions;
+
 use crate::Config;
 use crate::plugins::image_recv_plugin::ImageReceivePlugin;
 use event_engine::{plugins::Plugin};
@@ -9,6 +11,10 @@ use log::{info, error};
 
 // The search string prefix for this plugin.
 const PREFIX: &str  = "image_recv_";
+
+//static x: String  = init_image_dir();
+
+fn init_image_dir() -> String {"".to_string()}
 
 /** Called one time by each internal plugin to select their single action function. 
  * The internal_actions array component of the plugins configuration object lists
@@ -77,6 +83,24 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
         }
     };
 
+    // Standardize image type suffixes to lowercase.
+    let suffix = match event.image_format() {
+        Some(s) => s.to_string().to_lowercase(),
+        None => {
+            // Log the error and just return.
+            let msg = format!("{}", Errors::ActionImageFormatTypeError(
+                                      plugin.get_name().clone(), "NewImageEvent".to_string()));
+            error!("{}", msg);
+            return
+        } 
+    };
+
+    // Create absolute file path for the image.
+
+
+    // Open the image output file.
+    let file = OpenOptions::new()
+                            .write(true).truncate(true).open("");
 
 
 

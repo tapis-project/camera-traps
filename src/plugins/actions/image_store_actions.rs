@@ -55,3 +55,8 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageStorePlugin, &I
 /** No-op action. */
 #[allow(unused)]
 pub fn image_store_noop_action(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {}
+
+#[allow(unused)]
+pub fn image_store_file_action(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
+    
+}

@@ -1,5 +1,8 @@
 use std::ops::Deref;
 use std::path::Path;
+use std::fs;
+use std::os::unix::fs::MetadataExt;
+
 use event_engine::events::{Event, EventType,};
 use event_engine::plugins::Plugin;
 use event_engine::errors::EngineError;
@@ -11,7 +14,7 @@ use zmq::Socket;
 
 use crate::events_generated::gen_events;
 use crate::events;
-use crate::config::errors::Errors;
+use crate::config::{errors::Errors, config::Config};
 use crate::events::{NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent,
                     ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent};
 use log::{error};
@@ -68,6 +71,87 @@ pub fn get_absolute_path(path: &str) -> String {
     };
 
     p2.to_owned()
+}
+
+// ---------------------------------------------------------------------------
+// validate_image_dir:
+// ---------------------------------------------------------------------------
+/** Check if we have r/w/x permission on the local image directory if that
+ * directory is used by one of the plugins.  This method will create the directory 
+ * if necessary.  
+ * 
+ * This method is expected to be called once at application start up so that 
+ * the execution can be aborted if no image I/O will be possible.
+ */
+pub fn validate_image_dir(config: &Config, abs_dir: &String) -> Result<(), Errors> {
+    // Determine if we are using local storage for image files.
+    if !uses_local_image_dir(&config.plugins.internal_actions) {return Ok(());}
+
+    // Get the absolute filepath to the images directory.
+    //let abs_dir = get_absolute_path(config.images_dir.as_str());
+    //let abs_dir = a;
+
+    // Create the directory if it doesn't exist.  If the path
+    // leads to an existing file, this call will fail (not tested
+    // with symbolic links).
+    match fs::create_dir_all(abs_dir) {
+        Ok(_) => (),
+        Err(e) => {
+            let err = Errors::AppDirCreateError(abs_dir.clone(), e.to_string());
+            error!("{}", err);
+            return Result::Err(err);
+        }
+    };
+    
+    // Check permissions on the directory.
+    let meta = match fs::metadata(abs_dir.as_str()) {
+        Ok(m) => m,
+        Err(e) => {
+            let err = Errors::AppDirPermissionError(abs_dir.clone(), "read/write".to_string(), e.to_string());
+            error!("{}", err);
+            return Result::Err(err);
+        }
+    };
+
+    // Get the mode bits and check that we have r/w/x access to the directory.
+    let mode = meta.mode();
+    let user_rw_access  = mode & 0o700;
+    let group_rw_access = mode & 0o070;
+    let other_rw_access = mode & 0o007;
+    if user_rw_access != 0o700 && group_rw_access != 0o070 && other_rw_access != 0o007 {
+        let err = Errors::AppDirPermissionError(abs_dir.clone(), "read/write".to_string(), 
+                                                        "Permission check failed".to_string());
+        error!("{}", err);
+        return Result::Err(err);
+    }
+
+    // The directory exists and is r/w.
+    Ok(())
+}    
+
+// ---------------------------------------------------------------------------
+// uses_local_image_dir:
+// ---------------------------------------------------------------------------
+/** Check if any of the configured plugin actions requires a local image
+ * directory for I/O.  We hardcode the plugin actions that use the image
+ * directory, which requires maintenance when new actions are introduced. 
+ */
+fn uses_local_image_dir(configured_actions: &Vec<String>) -> bool {
+    
+    // Hardcode the actions that require a local image directory. Since
+    // this method only gets called once per application execution, we
+    // put the list on the stack so it gets cleaned up.  This vector 
+    // may need to be updated when new actions are developed.
+    let local_store_actions = vec!["image_recv_write_file_action", "image_store_file_action"];
+    
+    // Determine if any of the configured actions match the 
+    // hardcoded actions that requre a local image directory.
+    for action in configured_actions {
+        if local_store_actions.contains(&action.as_str()) {return true;}
+    }
+    
+    // Local image directory is not needed.
+    false
 }
 
 // ---------------------------------------------------------------------------

@@ -9,6 +9,15 @@ pub enum Errors {
     #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
     ActionNotFound(String, String),
 
+    #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
+    ActionImageFormatTypeError(String, String),
+
+    #[error("Unable to create directory {0}: {1}")]
+    AppDirCreateError(String, String),
+
+    #[error("Directory {0} does not have required {1} permission: {2}")]
+    AppDirPermissionError(String, String, String),
+
     #[error("Camera-Traps application shutting down due to error: {0}")]
     AppErrorShutdown(String),
 
