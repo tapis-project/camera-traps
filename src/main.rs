@@ -53,11 +53,10 @@ fn main() -> Result<()> {
     log4rs::init_file(LOG4RS_CONFIG_FILE, Default::default())
         .context(format!("{}", Errors::Log4rsInitialization(LOG4RS_CONFIG_FILE.to_string())))?;
 
-    // Force the reading of input parameters.
+    // Force the reading of input parameters and initialization of runtime context.
     info!("{}", Errors::InputParms(format!("{:#?}", *RUNTIME_CTX)));
 
     // File/dir creation and checking.
-    //traps_utils::validate_image_dir(&PARMS.config, &ABS_IMAGE_PATH)?;
     traps_utils::validate_image_dir(&RUNTIME_CTX.parms.config, &RUNTIME_CTX.abs_image_dir)?;
 
     // Configure plugins.
