@@ -87,10 +87,6 @@ pub fn validate_image_dir(config: &Config, abs_dir: &String) -> Result<(), Error
     // Determine if we are using local storage for image files.
     if !uses_local_image_dir(&config.plugins.internal_actions) {return Ok(());}
 
-    // Get the absolute filepath to the images directory.
-    //let abs_dir = get_absolute_path(config.images_dir.as_str());
-    //let abs_dir = a;
-
     // Create the directory if it doesn't exist.  If the path
     // leads to an existing file, this call will fail (not tested
     // with symbolic links).

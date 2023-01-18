@@ -1,4 +1,5 @@
 use std::fs::OpenOptions;
+use std::io::Write;
 
 use crate::Config;
 use crate::plugins::image_recv_plugin::ImageReceivePlugin;
@@ -6,16 +7,16 @@ use event_engine::{plugins::Plugin};
 use crate::{config::errors::Errors};
 use crate::events_generated::gen_events::NewImageEvent;
 use anyhow::{Result, anyhow};
+use crate::get_image_dir;
 
 use log::{info, error};
 
 // The search string prefix for this plugin.
 const PREFIX: &str  = "image_recv_";
 
-//static x: String  = init_image_dir();
-
-fn init_image_dir() -> String {"".to_string()}
-
+// ---------------------------------------------------------------------------
+// select_action:
+// ---------------------------------------------------------------------------
 /** Called one time by each internal plugin to select their single action function. 
  * The internal_actions array component of the plugins configuration object lists
  * zero or more function names.  Each function name is associated with one of the 
@@ -63,14 +64,32 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin, 
     Result::Ok(image_recv_noop_action)
 }
 
+// ---------------------------------------------------------------------------
+// image_recv_noop_action:
+// ---------------------------------------------------------------------------
 /** No-op action. */
 #[allow(unused)]
 pub fn image_recv_noop_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {}
 
+// ---------------------------------------------------------------------------
+// image_recv_write_file_action:
+// ---------------------------------------------------------------------------
 /** Write image to file. */
 pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {
-    info!("************************** image_recv_write_file_action");
 
+    // There's no point in moving on if we can't access the image data.
+    let bytes = match event.image() {
+        Some(b) => b,
+        None => {
+            let msg = format!("{}", Errors::ActionNoImageError(
+                                      plugin.get_name().clone(), "image_recv_write_file_action".to_string(),
+                                      "NewImageEvent".to_string(),
+                                    ));
+            error!("{}", msg);
+            return
+        } 
+    };
+    
     // Get the uuid string for use in the file name.
     let uuid_str = match event.image_uuid() {
         Some(s) => s,
@@ -96,12 +115,42 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
     };
 
     // Create absolute file path for the image.
-
+    let abs_dir = get_image_dir();
+    let slash = if abs_dir.ends_with('/') {""} else {"/"};
+    let mut filepath = abs_dir.clone();
+    filepath.push_str(slash);
+    filepath.push_str(uuid_str);
+    filepath.push_str(".");
+    filepath.push_str(suffix.as_str());
 
     // Open the image output file.
-    let file = OpenOptions::new()
-                            .write(true).truncate(true).open("");
+    let mut file = match OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .truncate(true)
+                        .open(&filepath) {
+                            Ok(f) => f,
+                            Err(e) => {
+                                let msg = format!("{}", Errors::ActionOpenFileError(
+                                    plugin.get_name().clone(), "image_recv_write_file_action".to_string(), 
+                                    filepath, e.to_string()));
+                                error!("{}", msg);
+                                return
+                            }
+    };
 
+    // Write the image bytes to file.
+    match file.write_all(bytes) {
+        Ok(_) => (),
+        Err(e) => {
+            let msg = format!("{}", Errors::ActionWriteFileError(
+                plugin.get_name().clone(), "image_recv_write_file_action".to_string(), 
+                filepath, e.to_string()));
+            error!("{}", msg);
+            return
+        }
+    };
 
-
+    // Success.
+    ()
 }

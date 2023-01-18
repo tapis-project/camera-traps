@@ -7,10 +7,19 @@ pub enum Errors {
     ActionConfigured(String, String),
 
     #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
-    ActionNotFound(String, String),
+    ActionImageFormatTypeError(String, String),
+
+    #[error("Action {1} in plugin {0} received a {2} event but could not access the image data.)")]
+    ActionNoImageError(String, String, String),
 
     #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
-    ActionImageFormatTypeError(String, String),
+    ActionNotFound(String, String),
+
+    #[error("Action {1} in plugin {0} failed to open file {2}: {3})")]
+    ActionOpenFileError(String, String, String, String),
+
+    #[error("Action {1} in plugin {0} failed to write file {2}: {3})")]
+    ActionWriteFileError(String, String, String, String),
 
     #[error("Unable to create directory {0}: {1}")]
     AppDirCreateError(String, String),
@@ -63,7 +72,7 @@ pub enum Errors {
     #[error("Expected event type {}, but received event {} instead.", .0, .1)]
     EventUnexpectedError(String, String),
 
-   #[error("File IO error: {}", .0)]
+    #[error("File IO error: {}", .0)]
     FileIOError(String),
 
     /// Input parameter logging.

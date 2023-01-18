@@ -211,7 +211,14 @@ fn get_parms() -> Result<Parms> {
 fn init_image_dir() -> Result<String> {
     // Get the absolute filepath to the images directory.
     let abs_dir = traps_utils::get_absolute_path(PARMS.config.images_dir.as_str());
-    return Result::Ok(abs_dir);
+    Result::Ok(abs_dir)
+}
+
+// ---------------------------------------------------------------------------
+// get_image_dir:
+// ---------------------------------------------------------------------------
+pub fn get_image_dir() -> &'static String {
+    &ABS_IMAGE_PATH
 }
 
 // ***************************************************************************

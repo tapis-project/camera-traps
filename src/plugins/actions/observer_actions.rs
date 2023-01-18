@@ -8,6 +8,9 @@ use log::{info, error};
 // The search string prefix for this plugin.
 const PREFIX: &str  = "observer_";
 
+// ---------------------------------------------------------------------------
+// select_action:
+// ---------------------------------------------------------------------------
 /** Called one time by each internal plugin to select their single action function. 
  * The internal_actions array component of the plugins configuration object lists
  * zero or more function names.  Each function name is associated with one of the 
