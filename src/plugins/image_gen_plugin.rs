@@ -5,16 +5,16 @@ use event_engine::errors::EngineError;
 use event_engine::events::EventType;
 use crate::{events, config::errors::Errors};
 use crate::traps_utils;
-use crate::Config;
 use crate::events::{PLUGIN_TERMINATE_PREFIX};
 use crate::plugins::actions::image_gen_actions::select_action;
+use crate::RuntimeCtx;
 
 use log::{info, error};
 
 pub struct ImageGenPlugin {
     name: String,
     id: Uuid,
-    config: &'static Config,
+    runctx: &'static RuntimeCtx,
 }
 
 impl Plugin for ImageGenPlugin {
@@ -35,7 +35,7 @@ impl Plugin for ImageGenPlugin {
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
         // Get this plugin's required action function pointer.
-        let action = match select_action(self.config) {
+        let action = match select_action(&self.runctx.parms.config) {
             Ok(a) => a,
             Err(e) => {
                 return Err(EngineError::PluginExecutionError(self.name.clone(), 
@@ -106,14 +106,25 @@ impl Plugin for ImageGenPlugin {
 }
 
 impl ImageGenPlugin {
-    pub fn new(config:&'static Config) -> Self {
+    
+    // ---------------------------------------------------------------------------
+    // new:
+    // ---------------------------------------------------------------------------
+    pub fn new(runctx: &'static RuntimeCtx) -> Self {
         ImageGenPlugin {
             name: "ImageGenPlugin".to_string(),
             id: Uuid::new_v4(),
-            config,
+            runctx,
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // get_runctx:
+    // ---------------------------------------------------------------------------
+    #[allow(unused)]
+    pub fn get_runctx(&self) -> &RuntimeCtx {self.runctx}
 }
+
 
 #[cfg(test)]
 mod tests {

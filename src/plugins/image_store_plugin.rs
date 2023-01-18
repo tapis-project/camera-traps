@@ -6,7 +6,7 @@ use event_engine::events::EventType;
 use event_engine::events::Event;
 use crate::events_generated::gen_events;
 use crate::{events, config::errors::Errors};
-use crate::traps_utils;
+use crate::{traps_utils, RuntimeCtx};
 use crate::Config;
 use crate::events::{IMAGE_SCORED_PREFIX, PLUGIN_TERMINATE_PREFIX};
 use crate::plugins::actions::image_store_actions::select_action;
@@ -17,7 +17,7 @@ use log::{info, error, debug};
 pub struct ImageStorePlugin {
     name: String,
     id: Uuid,
-    config: &'static Config,
+    runctx: &'static RuntimeCtx,
 }
 
 impl Plugin for ImageStorePlugin {
@@ -38,7 +38,7 @@ impl Plugin for ImageStorePlugin {
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
         // Get this plugin's required action function pointer.
-        let action = match select_action(self.config) {
+        let action = match select_action(&self.runctx.parms.config) {
             Ok(a) => a,
             Err(e) => {
                 return Err(EngineError::PluginExecutionError(self.name.clone(), 
@@ -121,14 +121,20 @@ impl ImageStorePlugin {
     // ---------------------------------------------------------------------------
     // new:
     // ---------------------------------------------------------------------------
-    pub fn new(config:&'static Config) -> Self {
+    pub fn new(runctx: &'static RuntimeCtx) -> Self {
         ImageStorePlugin {
             name: "ImageStorePlugin".to_string(),
             id: Uuid::new_v4(),
-            config,
+            runctx,
         }
     }
 
+    // ---------------------------------------------------------------------------
+    // get_runctx:
+    // ---------------------------------------------------------------------------
+    #[allow(unused)]
+    pub fn get_runctx(&self) -> &RuntimeCtx {self.runctx}
+    
     // ---------------------------------------------------------------------------
     // send_event:
     // ---------------------------------------------------------------------------

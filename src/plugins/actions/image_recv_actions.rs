@@ -7,7 +7,6 @@ use event_engine::{plugins::Plugin};
 use crate::{config::errors::Errors};
 use crate::events_generated::gen_events::NewImageEvent;
 use anyhow::{Result, anyhow};
-use crate::get_image_dir;
 
 use log::{info, error};
 
@@ -115,7 +114,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
     };
 
     // Create absolute file path for the image.
-    let abs_dir = get_image_dir();
+    let abs_dir = &plugin.get_runctx().abs_image_dir;
     let slash = if abs_dir.ends_with('/') {""} else {"/"};
     let mut filepath = abs_dir.clone();
     filepath.push_str(slash);

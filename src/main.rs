@@ -36,8 +36,7 @@ const DEFAULT_CONFIG_FILE : &str = "~/traps.toml";
 // Lazily initialize the parameters variable so that is has a 'static lifetime.
 // We exit if we can't read our parameters.
 lazy_static! {
-    static ref PARMS: Parms = get_parms().unwrap();
-    pub static ref ABS_IMAGE_PATH: String = init_image_dir().unwrap();
+    static ref RUNTIME_CTX: RuntimeCtx = init_runtime_context();
 }
 
 // ***************************************************************************
@@ -55,14 +54,14 @@ fn main() -> Result<()> {
         .context(format!("{}", Errors::Log4rsInitialization(LOG4RS_CONFIG_FILE.to_string())))?;
 
     // Force the reading of input parameters.
-    info!("{}", Errors::InputParms(format!("{:#?}", *PARMS)));
+    info!("{}", Errors::InputParms(format!("{:#?}", *RUNTIME_CTX)));
 
     // File/dir creation and checking.
-    //traps_utils::validate_image_dir(&ABS_IMAGE_PATH)?;
-    traps_utils::validate_image_dir(&PARMS.config, &ABS_IMAGE_PATH)?;
+    //traps_utils::validate_image_dir(&PARMS.config, &ABS_IMAGE_PATH)?;
+    traps_utils::validate_image_dir(&RUNTIME_CTX.parms.config, &RUNTIME_CTX.abs_image_dir)?;
 
     // Configure plugins.
-    let app = init_app(&PARMS)?;
+    let app = init_app(&RUNTIME_CTX.parms)?;
 
     // Run the event engine.
     match app.run() {
@@ -96,31 +95,31 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     for plugin_name in &parms.config.plugins.internal {
         match plugin_name.as_str() {
             "image_gen_plugin" => {
-                let plugin = ImageGenPlugin::new(&PARMS.config);
+                let plugin = ImageGenPlugin::new(&RUNTIME_CTX);
                 let uuid = plugin.get_id();
                 info!("{}",Errors::RegisteringInternalPlugin("image_gen_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
             },
             "image_recv_plugin" => {
-                let plugin = ImageReceivePlugin::new(&PARMS.config);
+                let plugin = ImageReceivePlugin::new(&RUNTIME_CTX);
                 let uuid = plugin.get_id();
                 info!("{}",Errors::RegisteringInternalPlugin("image_recv_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
             },
             "image_score_plugin" => {
-                let plugin = ImageScorePlugin::new(&PARMS.config);
+                let plugin = ImageScorePlugin::new(&RUNTIME_CTX);
                 let uuid = plugin.get_id();
                 info!("{}",Errors::RegisteringInternalPlugin("image_score_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
             },
             "image_store_plugin" => {
-                let plugin =ImageStorePlugin::new(&PARMS.config);
+                let plugin =ImageStorePlugin::new(&RUNTIME_CTX);
                 let uuid = plugin.get_id();
                 info!("{}",Errors::RegisteringInternalPlugin("image_store_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
             },
             "observer_plugin" => {
-                let plugin = ObserverPlugin::new(&PARMS.config);
+                let plugin = ObserverPlugin::new(&RUNTIME_CTX);
                 let uuid = plugin.get_id();
                 info!("{}", Errors::RegisteringInternalPlugin("observer_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
@@ -158,6 +157,18 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
 
     // Return the app.
     Result::Ok(app)
+}
+
+// ---------------------------------------------------------------------------
+// init_runtime_context:
+// ---------------------------------------------------------------------------
+fn init_runtime_context() -> RuntimeCtx {
+    // If either of these fail the application aborts.
+    let parms = get_parms().unwrap();
+    let abs_image_dir = init_image_dir(&parms.config.images_dir).unwrap();
+    
+    // Return the context.
+    RuntimeCtx {parms, abs_image_dir}
 }
 
 // ---------------------------------------------------------------------------
@@ -208,17 +219,10 @@ fn get_parms() -> Result<Parms> {
 // ---------------------------------------------------------------------------
 // init_image_dir:
 // ---------------------------------------------------------------------------
-fn init_image_dir() -> Result<String> {
+fn init_image_dir(dir: &String) -> Result<String> {
     // Get the absolute filepath to the images directory.
-    let abs_dir = traps_utils::get_absolute_path(PARMS.config.images_dir.as_str());
+    let abs_dir = traps_utils::get_absolute_path(dir.as_str());
     Result::Ok(abs_dir)
-}
-
-// ---------------------------------------------------------------------------
-// get_image_dir:
-// ---------------------------------------------------------------------------
-pub fn get_image_dir() -> &'static String {
-    &ABS_IMAGE_PATH
 }
 
 // ***************************************************************************
@@ -228,11 +232,19 @@ pub fn get_image_dir() -> &'static String {
 // Parms:
 // ---------------------------------------------------------------------------
 #[derive(Debug)]
-struct Parms {
-    config_file: String,
-    config: Config,
+pub struct Parms {
+    pub config_file: String,
+    pub config: Config,
 }
 
+// ---------------------------------------------------------------------------
+// RuntimeCtx:
+// ---------------------------------------------------------------------------
+#[derive(Debug)]
+pub struct RuntimeCtx {
+    pub parms: Parms,
+    pub abs_image_dir: String,
+}
 
 #[cfg(test)]
 mod tests {
