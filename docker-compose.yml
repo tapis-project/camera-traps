@@ -1,0 +1,19 @@
+version: "3.0"
+
+networks:
+  cameratraps:
+    driver: bridge
+
+services:
+  engine:
+    container_name: engine
+    image: ???
+    networks:
+      - cameratraps
+
+  newimagePlugin:
+    container_name: newimage
+    image: ??
+    networks:
+      - cameratraps
+. . . 
