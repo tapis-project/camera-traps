@@ -2,12 +2,34 @@ import json
 import os
 import glob
 import uuid
+import cv2
 from collections import OrderedDict
+import zmq
+import ctevents
+from events import get_plugin_socket, get_next_msg, send_quit_command
+
+# get the port assigned to the Image Generating plugin
+PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+
+
+def get_socket():
+    # create the zmq context object
+    context = zmq.Context()
+    return get_plugin_socket(context, PORT)  
 
 with open('input.json') as f:
     data = json.load(f)
 user_input = data['path']
+print(f"user_input: {user_input}")
 start = int(data['timestamp'])
+
+def get_binary(value):
+    uuid_image = uuid.uuid5(uuid.NAMESPACE_URL, value)
+    binary_img = cv2.imread(str(value)[1:-1], 2)
+    #ret, bw_img = cv2.threshold(binary_img, 127, 255, cv2.THRESH_BINARY)
+    img = Image.open(str(value)[1:-1])
+    img_format = img.format
+    send_new_image_fb_event(socket,uuid_image,img_format,binary_img)
 
 def simpleNext(i,value_index):
     if i >= len(img_dict):
@@ -16,16 +38,12 @@ def simpleNext(i,value_index):
     val_Length = len(value)
     if (val_Length == 1):
         value = str(value)[1:-1]
-        print(value)
-        print(list(img_dict.keys())[i])
-        uuid_image = uuid.uuid5(uuid.NAMESPACE_URL, value) #UUID5 - SHA-1 hash [namestring is URL: https://docs.python.org/3/library/uuid.html]
-        print(uuid_image)
+        #UUID5 - SHA-1 hash [namestring is URL: https://docs.python.org/3/library/uuid.html]
+        get_binary(value)
         return i + 1, value_index
     else:
         value = list(img_dict.values())[i][value_index]
-        print(value)
-        uuid_image = uuid.uuid5(uuid.NAMESPACE_URL, value)
-        print(uuid_image)
+        get_binary(value)
         if (value_index == val_Length - 1):
             return i + 1, 0
         return i, value_index + 1
@@ -37,9 +55,7 @@ def burstNext(index):
             exit()
         value = list(img_dict.values())[i]
         value = str(value)[1:-1]
-        print(value)
-        uuid_image = uuid.uuid5(uuid.NAMESPACE_URL,value)
-        print(uuid_image)
+        get_binary(value)
     return (index+burst_Quantity)
 
 
@@ -49,9 +65,7 @@ def identicalTimestamp(timestamp_min):
     if(len(img_dict[timestamp_min]) > 1):
         for i in range(0, len(img_dict[timestamp_min])):
             value = img_dict[timestamp_min][i]
-            print(value)
-            uuid_image = uuid.uuid5(uuid.NAMESPACE_URL,value)
-            print(uuid_image)
+            get_binary(value)
     return timestamp_min+start
 
 
@@ -72,9 +86,7 @@ def nextImage(timestamp_min,index):
     print("Output")
     value = img_dict[timestamp_min1]
     value = str(value)[1:-1]
-    uuid_image = uuid.uuid5(uuid.NAMESPACE_URL,value)
-    print(uuid_image)
-    print(timestamp_min1)
+    get_binary(value)
     return timestamp_min1+start,index
 
 def randomImage(timestamp_min,index):
@@ -95,14 +107,13 @@ def randomImage(timestamp_min,index):
     print("Output")
     value = img_dict[timestamp_min]
     value = str(value)[1:-1]
-    uuid_image = uuid.uuid5(uuid.NAMESPACE_URL,value)
-    print(uuid_image)
-    print(timestamp_min)
+    get_binary(value)
     return timestamp_min,index
 
 
-list_of_files = filter(os.path.isfile, glob.glob(user_input + '*'))
+list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
 list_of_files = sorted(list_of_files, key=os.path.getmtime)
+print(f"list_of_files: {list_of_files}")
 img_dict = OrderedDict()
 for file_name_full in list_of_files:
     if ('.DS_Store' not in file_name_full):
@@ -111,12 +122,14 @@ for file_name_full in list_of_files:
             img_dict[timestamp] += [file_name_full]
         else:
             img_dict[timestamp] = [file_name_full]
-print(img_dict)
 timestamp_min = list(img_dict.keys())[0]
 timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
 initial_index = 0
 index = 0
 indexvalue = 0
+socket = get_socket()
+done = False
+# while not done:
 for i in range(0,15):
     if data['callingFunction'] == "nextImage":
         print("Timed Next")
