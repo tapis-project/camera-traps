@@ -16,6 +16,9 @@
 #
 FROM tapis/camera_traps_py
 
+RUN pip install opencv-contrib-python-headless 
+RUN pip install PILLOW
+
 ADD input_example.json /input.json
 ADD image_generating_plugin.py /image_generating_plugin.py
 

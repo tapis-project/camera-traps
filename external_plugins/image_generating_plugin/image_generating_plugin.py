@@ -5,6 +5,7 @@ import uuid
 import cv2
 from collections import OrderedDict
 import zmq
+from PIL import Image
 import ctevents
 from events import get_plugin_socket, get_next_msg, send_quit_command
 
@@ -24,12 +25,14 @@ print(f"user_input: {user_input}")
 start = int(data['timestamp'])
 
 def get_binary(value):
-    uuid_image = uuid.uuid5(uuid.NAMESPACE_URL, value)
-    binary_img = cv2.imread(str(value)[1:-1], 2)
+    uuid_image = str(uuid.uuid5(uuid.NAMESPACE_URL, value))
+    #binary_img = cv2.imread(str(value)[1:-1], 2)
     #ret, bw_img = cv2.threshold(binary_img, 127, 255, cv2.THRESH_BINARY)
+    with open(str(value)[1:-1],"rb") as f:
+        binary_img = f.read()
     img = Image.open(str(value)[1:-1])
     img_format = img.format
-    send_new_image_fb_event(socket,uuid_image,img_format,binary_img)
+    ctevents.send_new_image_fb_event(socket,uuid_image,img_format,binary_img)
 
 def simpleNext(i,value_index):
     if i >= len(img_dict):
