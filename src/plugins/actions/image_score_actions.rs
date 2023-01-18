@@ -55,6 +55,9 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageScorePlugin, &I
     Result::Ok(image_score_noop_action)
 }
 
+// ---------------------------------------------------------------------------
+// image_score_noop_action:
+// ---------------------------------------------------------------------------
 /** No-op action. */
 #[allow(unused)]
 pub fn image_score_noop_action(plugin: &ImageScorePlugin, event: &ImageReceivedEvent) {}

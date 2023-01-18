@@ -55,10 +55,16 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageStorePlugin, &I
     Result::Ok(image_store_noop_action)
 }
 
+// ---------------------------------------------------------------------------
+// image_store_noop_action:
+// ---------------------------------------------------------------------------
 /** No-op action. */
 #[allow(unused)]
 pub fn image_store_noop_action(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {}
 
+// ---------------------------------------------------------------------------
+// image_store_file_action:
+// ---------------------------------------------------------------------------
 #[allow(unused)]
 pub fn image_store_file_action(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
 

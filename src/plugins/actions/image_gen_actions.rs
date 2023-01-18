@@ -54,6 +54,9 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageGenPlugin)> {
     Result::Ok(image_gen_noop_action)
 }
 
+// ---------------------------------------------------------------------------
+// image_gen_noop_action:
+// ---------------------------------------------------------------------------
 /** No-op action. */
 #[allow(unused)]
 pub fn image_gen_noop_action(plugin: &ImageGenPlugin) {}

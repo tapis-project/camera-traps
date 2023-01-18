@@ -54,6 +54,9 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ObserverPlugin)> {
     Result::Ok(observer_noop_action)
 }
 
+// ---------------------------------------------------------------------------
+// observer_noop_action:
+// ---------------------------------------------------------------------------
 /** No-op action. */
 #[allow(unused)]
 pub fn observer_noop_action(plugin: &ObserverPlugin) {}
