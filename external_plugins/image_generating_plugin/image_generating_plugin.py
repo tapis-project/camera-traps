@@ -6,7 +6,7 @@ import cv2
 from collections import OrderedDict
 import zmq
 import ctevents
-from events import get_plugin_socket, get_next_msg, publish_msg, send_quit_command
+from events import get_plugin_socket, get_next_msg, send_quit_command
 
 # get the port assigned to the Image Generating plugin
 PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
@@ -29,6 +29,7 @@ def get_binary(value):
     #ret, bw_img = cv2.threshold(binary_img, 127, 255, cv2.THRESH_BINARY)
     img = Image.open(str(value)[1:-1])
     img_format = img.format
+    send_new_image_fb_event(socket,uuid_image,img_format,binary_img)
 
 def simpleNext(i,value_index):
     if i >= len(img_dict):
