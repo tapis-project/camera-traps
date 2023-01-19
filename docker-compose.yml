@@ -1,0 +1,22 @@
+version: "3.0"
+
+networks:
+  cameratraps:
+    driver: bridge
+
+services:
+  # engine:
+  #   container_name: engine
+  #   image: tapis/camera_traps_engine
+  #   networks:
+  #     - cameratraps
+  #   volumes: 
+  #     - ./traps.toml:/traps.toml:ro
+
+  imagegeneratingPlugin:
+    container_name: imagegenerating
+    image: tapis/image_generating_plugin_py
+    networks:
+      - cameratraps
+    volumes:
+      - ./external_plugins/image_generating_plugin/example_images:/input_images:ro
