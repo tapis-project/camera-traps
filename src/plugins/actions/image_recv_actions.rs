@@ -118,6 +118,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
     let slash = if abs_dir.ends_with('/') {""} else {"/"};
     let mut filepath = abs_dir.clone();
     filepath.push_str(slash);
+    filepath.push_str(&plugin.get_runctx().parms.config.image_file_prefix);
     filepath.push_str(uuid_str);
     filepath.push_str(".");
     filepath.push_str(suffix.as_str());
