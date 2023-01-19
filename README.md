@@ -22,7 +22,6 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
     images_dir = "~/camera-traps/images"
     image_file_prefix = ""
 
-
     [plugins]
     internal = [
         "image_gen_plugin",
