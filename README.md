@@ -70,7 +70,7 @@ Internal plugins for which no corresponding action is specified are assigned the
 
 ### image_recv_plugin
 
-When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses the *image_dir* and *image_file_prefix* parameters to manage files.  The image_dir is the directory into which image files are placed.  Image file names are constructed from the information received in NewImageEvent and have this format:
+When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses the *image_dir* and *image_file_prefix* parameters to manage files.  The image_dir is the directory into which image files are placed.  Image file names are constructed from the information received in a NewImageEvent and have this format:
 
     <image_file_prefix><image_uuid>.<image_format>
 
