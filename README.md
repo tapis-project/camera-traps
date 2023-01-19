@@ -13,16 +13,27 @@ The event-engine supports *internal* and *external* plugins.  Internal plugins a
 Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  Here is an example traps.toml file:
 
     # This is the camera-traps application configuration file.
+
     title = "Camera-Traps Application Configuration"
 
     publish_port = 5559
     subscribe_port = 5560
 
+    images_dir = "~/camera-traps/images"
+    image_file_prefix = ""
+
+
     [plugins]
     internal = [
+        "image_gen_plugin",
         "image_recv_plugin",
+        "image_score_plugin",
         "image_store_plugin",
         "observer_plugin"
+    ]
+    internal_actions = [
+        "image_gen_noop_action",
+        "image_recv_write_file_action"
     ]
     [[plugins.external]]
         plugin_name = "ext_image_gen_plugin"
