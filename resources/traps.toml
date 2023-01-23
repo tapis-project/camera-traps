@@ -1,9 +1,11 @@
-# This is the camera-traps application configuration file.
-
+# This is the camera-traps application configuration file.​
 title = "Camera-Traps Application Configuration"
 
 publish_port = 5559
 subscribe_port = 5560
+
+images_dir = "~/camera-traps/images"
+image_file_prefix = ""
 
 [plugins]
 internal = [
@@ -13,6 +15,22 @@ internal = [
     "image_store_plugin",
     "observer_plugin"
 ]
-external = []
-
-
+internal_actions = [
+    "image_gen_noop_action",
+    "image_recv_write_file_action"
+]
+[[plugins.external]]
+    plugin_name = "ext_image_gen_plugin"
+    id = "d3266646-41ec-11ed-a96f-5391348bab46"
+    external_port = 6000
+    subscriptions = [
+        "PluginTerminateEvent"
+    ]
+[[plugins.external]]
+    plugin_name = "ext_image_score_plugin"
+    id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
+    external_port = 6001
+    subscriptions = [
+        "ImageReceivedEvent",
+        "PluginTerminateEvent"
+    ]
