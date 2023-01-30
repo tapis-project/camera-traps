@@ -145,7 +145,7 @@ impl ImageReceivePlugin {
             None => {
                 // Log the error and just return.
                 let msg = format!("{}", Errors::PluginEventDeserializationError(
-                                        self.get_name().clone(), "NewImageEvent".to_string()));
+                                        self.get_name(), "NewImageEvent".to_string()));
                 error!("{}", msg);
                 return
             }
@@ -155,7 +155,7 @@ impl ImageReceivePlugin {
             None => {
                 // Log the error and just return.
                 let msg = format!("{}", Errors::PluginEventAccessUuidError(
-                                          self.get_name().clone(), "NewImageEvent".to_string()));
+                                          self.get_name(), "NewImageEvent".to_string()));
                 error!("{}", msg);
                 return
             }
@@ -165,7 +165,7 @@ impl ImageReceivePlugin {
             Err(e) => {
                 // Log the error and just return.
                 let msg = format!("{}", Errors::PluginEventParseUuidError(
-                                          self.get_name().clone(), "NewImageEvent".to_string(), e.to_string()));
+                                          self.get_name(), "NewImageEvent".to_string(), e.to_string()));
                 error!("{}", msg);
                 return
             }
@@ -191,7 +191,7 @@ impl ImageReceivePlugin {
             Ok(_) => (),
             Err(e) => {
                 // Log the error and return if we can't send the message.
-                let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name(), ev.get_name(), e.to_string()));
                 error!("{}", msg);
             }
         };

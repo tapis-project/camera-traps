@@ -7,6 +7,7 @@ use event_engine::events::Event;
 use crate::events_generated::gen_events;
 use crate::{events, config::errors::Errors};
 use crate::{traps_utils, RuntimeCtx};
+#[allow(unused_imports)]
 use crate::Config;
 use crate::events::{IMAGE_SCORED_PREFIX, PLUGIN_TERMINATE_PREFIX};
 use crate::plugins::actions::image_store_actions::select_action;
@@ -38,6 +39,7 @@ impl Plugin for ImageStorePlugin {
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
         // Get this plugin's required action function pointer.
+        #[allow(unused_variables)]
         let action = match select_action(&self.runctx.parms.config) {
             Ok(a) => a,
             Err(e) => {
@@ -176,16 +178,15 @@ impl ImageStorePlugin {
         };
 
         // Make sure we got at least one score.
-        if labels.len() < 1 {
+        if labels.is_empty() {
             error!("{}", "No scores received".to_string());
             return
         }
 
         // Get the first score.
         let first = labels.get(0);
-        let dest;
-        if first.probability() > 0.5 {dest = "saved";} 
-            else {dest = "deleted";}
+        let dest = if first.probability() > 0.5 {"saved"} 
+                            else {"deleted"};
 
         // Create the image received event and serialize it.
         let ev = events::ImageStoredEvent::new(uuid, dest.to_string());
@@ -205,7 +206,7 @@ impl ImageStorePlugin {
             Err(e) => {
                 // Log the error and abort if we can't send our start up message.
                 //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
-                let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name(), ev.get_name(), e.to_string()));
                 error!("{}", msg);
             }
         };

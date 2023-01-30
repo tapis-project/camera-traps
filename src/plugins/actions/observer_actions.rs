@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::Config;
 use crate::plugins::observer_plugin::ObserverPlugin;
 use crate::{config::errors::Errors};

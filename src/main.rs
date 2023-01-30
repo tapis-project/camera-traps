@@ -88,7 +88,7 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     // Help make the log more readable.
     let delimiter = "\n".to_string() + "-".repeat(70).as_str();
     info!("{}", delimiter.clone() + 
-           (format!("{}",Errors::RegisteringNumInternalPlugins(parms.config.plugins.internal.len())).to_string() + delimiter.as_str()).as_str());
+           (format!("{}",Errors::RegisteringNumInternalPlugins(parms.config.plugins.internal.len())) + delimiter.as_str()).as_str());
 
     // Register internal plugins if any are defined. 
     for plugin_name in &parms.config.plugins.internal {
@@ -134,7 +134,7 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
 
     // End internal plugin registration.
     info!("{}", delimiter.clone() + 
-           (format!("{}",Errors::RegisteringNumExternalPlugins(parms.config.plugins.external.len())).to_string() + delimiter.as_str()).as_str());
+           (format!("{}",Errors::RegisteringNumExternalPlugins(parms.config.plugins.external.len())) + delimiter.as_str()).as_str());
 
 
     // Register external plugins if any are defined.
@@ -152,7 +152,7 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     }
 
     // End plugin registration.
-    if parms.config.plugins.external.len() > 0 {info!("{}", delimiter);}
+    if !parms.config.plugins.external.is_empty() {info!("{}", delimiter);}
 
     // Return the app.
     Result::Ok(app)
@@ -219,9 +219,9 @@ fn get_parms() -> Result<Parms> {
 // ---------------------------------------------------------------------------
 // init_image_dir:
 // ---------------------------------------------------------------------------
-fn init_image_dir(dir: &String) -> Result<String> {
+fn init_image_dir(dir: &str) -> Result<String> {
     // Get the absolute filepath to the images directory.
-    let abs_dir = traps_utils::get_absolute_path(dir.as_str());
+    let abs_dir = traps_utils::get_absolute_path(dir);
     Result::Ok(abs_dir)
 }
 

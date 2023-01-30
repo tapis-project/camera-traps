@@ -6,7 +6,6 @@ use std::os::unix::fs::MetadataExt;
 use event_engine::events::{Event, EventType,};
 use event_engine::plugins::Plugin;
 use event_engine::errors::EngineError;
-use shellexpand;
 use path_absolutize::Absolutize;
 use chrono::{Utc, DateTime, FixedOffset, ParseError};
 use uuid::Uuid;
@@ -50,6 +49,7 @@ const PLUGIN_NAME_WILDCARD: &str = "*";
  * I went with the former on a hunch that it's the most appropriate, happy
  * to change if my guess is wrong.
  */
+#[allow(dead_code)]
 pub fn get_absolute_path(path: &str) -> String {
     // Replace ~ and environment variable values if possible.
     // On error, return the string version of the original path.
@@ -83,6 +83,7 @@ pub fn get_absolute_path(path: &str) -> String {
  * This method is expected to be called once at application start up so that 
  * the execution can be aborted if no image I/O will be possible.
  */
+#[allow(dead_code)]
 pub fn validate_image_dir(config: &Config, abs_dir: &String) -> Result<(), Errors> {
     // Determine if we are using local storage for image files.
     if !uses_local_image_dir(&config.plugins.internal_actions) {return Ok(());}
@@ -167,6 +168,7 @@ pub fn timestamp_str() -> String {
  * to a DateTime object.  The result will contain a parse error if the string
  * does not conform to rfc3339.
  */
+#[allow(dead_code)]
 pub fn timestamp_str_to_datetime(ts: &str) -> Result<DateTime<FixedOffset>, ParseError> {
     DateTime::parse_from_rfc3339(ts)
 }
@@ -177,12 +179,13 @@ pub fn timestamp_str_to_datetime(ts: &str) -> Result<DateTime<FixedOffset>, Pars
 // ---------------------------------------------------------------------------
 // bytes_to_gen_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn bytes_to_gen_event(msg_bytes: &[u8]) -> Result<gen_events::Event, Errors> {
     // Read the byte array into a generated event backed by a flatbuffer.
     match gen_events::root_as_event(msg_bytes) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => {return Result::Err(Errors::EventFromFlatbuffer(e.to_string()));},
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => {Result::Err(Errors::EventFromFlatbuffer(e.to_string()))},
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -196,6 +199,7 @@ pub fn bytes_to_gen_event(msg_bytes: &[u8]) -> Result<gen_events::Event, Errors>
  * event cannot be converted into an application event, then the error is logged
  * and false is returned.
  */
+#[allow(dead_code)]
 pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid, plugin_name: &String) -> bool {
     let event = match gen_to_plugin_terminate_event(gen_event) {
         Ok(ev) => ev,
@@ -227,6 +231,7 @@ pub fn process_plugin_terminate_event(gen_event: gen_events::Event, uuid: &Uuid,
 /** This method quietly sends the calling plugin's terminating event.
  * Errors are logged but not surfaced.
  */
+#[allow(dead_code)]
 pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socket: &Socket) {
     // Create the event for the calling plugin.
     let ev = PluginTerminatingEvent::new(plugin_uuid, plugin_name.to_string());
@@ -260,16 +265,17 @@ pub fn send_terminating_event(plugin_name: &String, plugin_uuid: Uuid, pub_socke
  * If the transmission fails for any reason the calling plugin will receive an error
  * and should abort.
  */
+#[allow(dead_code)]
 pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<(), EngineError> {
     // Send our alive event.
-    let ev = PluginStartedEvent::new(plugin.get_id(), plugin.get_name().clone());
+    let ev = PluginStartedEvent::new(plugin.get_id(), plugin.get_name());
         let bytes = match ev.to_bytes() {
         Ok(v) => v,
         Err(e) => {
             // Log the error and abort if we can't serialize our start up message.
-            let msg = format!("{}", Errors::EventToBytesError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+            let msg = format!("{}", Errors::EventToBytesError(plugin.get_name(), ev.get_name(), e.to_string()));
             error!("{}", msg);
-            return Err(EngineError::PluginExecutionError(plugin.get_name().clone(), plugin.get_id().hyphenated().to_string(), msg));
+            return Err(EngineError::PluginExecutionError(plugin.get_name(), plugin.get_id().hyphenated().to_string(), msg));
         } 
     };
 
@@ -278,9 +284,9 @@ pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<()
         Ok(_) => (),
         Err(e) => {
             // Log the error and abort if we can't send our start up message.
-            let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
+            let msg = format!("{}", Errors::SocketSendError(plugin.get_name(), ev.get_name(), e.to_string()));
             error!("{}", msg);
-            return Err(EngineError::PluginExecutionError(plugin.get_name().clone(), plugin.get_id().hyphenated().to_string(), msg));
+            return Err(EngineError::PluginExecutionError(plugin.get_name(), plugin.get_id().hyphenated().to_string(), msg));
         }
     };
     
@@ -293,6 +299,7 @@ pub fn send_started_event(plugin: &dyn Plugin, pub_socket: &Socket) -> Result<()
 // ***************************************************************************
 /// Container for incoming events that have been marshalled into prefix
 /// and flatbuffer event. 
+#[allow(dead_code)]
 pub struct IncomingEvent<'a> {
     pub prefix_array: [u8; 2],
     pub gen_event: gen_events::Event<'a>,
@@ -313,6 +320,7 @@ pub struct IncomingEvent<'a> {
  * 
  * Any failure skips the rest of the processing and returns None. 
  */
+#[allow(dead_code)]
 pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &'a mut Vec<u8>)
     -> Option<IncomingEvent<'a>> {
     // ----------------- Retrieve and Slice Raw Bytes -----------------
@@ -324,7 +332,7 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
             // pause before continuing if there are too many errors in a short period
             // of time.  This would avoid filling up the log file and burning cycles
             // when things go sideways for a while.
-            error!("{}", Errors::SocketRecvError(plugin.get_name().clone(), e.to_string()));
+            error!("{}", Errors::SocketRecvError(plugin.get_name(), e.to_string()));
             return Option::None;
         }
     };
@@ -336,7 +344,7 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
     // Basic buffer length checking to make sure we have
     // the event prefix and at least 1 other byte.
     if bytes.len() < events::EVENT_PREFIX_LEN + 1 {
-        error!("{}", Errors::EventInvalidLen(plugin.get_name().clone(), bytes.len()));
+        error!("{}", Errors::EventInvalidLen(plugin.get_name(), bytes.len()));
         return Option::None;
     }
 
@@ -358,7 +366,7 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
     let event_name = match gen_event.event_type().variant_name() {  
         Some(n) => n,
         None => {
-            error!("{}", Errors::EventNoneError(plugin.get_name().clone()));
+            error!("{}", Errors::EventNoneError(plugin.get_name()));
             return Option::None;
         },
     };
@@ -370,7 +378,7 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
     if !events::check_event_prefix(prefix_array, event_name) {
         let pre = format!("{:?}", prefix_array);
         let name = event_name.to_string();
-        error!("{}", Errors::EventPrefixMismatch(plugin.get_name().clone(), pre, name));
+        error!("{}", Errors::EventPrefixMismatch(plugin.get_name(), pre, name));
         return Option::None;
     }
 
@@ -384,6 +392,7 @@ pub fn marshal_next_event<'a>(plugin: &dyn Plugin, sub_socket: &Socket, bytes: &
 // ---------------------------------------------------------------------------
 // gen_to_new_image_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_new_image_event(gen_event: gen_events::Event) -> Result<NewImageEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_new_image_event() {
@@ -393,14 +402,15 @@ pub fn gen_to_new_image_event(gen_event: gen_events::Event) -> Result<NewImageEv
 
     // Return a camera-trap event given the flatbuffer generated event.
     match NewImageEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // gen_to_image_received_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_image_received_event(gen_event: gen_events::Event) -> Result<ImageReceivedEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_image_received_event() {
@@ -410,14 +420,15 @@ pub fn gen_to_image_received_event(gen_event: gen_events::Event) -> Result<Image
 
     // Return a camera-trap event given the flatbuffer generated event.
     match ImageReceivedEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // gen_to_image_stored_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_image_scored_event(gen_event: gen_events::Event) -> Result<ImageScoredEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_image_scored_event() {
@@ -427,14 +438,15 @@ pub fn gen_to_image_scored_event(gen_event: gen_events::Event) -> Result<ImageSc
 
     // Return a camera-trap event given the flatbuffer generated event.
     match ImageScoredEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // gen_to_image_deleted_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_image_stored_event(gen_event: gen_events::Event) -> Result<ImageDeletedEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_image_deleted_event() {
@@ -444,14 +456,15 @@ pub fn gen_to_image_stored_event(gen_event: gen_events::Event) -> Result<ImageDe
 
     // Return a camera-trap event given the flatbuffer generated event.
     match ImageDeletedEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // gen_to_image_deleted_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_image_deleted_event(gen_event: gen_events::Event) -> Result<ImageStoredEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_image_stored_event() {
@@ -461,16 +474,15 @@ pub fn gen_to_image_deleted_event(gen_event: gen_events::Event) -> Result<ImageS
 
     // Return a camera-trap event given the flatbuffer generated event.
     match ImageStoredEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // gen_to_pluging_started_event:
 // ---------------------------------------------------------------------------
-// gen_to_pluging_started_event:
-// ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_pluging_started_event(gen_event: gen_events::Event) -> Result<PluginStartedEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_plugin_started_event() {
@@ -480,9 +492,9 @@ pub fn gen_to_pluging_started_event(gen_event: gen_events::Event) -> Result<Plug
 
     // Return a camera-trap event given the flatbuffer generated event.
     match PluginStartedEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -497,14 +509,15 @@ pub fn gen_to_plugin_terminate_event(gen_event: gen_events::Event) -> Result<Plu
 
     // Return a camera-trap event given the flatbuffer generated event.
     match PluginTerminateEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 // ---------------------------------------------------------------------------
 // gen_to_plugin_terminating_event:
 // ---------------------------------------------------------------------------
+#[allow(dead_code)]
 pub fn gen_to_plugin_terminating_event(gen_event: gen_events::Event) -> Result<PluginTerminatingEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_plugin_terminating_event() {
@@ -514,14 +527,15 @@ pub fn gen_to_plugin_terminating_event(gen_event: gen_events::Event) -> Result<P
 
     // Return a camera-trap event given the flatbuffer generated event.
     match PluginTerminatingEvent::new_from_gen(flatbuf_event) {
-        Ok(ev) => return Result::Ok(ev),
-        Err(e) => return Result::Err(e),
-    };
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
 }
 
 
 
 mod tests {
+    #[allow(unused_imports)]
     use crate::traps_utils::*;
 
     #[test]

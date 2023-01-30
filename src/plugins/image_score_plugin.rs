@@ -37,6 +37,7 @@ impl Plugin for ImageScorePlugin {
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
         // Get this plugin's required action function pointer.
+        #[allow(unused_variables)]
         let action = match select_action(&self.runctx.parms.config) {
             Ok(a) => a,
             Err(e) => {
@@ -189,7 +190,7 @@ impl ImageScorePlugin {
             Err(e) => {
                 // Log the error and abort if we can't send our start up message.
                 //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
-                let msg = format!("{}", Errors::SocketSendError(self.get_name().clone(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name(), ev.get_name(), e.to_string()));
                 error!("{}", msg);
             }
         };

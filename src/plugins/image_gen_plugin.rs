@@ -35,6 +35,7 @@ impl Plugin for ImageGenPlugin {
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
         // Get this plugin's required action function pointer.
+        #[allow(unused_variables)]
         let action = match select_action(&self.runctx.parms.config) {
             Ok(a) => a,
             Err(e) => {

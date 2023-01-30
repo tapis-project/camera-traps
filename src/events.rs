@@ -37,66 +37,33 @@ pub const EVENT_PREFIX_LEN: usize = NEW_IMAGE_PREFIX.len();
  * with.  Return true if they match, false otherwise.
  */
 pub fn check_event_prefix(prefix: [u8; 2], event_name: &str) -> bool {
-    let b = match prefix {
+    match prefix {
         NEW_IMAGE_PREFIX => {
-            if event_name == "NewImageEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "NewImageEvent" 
         }
         IMAGE_RECEIVED_PREFIX => {
-            if event_name == "ImageReceivedEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "ImageReceivedEvent" 
         }
         IMAGE_SCORED_PREFIX => {
-            if event_name == "ImageScoredEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "ImageScoredEvent" 
         }
         IMAGE_STORED_PREFIX => {
-            if event_name == "ImageStoredEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "ImageStoredEvent" 
         }
         IMAGE_DELETED_PREFIX => {
-            if event_name == "ImageDeletedEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "ImageDeletedEvent" 
         }
         PLUGIN_STARTED_PREFIX => {
-            if event_name == "PluginStartedEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "PluginStartedEvent" 
         }
         PLUGIN_TERMINATING_PREFIX => {
-            if event_name == "PluginterminatingEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "PluginterminatingEvent" 
         }
         PLUGIN_TERMINATE_PREFIX => {
-            if event_name == "PluginTerminateEvent" {
-                true
-            } else {
-                false
-            }
+            event_name == "PluginTerminateEvent" 
         }
         _ => false,
-    };
-    b
+    }
 }
 
 // ***************************************************************************
@@ -185,9 +152,9 @@ impl Event for NewImageEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match NewImageEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -341,9 +308,9 @@ impl Event for ImageReceivedEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match ImageReceivedEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -555,9 +522,9 @@ impl Event for ImageScoredEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match ImageScoredEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -743,9 +710,9 @@ impl Event for ImageStoredEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match ImageStoredEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -885,9 +852,9 @@ impl Event for ImageDeletedEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match ImageDeletedEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -1025,9 +992,9 @@ impl Event for PluginStartedEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match PluginStartedEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -1173,9 +1140,9 @@ impl Event for PluginTerminatingEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match PluginTerminatingEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -1323,9 +1290,9 @@ impl Event for PluginTerminateEvent {
 
         // Return a camera-trap event given the flatbuffer generated event.
         match PluginTerminateEvent::new_from_gen(flatbuf_event) {
-            Ok(ev) => return Result::Ok(ev),
-            Err(e) => return Result::Err(Box::new(e)),
-        };
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
     }
 }
 
@@ -1400,7 +1367,7 @@ impl PluginTerminateEvent {
  * event, convert it into an event as defined in the generated flatbuffer code.
  */
 fn bytes_to_gen_event(msg_bytes: &[u8]) -> Result<gen_events::Event, InvalidFlatbuffer> {
-    return Result::Ok(gen_events::root_as_event(msg_bytes)?);
+    Result::Ok(gen_events::root_as_event(msg_bytes)?)
 }
 
 // ---------------------------------------------------------------------------

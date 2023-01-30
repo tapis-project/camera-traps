@@ -81,7 +81,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
         Some(b) => b,
         None => {
             let msg = format!("{}", Errors::ActionNoImageError(
-                                      plugin.get_name().clone(), "image_recv_write_file_action".to_string(),
+                                      plugin.get_name(), "image_recv_write_file_action".to_string(),
                                       "NewImageEvent".to_string(),
                                     ));
             error!("{}", msg);
@@ -95,7 +95,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
         None => {
             // Log the error and just return.
             let msg = format!("{}", Errors::PluginEventAccessUuidError(
-                                      plugin.get_name().clone(), "NewImageEvent".to_string()));
+                                      plugin.get_name(), "NewImageEvent".to_string()));
             error!("{}", msg);
             return
         }
@@ -107,7 +107,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
         None => {
             // Log the error and just return.
             let msg = format!("{}", Errors::ActionImageFormatTypeError(
-                                      plugin.get_name().clone(), "NewImageEvent".to_string()));
+                                      plugin.get_name(), "NewImageEvent".to_string()));
             error!("{}", msg);
             return
         } 
@@ -120,7 +120,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
     filepath.push_str(slash);
     filepath.push_str(&plugin.get_runctx().parms.config.image_file_prefix);
     filepath.push_str(uuid_str);
-    filepath.push_str(".");
+    filepath.push('.');
     filepath.push_str(suffix.as_str());
 
     // Open the image output file.
@@ -132,25 +132,22 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
                             Ok(f) => f,
                             Err(e) => {
                                 let msg = format!("{}", Errors::ActionOpenFileError(
-                                    plugin.get_name().clone(), "image_recv_write_file_action".to_string(), 
+                                    plugin.get_name(), "image_recv_write_file_action".to_string(), 
                                     filepath, e.to_string()));
                                 error!("{}", msg);
                                 return
                             }
     };
 
-    // Write the image bytes to file.
+    // Write the image bytes to file.  We always return ().
     match file.write_all(bytes) {
         Ok(_) => (),
         Err(e) => {
             let msg = format!("{}", Errors::ActionWriteFileError(
-                plugin.get_name().clone(), "image_recv_write_file_action".to_string(), 
+                plugin.get_name(), "image_recv_write_file_action".to_string(), 
                 filepath, e.to_string()));
             error!("{}", msg);
-            return
+            //return
         }
-    };
-
-    // Success.
-    ()
+    }
 }

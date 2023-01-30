@@ -12,7 +12,9 @@ pub struct Config {
 
 }
 
+
 impl Config {
+    #[allow(dead_code)]
     fn new() -> Self {
         Config::default()
     }

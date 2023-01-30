@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::Config;
 use crate::plugins::image_store_plugin::ImageStorePlugin;
 use crate::events_generated::gen_events::ImageScoredEvent;

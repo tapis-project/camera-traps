@@ -5,6 +5,7 @@ use event_engine::errors::EngineError;
 use event_engine::events::{EventType};
 use crate::{events, config::errors::Errors};
 use crate::{traps_utils, RuntimeCtx};
+#[allow(unused_imports)]
 use crate::Config;
 use crate::events::{NEW_IMAGE_PREFIX, IMAGE_RECEIVED_PREFIX, IMAGE_SCORED_PREFIX, 
                     IMAGE_STORED_PREFIX, IMAGE_DELETED_PREFIX, PLUGIN_STARTED_PREFIX,
@@ -36,6 +37,7 @@ impl Plugin for ObserverPlugin {
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
 
         // Get this plugin's required action function pointer.
+        #[allow(unused_variables)]
         let action = match select_action(&self.runctx.parms.config) {
             Ok(a) => a,
             Err(e) => {
