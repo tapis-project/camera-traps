@@ -30,7 +30,7 @@ RUN pip install matplotlib
 RUN apt-get update && apt-get install -y libgl1
 RUN pip install opencv-python
 RUN pip install pandas
-RUN pip install yaml
+RUN pip install pyyaml
 RUN pip install seaborn
 
 ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/CameraTraps:/yolov5
