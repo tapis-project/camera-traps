@@ -30,11 +30,17 @@ const PREFIX: &str  = "image_store_";
  */
 pub fn select_action(config: &'static Config) -> Result<fn(&ImageStorePlugin, &ImageScoredEvent)> {
     
+    // Internal plugins are optional.
+    let int_actions = match config.plugins.internal_actions.clone() {
+        Some(v) => v,
+         None => vec![]
+    };
+            
     // Iterate through all configured actions looking for the one
     // that targets this plugin.  The convention is that a plugin's
     // actions start with a prefix of plugin's file name (i.e., the
     // text preceeding 'plugin.rs').
-    for action in &config.plugins.internal_actions {
+    for action in &int_actions {
         // See if the current action is for this plugin.
         if !(*action).starts_with(PREFIX) {continue;}
 

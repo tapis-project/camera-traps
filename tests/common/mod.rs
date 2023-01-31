@@ -146,7 +146,6 @@ pub struct Parms {
 pub struct Config {
     pub iterations: u32,
     pub image_input_dir: String,
-    pub image_output_dir: String,
     pub external_plugin_config: ExtPluginConfig,
 }
 

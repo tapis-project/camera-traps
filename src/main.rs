@@ -3,7 +3,7 @@ use std::{env, fs, sync::Arc};
 use lazy_static::lazy_static;
 
 // Logging imports.
-use log::{error, info};
+use log::{error, warn, info};
 use anyhow::{Context, Result, anyhow};
 
 // Application modules.
@@ -80,18 +80,24 @@ fn main() -> Result<()> {
 // ---------------------------------------------------------------------------
 // initApp:
 // ---------------------------------------------------------------------------
-fn init_app(parms: &Parms) -> Result<App, Errors>{
+fn init_app(parms: &'static Parms) -> Result<App, Errors>{
     
     // Create the app on the specified
     let mut app: App = App::new(parms.config.publish_port as i32, parms.config.subscribe_port as i32);
 
+    // Internal plugins are optional.
+    let int_plugins = match parms.config.plugins.internal.clone() {
+        Some(v) => v,
+        None => vec![]
+    };
+
     // Help make the log more readable.
     let delimiter = "\n".to_string() + "-".repeat(70).as_str();
     info!("{}", delimiter.clone() + 
-           (format!("{}",Errors::RegisteringNumInternalPlugins(parms.config.plugins.internal.len())) + delimiter.as_str()).as_str());
+           (format!("{}",Errors::RegisteringNumInternalPlugins(int_plugins.len())) + delimiter.as_str()).as_str());
 
     // Register internal plugins if any are defined. 
-    for plugin_name in &parms.config.plugins.internal {
+    for plugin_name in &int_plugins {
         match plugin_name.as_str() {
             "image_gen_plugin" => {
                 let plugin = ImageGenPlugin::new(&RUNTIME_CTX);
@@ -132,13 +138,19 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
         }
     }
 
+    // External plugins are optional.
+    let ext_plugins = match parms.config.plugins.external.clone() {
+        Some(v) => v,
+        None => vec![]
+    };
+
     // End internal plugin registration.
     info!("{}", delimiter.clone() + 
-           (format!("{}",Errors::RegisteringNumExternalPlugins(parms.config.plugins.external.len())) + delimiter.as_str()).as_str());
+           (format!("{}",Errors::RegisteringNumExternalPlugins(ext_plugins.len())) + delimiter.as_str()).as_str());
 
 
     // Register external plugins if any are defined.
-    for ext_plugin in &parms.config.plugins.external {
+    for ext_plugin in &ext_plugins {
         let app_plugin = match ExternalAppPlugin::new(ext_plugin) {
             Ok(p) => p,
             Err(e) => return Result::Err(e),
@@ -152,7 +164,12 @@ fn init_app(parms: &Parms) -> Result<App, Errors>{
     }
 
     // End plugin registration.
-    if !parms.config.plugins.external.is_empty() {info!("{}", delimiter);}
+    if !ext_plugins.is_empty() {info!("{}", delimiter);}
+
+    // Issue a warning if no plugins are configured.
+    if int_plugins.is_empty() && ext_plugins.is_empty() {
+        warn!("{}", Errors::PluginNone());
+    }
 
     // Return the app.
     Result::Ok(app)

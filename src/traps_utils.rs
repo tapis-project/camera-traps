@@ -85,8 +85,15 @@ pub fn get_absolute_path(path: &str) -> String {
  */
 #[allow(dead_code)]
 pub fn validate_image_dir(config: &Config, abs_dir: &String) -> Result<(), Errors> {
+
+    // Internal plugins are optional.
+    let int_actions = match config.plugins.internal_actions.clone() {
+        Some(v) => v,
+        None => return Ok(()), 
+    };
+    
     // Determine if we are using local storage for image files.
-    if !uses_local_image_dir(&config.plugins.internal_actions) {return Ok(());}
+    if !uses_local_image_dir(&int_actions) {return Ok(());}
 
     // Create the directory if it doesn't exist.  If the path
     // leads to an existing file, this call will fail (not tested

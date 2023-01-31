@@ -33,11 +33,17 @@ const PREFIX: &str  = "image_recv_";
  */
 pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin, &NewImageEvent)> {
     
+    // Internal plugins are optional.
+    let int_actions = match config.plugins.internal_actions.clone() {
+        Some(v) => v,
+        None => vec![]
+    };
+
     // Iterate through all configured actions looking for the one
     // that targets this plugin.  The convention is that a plugin's
     // actions start with a prefix of plugin's file name (i.e., the
     // text preceeding 'plugin.rs').
-    for action in &config.plugins.internal_actions {
+    for action in &int_actions {
         // See if the current action is for this plugin.
         if !(*action).starts_with(PREFIX) {continue;}
 
@@ -114,14 +120,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
     };
 
     // Create absolute file path for the image.
-    let abs_dir = &plugin.get_runctx().abs_image_dir;
-    let slash = if abs_dir.ends_with('/') {""} else {"/"};
-    let mut filepath = abs_dir.clone();
-    filepath.push_str(slash);
-    filepath.push_str(&plugin.get_runctx().parms.config.image_file_prefix);
-    filepath.push_str(uuid_str);
-    filepath.push('.');
-    filepath.push_str(suffix.as_str());
+    let filepath = create_image_filepath(plugin, uuid_str, &suffix);
 
     // Open the image output file.
     let mut file = match OpenOptions::new()
@@ -150,4 +149,29 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
             //return
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// create_image_filepath:
+// ---------------------------------------------------------------------------
+/** Create absolute file path for the image. */
+fn create_image_filepath(plugin: &ImageReceivePlugin, uuid_str: &str, suffix: &String) -> String {
+    // Get absolute path of the image directory with a trailing slash.
+    let abs_dir = &plugin.get_runctx().abs_image_dir;
+    let slash = if abs_dir.ends_with('/') {""} else {"/"};
+    let mut filepath = abs_dir.clone();
+    filepath.push_str(slash);
+
+    // Prepend the file prefix if one is specified.
+    match &plugin.get_runctx().parms.config.image_file_prefix {
+        Some(s) => filepath.push_str(s),
+        None => {}
+    }
+
+    // Append the image uuid as the file name and 
+    // the image type as the file extension.
+    filepath.push_str(uuid_str);
+    filepath.push('.');
+    filepath.push_str(suffix.as_str());
+    filepath
 }

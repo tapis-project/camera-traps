@@ -102,6 +102,9 @@ pub enum Errors {
     #[error("Plugin {0} ({1}) does not subscribe to the required PluginTerminateEvent event.")]
     PluginMissingSubscription(String, String),
 
+    #[error("No internal or external plugins are configured.")]
+    PluginNone(),
+
     #[error("Unknown plugin {0} could not be registered, aborting application.")]
     PluginUnknown(String),
 

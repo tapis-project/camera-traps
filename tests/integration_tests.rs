@@ -23,20 +23,24 @@ mod common;
  * This test looks for its configuration file path in the TRAPS_INTEGRATION_CONFIG_FILE
  * environment variable.  If this variable is not found, the test looks in the user's
  * ~/traps-integration.toml file.  If a configuration cannot be loaded, the test aborts.
- * See common/mod.rs for configuration details. Here is an example configuration:
  * 
- *  iterations = 1000
+ * See common/mod.rs for configuration implementation details.
+ * See camera-traps/resources/traps-integration.toml for an example configuration.  Here 
+ * is an example configuration that processes 10 images:
+ * 
+ *  iterations = 10
  *  image_input_dir = "~/traps/input"
- *  image_output_dir = "~/traps/output"
  * 
  *  [external_plugin_config] 
- *      plugin_name = "ext_image_gen_plugin"
+ *      plugin_name = "ext_image_gen_test_plugin"
  *      id = "d3266646-41ec-11ed-a96f-5391348bab46"
  *      external_port = 6000
  *      subscriptions = [
  *          "PluginTerminateEvent"
  *      ]
- * The input directory should contain at least one .png image file.
+ * The input directory should contain at least one .png image file.  The camera-traps
+ * application determines where image files are written, if anywhere.  The camera-traps
+ * application must also be configured with this external plugin.
  * 
  * *Execution*
  *   
