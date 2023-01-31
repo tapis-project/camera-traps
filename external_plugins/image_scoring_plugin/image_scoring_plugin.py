@@ -1,8 +1,6 @@
-#https://colab.research.google.com/drive/1lQRwqqLHvEEUN5hG9lzFiUXc1wlywCT3?usp=sharing
-
 import json
 
-f = open('/$image_/detections.json')
+f = open('/example_images/detections.json')
 
 data = json.load(f)
 for i in data['images'] :

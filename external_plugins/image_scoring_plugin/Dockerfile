@@ -9,34 +9,37 @@
 # Examples:
 #
 # 1) If you want to run with the example input.json include with the image:
-#    docker run -v /path/to/images:/input tapis/image_generating_plugin_py
+#    docker run tapis/image_scoring_plugin_py
 #
 # 2) If you want to specify a different input.json, do the following:
 #    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
 #
 FROM tapis/camera_traps_py
 
+RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
+
+RUN git clone https://github.com/microsoft/CameraTraps \
+    && git clone https://github.com/microsoft/ai4eutils \
+    && git clone https://github.com/ultralytics/yolov5/ \
+    && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+
 RUN pip install humanfriendly jsonpickle
-RUN pip install torch==1.10.1 torchvision==0.11.2
+RUN pip install torch==1.11.0 torchvision==0.12.0
+RUN pip install tqdm
+RUN pip install matplotlib
+RUN apt-get update && apt-get install -y libgl1
+RUN pip install opencv-python
+RUN pip install pandas
+RUN pip install yaml
+RUN pip install seaborn
 
-RUN wget -O /content/md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
+ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/CameraTraps:/yolov5
 
-RUN git clone https://github.com/microsoft/CameraTraps 
-RUN git clone https://github.com/microsoft/ai4eutils 
-RUN git clone https://github.com/ultralytics/yolov5/
-WORKDIR "/yolov5"
-RUN git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+ENV images_dir='/example_images/' 
+ENV output_file_path='/example_images/detections.json'
 
-RUN import os
-ENV os.environ['PYTHONPATH'] += ":/content/ai4eutils" 
-ENV os.environ['PYTHONPATH'] += ":/content/CameraTraps" 
-ENV os.environ['PYTHONPATH'] += ":/content/yolov5"
-
+ADD example_images /example_images
+ADD entrypoint.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
 
-ENV images_dir = '/examples_images/'
-ENV output_file_path = '/example_images/detections.json'
-
-RUN python /CameraTraps/detection/run_detector_batch.py md_v5a.0.0.pt "$images_dir" "${output_file_path}" --recursive --output_relative_filenames --quiet
-
-ENTRYPOINT [ "python", "/image_scoring_plugin.py"]
+ENTRYPOINT ["./entrypoint.sh"]
