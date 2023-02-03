@@ -210,7 +210,7 @@ impl NewImageEvent {
         };
 
         // Get the image format string.
-        let format = match ev.image_format() {
+        let image_format = match ev.image_format() {
             Some(s) => s,
             None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format"))),
         };
@@ -219,7 +219,7 @@ impl NewImageEvent {
         Result::Ok(NewImageEvent {
             created: String::from(created),
             image_uuid: uuid,
-            image_format: String::from(format),
+            image_format: String::from(image_format),
             image,
         })
     }
@@ -231,6 +231,7 @@ impl NewImageEvent {
 pub struct ImageReceivedEvent {
     created: String,
     image_uuid: Uuid,
+    image_format: String,
 }
 
 // ------------------------------
@@ -263,6 +264,7 @@ impl Event for ImageReceivedEvent {
         let args = gen_events::ImageReceivedEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
+            image_format: Some(fbuf.create_string(&self.image_format)),
         };
         let event_offset = gen_events::ImageReceivedEvent::create(&mut fbuf, &args);
 
@@ -322,10 +324,11 @@ impl ImageReceivedEvent {
     // new:
     // ----------------------------------------------------------------------
     #![allow(unused)]
-    pub fn new(image_uuid: Uuid) -> Self {
+    pub fn new(image_uuid: Uuid, image_format: String) -> Self {
         ImageReceivedEvent {
             created: timestamp_str(),
             image_uuid,
+            image_format,
         }
     }
 
@@ -355,10 +358,17 @@ impl ImageReceivedEvent {
             }
         };
 
+        // Get the image format.
+        let image_format = match ev.image_format() {
+            Some(f) => f,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format"))),
+        };
+
         // Finally...
         Result::Ok(ImageReceivedEvent {
             created: String::from(created),
             image_uuid: uuid,
+            image_format: String::from(image_format),
         })
     }
 }
@@ -425,6 +435,7 @@ impl ImageLabelScore {
 pub struct ImageScoredEvent {
     created: String,
     image_uuid: Uuid,
+    image_format: String, 
     scores: Vec<ImageLabelScore>,
 }
 
@@ -480,6 +491,7 @@ impl Event for ImageScoredEvent {
         let args = gen_events::ImageScoredEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
+            image_format: Some(fbuf.create_string(&self.image_format)),
             scores: Some(fbuf.create_vector(&image_label_scores)),
         };
         let event_offset = gen_events::ImageScoredEvent::create(&mut fbuf, &args);
@@ -536,10 +548,11 @@ impl ImageScoredEvent {
     // new:
     // ----------------------------------------------------------------------
     #![allow(unused)]
-    pub fn new(image_uuid: Uuid, scores: Vec<ImageLabelScore>) -> Self {
+    pub fn new(image_uuid: Uuid, image_format: String, scores: Vec<ImageLabelScore>) -> Self {
         ImageScoredEvent {
             created: timestamp_str(),
             image_uuid,
+            image_format,
             scores,
         }
     }
@@ -568,6 +581,12 @@ impl ImageScoredEvent {
                     e.to_string(),
                 ))
             }
+        };
+
+        // Get the image format string.
+        let image_format = match ev.image_format() {
+            Some(s) => s,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format"))),
         };
 
         // Get the list of scores.
@@ -624,6 +643,7 @@ impl ImageScoredEvent {
         Result::Ok(ImageScoredEvent {
             created: String::from(created),
             image_uuid: uuid,
+            image_format: String::from(image_format),
             scores,
         })
     }
@@ -635,6 +655,7 @@ impl ImageScoredEvent {
 pub struct ImageStoredEvent {
     created: String,
     image_uuid: Uuid,
+    image_format: String,
     destination: String,
 }
 
@@ -668,6 +689,7 @@ impl Event for ImageStoredEvent {
         let args = gen_events::ImageStoredEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
+            image_format: Some(fbuf.create_string(&self.image_format)),
             destination: Some(fbuf.create_string(&self.destination)),
         };
         let event_offset = gen_events::ImageStoredEvent::create(&mut fbuf, &args);
@@ -724,10 +746,11 @@ impl ImageStoredEvent {
     // new:
     // ----------------------------------------------------------------------
     #![allow(unused)]
-    pub fn new(image_uuid: Uuid, destination: String) -> Self {
+    pub fn new(image_uuid: Uuid, image_format: String, destination: String) -> Self {
         ImageStoredEvent {
             created: timestamp_str(),
             image_uuid,
+            image_format,
             destination,
         }
     }
@@ -758,6 +781,12 @@ impl ImageStoredEvent {
             }
         };
 
+        // Get the image format string.
+        let image_format = match ev.image_format() {
+            Some(s) => s,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format"))),
+        };
+
         // Get the destination.
         let destination = match ev.destination() {
             Some(s) => s,
@@ -768,6 +797,7 @@ impl ImageStoredEvent {
         Result::Ok(ImageStoredEvent {
             created: String::from(created),
             image_uuid: uuid,
+            image_format: String::from(image_format),
             destination: String::from(destination),
         })
     }
@@ -779,6 +809,7 @@ impl ImageStoredEvent {
 pub struct ImageDeletedEvent {
     created: String,
     image_uuid: Uuid,
+    image_format: String,
 }
 
 // ------------------------------
@@ -811,6 +842,7 @@ impl Event for ImageDeletedEvent {
         let args = gen_events::ImageDeletedEventArgs {
             event_create_ts: Some(fbuf.create_string(&self.created)),
             image_uuid: Some(fbuf.create_string(&self.image_uuid.hyphenated().to_string())),
+            image_format: Some(fbuf.create_string(&self.image_format)),
         };
         let event_offset = gen_events::ImageDeletedEvent::create(&mut fbuf, &args);
 
@@ -866,10 +898,11 @@ impl ImageDeletedEvent {
     // new:
     // ----------------------------------------------------------------------
     #![allow(unused)]
-    pub fn new(image_uuid: Uuid) -> Self {
+    pub fn new(image_uuid: Uuid, image_format: String) -> Self {
         ImageDeletedEvent {
             created: timestamp_str(),
             image_uuid,
+            image_format,
         }
     }
 
@@ -899,10 +932,17 @@ impl ImageDeletedEvent {
             }
         };
 
+        // Get the image format string.
+        let image_format = match ev.image_format() {
+            Some(s) => s,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("image_format"))),
+        };
+
         // Finally...
         Result::Ok(ImageDeletedEvent {
             created: String::from(created),
             image_uuid: uuid,
+            image_format: String::from(image_format),
         })
     }
 }
@@ -1446,7 +1486,7 @@ mod tests {
             ImageLabelScore::new(image_uuid_2, "test2".to_string(), prob_2),
             ImageLabelScore::new(image_uuid_3, "test3".to_string(), prob_3),
         ];
-        let image_scored_event = ImageScoredEvent::new(image_uuid_1, scores);
+        let image_scored_event = ImageScoredEvent::new(image_uuid_1, "png".to_string(), scores);
         let image_scored_event_bytes = image_scored_event.to_bytes().unwrap();
         let fbuf_bytes = &image_scored_event_bytes[EVENT_PREFIX_LEN..];
         let image_scored_event_deser =

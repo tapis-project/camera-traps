@@ -38,16 +38,16 @@ impl ExternalPlugin for ExternalAppPlugin {
                     event_types.push(Box::new(events::NewImageEvent::new(Uuid::new_v4(), String::from("fake"), vec![])),);
                 },
                 "ImageReceivedEvent" => {
-                    event_types.push(Box::new(events::ImageReceivedEvent::new(Uuid::new_v4())));
+                    event_types.push(Box::new(events::ImageReceivedEvent::new(Uuid::new_v4(), String::from("fake"))));
                 },
                 "ImageScoredEvent" => {
-                    event_types.push(Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), vec![])));
+                    event_types.push(Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), String::from("fake"), vec![])));
                 },
                 "ImageStoredEvent" => {
-                    event_types.push(Box::new(events::ImageStoredEvent::new(Uuid::new_v4(), String::from("path"))));
+                    event_types.push(Box::new(events::ImageStoredEvent::new(Uuid::new_v4(), String::from("fake"), String::from("path"))));
                 },
                 "ImageDeletedEvent" => {
-                    event_types.push(Box::new(events::ImageDeletedEvent::new(Uuid::new_v4())));
+                    event_types.push(Box::new(events::ImageDeletedEvent::new(Uuid::new_v4(), String::from("fake"))));
                 },
                 "PluginTerminateEvent" => {
                     event_types.push(Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))));

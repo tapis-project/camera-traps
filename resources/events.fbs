@@ -28,6 +28,7 @@ table NewImageEvent {
 table ImageReceivedEvent {
   event_create_ts:string;
   image_uuid:string;
+  image_format:string;
 }  
 
 // Represents the probability that an image has a specific label.
@@ -41,6 +42,7 @@ table ImageLabelScore {
 table ImageScoredEvent {
   event_create_ts:string;
   image_uuid:string;
+  image_format:string;
   scores:[ImageLabelScore];
 }
 
@@ -49,6 +51,7 @@ table ImageScoredEvent {
 table ImageStoredEvent {
   event_create_ts:string;
   image_uuid:string;
+  image_format:string;
   destination:string;
 }
 
@@ -56,6 +59,7 @@ table ImageStoredEvent {
 table ImageDeletedEvent {
   event_create_ts:string;
   image_uuid:string;
+  image_format:string;
 }
 
 // Plugin started event.

@@ -171,11 +171,22 @@ impl ImageReceivePlugin {
             }
         };
 
+        let image_format = match new_image_event.image_format() {
+            Some(s) => s,
+            None => {
+                // Log the error and just return.
+                let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                          self.get_name(), "NewImageEvent".to_string()));
+                error!("{}", msg);
+                return
+            }
+        };
+
         // Execute the action function.
         action(self, &new_image_event);
 
         // Create the image received event and serialize it.
-        let ev = events::ImageReceivedEvent::new(uuid);
+        let ev = events::ImageReceivedEvent::new(uuid, image_format.to_string());
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {

@@ -162,7 +162,7 @@ impl Plugin for ImageStorePlugin {
     /// Return the event subscriptions, as a vector of strings, that this plugin is interested in.
     fn get_subscriptions(&self) -> Result<Vec<Box<dyn EventType>>, EngineError> {
         Ok(vec![
-            Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), vec![])),
+            Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), "fake".to_string(), vec![])),
             Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
         ])
     }
@@ -232,6 +232,17 @@ impl ImageStorePlugin {
             }
         };
 
+        let image_format = match image_scored_event.image_format() {
+            Some(s) => s,
+            None => {
+                // Log the error and just return.
+                let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                          self.get_name(), "ImageScoredEvent".to_string()));
+                error!("{}", msg);
+                return
+            }
+        };
+
         // Make sure we got at least one score.
         if labels.is_empty() {
             error!("{}", "No scores received".to_string());
@@ -243,7 +254,7 @@ impl ImageStorePlugin {
         let dest = format!("{:?}", action_taken);
 
         // Create the image stored event and serialize it.
-        let ev = events::ImageStoredEvent::new(uuid, dest);
+        let ev = events::ImageStoredEvent::new(uuid, image_format.to_string(), dest);
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {

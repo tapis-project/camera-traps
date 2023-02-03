@@ -132,10 +132,10 @@ impl Plugin for ObserverPlugin {
         // This plugin subscribes to all events.  When events change so must this list.
         Ok(vec![
             Box::new(events::NewImageEvent::new(Uuid::new_v4(), String::from("fake"), vec![])),
-            Box::new(events::ImageReceivedEvent::new(Uuid::new_v4())),
-            Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), vec![])),
-            Box::new(events::ImageStoredEvent::new(Uuid::new_v4(), String::from("path"))),
-            Box::new(events::ImageDeletedEvent::new(Uuid::new_v4())),
+            Box::new(events::ImageReceivedEvent::new(Uuid::new_v4(), "fake".to_string())),
+            Box::new(events::ImageScoredEvent::new(Uuid::new_v4(), "fake".to_string(), vec![])),
+            Box::new(events::ImageStoredEvent::new(Uuid::new_v4(), "fake".to_string(), String::from("path"))),
+            Box::new(events::ImageDeletedEvent::new(Uuid::new_v4(), "fake".to_string())),
             Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
             Box::new(events::PluginTerminatingEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))), 
             Box::new(events::PluginStartedEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))),

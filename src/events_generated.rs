@@ -289,6 +289,7 @@ impl<'a> flatbuffers::Follow<'a> for ImageReceivedEvent<'a> {
 impl<'a> ImageReceivedEvent<'a> {
   pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
   pub const VT_IMAGE_UUID: flatbuffers::VOffsetT = 6;
+  pub const VT_IMAGE_FORMAT: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -300,6 +301,7 @@ impl<'a> ImageReceivedEvent<'a> {
     args: &'args ImageReceivedEventArgs<'args>
   ) -> flatbuffers::WIPOffset<ImageReceivedEvent<'bldr>> {
     let mut builder = ImageReceivedEventBuilder::new(_fbb);
+    if let Some(x) = args.image_format { builder.add_image_format(x); }
     if let Some(x) = args.image_uuid { builder.add_image_uuid(x); }
     if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
     builder.finish()
@@ -314,6 +316,10 @@ impl<'a> ImageReceivedEvent<'a> {
   pub fn image_uuid(&self) -> Option<&'a str> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageReceivedEvent::VT_IMAGE_UUID, None)
   }
+  #[inline]
+  pub fn image_format(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageReceivedEvent::VT_IMAGE_FORMAT, None)
+  }
 }
 
 impl flatbuffers::Verifiable for ImageReceivedEvent<'_> {
@@ -325,6 +331,7 @@ impl flatbuffers::Verifiable for ImageReceivedEvent<'_> {
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_uuid", Self::VT_IMAGE_UUID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_format", Self::VT_IMAGE_FORMAT, false)?
      .finish();
     Ok(())
   }
@@ -332,6 +339,7 @@ impl flatbuffers::Verifiable for ImageReceivedEvent<'_> {
 pub struct ImageReceivedEventArgs<'a> {
     pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
     pub image_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub image_format: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for ImageReceivedEventArgs<'a> {
   #[inline]
@@ -339,6 +347,7 @@ impl<'a> Default for ImageReceivedEventArgs<'a> {
     ImageReceivedEventArgs {
       event_create_ts: None,
       image_uuid: None,
+      image_format: None,
     }
   }
 }
@@ -355,6 +364,10 @@ impl<'a: 'b, 'b> ImageReceivedEventBuilder<'a, 'b> {
   #[inline]
   pub fn add_image_uuid(&mut self, image_uuid: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageReceivedEvent::VT_IMAGE_UUID, image_uuid);
+  }
+  #[inline]
+  pub fn add_image_format(&mut self, image_format: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageReceivedEvent::VT_IMAGE_FORMAT, image_format);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ImageReceivedEventBuilder<'a, 'b> {
@@ -376,6 +389,7 @@ impl core::fmt::Debug for ImageReceivedEvent<'_> {
     let mut ds = f.debug_struct("ImageReceivedEvent");
       ds.field("event_create_ts", &self.event_create_ts());
       ds.field("image_uuid", &self.image_uuid());
+      ds.field("image_format", &self.image_format());
       ds.finish()
   }
 }
@@ -519,7 +533,8 @@ impl<'a> flatbuffers::Follow<'a> for ImageScoredEvent<'a> {
 impl<'a> ImageScoredEvent<'a> {
   pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
   pub const VT_IMAGE_UUID: flatbuffers::VOffsetT = 6;
-  pub const VT_SCORES: flatbuffers::VOffsetT = 8;
+  pub const VT_IMAGE_FORMAT: flatbuffers::VOffsetT = 8;
+  pub const VT_SCORES: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -532,6 +547,7 @@ impl<'a> ImageScoredEvent<'a> {
   ) -> flatbuffers::WIPOffset<ImageScoredEvent<'bldr>> {
     let mut builder = ImageScoredEventBuilder::new(_fbb);
     if let Some(x) = args.scores { builder.add_scores(x); }
+    if let Some(x) = args.image_format { builder.add_image_format(x); }
     if let Some(x) = args.image_uuid { builder.add_image_uuid(x); }
     if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
     builder.finish()
@@ -545,6 +561,10 @@ impl<'a> ImageScoredEvent<'a> {
   #[inline]
   pub fn image_uuid(&self) -> Option<&'a str> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageScoredEvent::VT_IMAGE_UUID, None)
+  }
+  #[inline]
+  pub fn image_format(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageScoredEvent::VT_IMAGE_FORMAT, None)
   }
   #[inline]
   pub fn scores(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ImageLabelScore<'a>>>> {
@@ -561,6 +581,7 @@ impl flatbuffers::Verifiable for ImageScoredEvent<'_> {
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_uuid", Self::VT_IMAGE_UUID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_format", Self::VT_IMAGE_FORMAT, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<ImageLabelScore>>>>("scores", Self::VT_SCORES, false)?
      .finish();
     Ok(())
@@ -569,6 +590,7 @@ impl flatbuffers::Verifiable for ImageScoredEvent<'_> {
 pub struct ImageScoredEventArgs<'a> {
     pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
     pub image_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub image_format: Option<flatbuffers::WIPOffset<&'a str>>,
     pub scores: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ImageLabelScore<'a>>>>>,
 }
 impl<'a> Default for ImageScoredEventArgs<'a> {
@@ -577,6 +599,7 @@ impl<'a> Default for ImageScoredEventArgs<'a> {
     ImageScoredEventArgs {
       event_create_ts: None,
       image_uuid: None,
+      image_format: None,
       scores: None,
     }
   }
@@ -594,6 +617,10 @@ impl<'a: 'b, 'b> ImageScoredEventBuilder<'a, 'b> {
   #[inline]
   pub fn add_image_uuid(&mut self, image_uuid: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageScoredEvent::VT_IMAGE_UUID, image_uuid);
+  }
+  #[inline]
+  pub fn add_image_format(&mut self, image_format: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageScoredEvent::VT_IMAGE_FORMAT, image_format);
   }
   #[inline]
   pub fn add_scores(&mut self, scores: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<ImageLabelScore<'b >>>>) {
@@ -619,6 +646,7 @@ impl core::fmt::Debug for ImageScoredEvent<'_> {
     let mut ds = f.debug_struct("ImageScoredEvent");
       ds.field("event_create_ts", &self.event_create_ts());
       ds.field("image_uuid", &self.image_uuid());
+      ds.field("image_format", &self.image_format());
       ds.field("scores", &self.scores());
       ds.finish()
   }
@@ -641,7 +669,8 @@ impl<'a> flatbuffers::Follow<'a> for ImageStoredEvent<'a> {
 impl<'a> ImageStoredEvent<'a> {
   pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
   pub const VT_IMAGE_UUID: flatbuffers::VOffsetT = 6;
-  pub const VT_DESTINATION: flatbuffers::VOffsetT = 8;
+  pub const VT_IMAGE_FORMAT: flatbuffers::VOffsetT = 8;
+  pub const VT_DESTINATION: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -654,6 +683,7 @@ impl<'a> ImageStoredEvent<'a> {
   ) -> flatbuffers::WIPOffset<ImageStoredEvent<'bldr>> {
     let mut builder = ImageStoredEventBuilder::new(_fbb);
     if let Some(x) = args.destination { builder.add_destination(x); }
+    if let Some(x) = args.image_format { builder.add_image_format(x); }
     if let Some(x) = args.image_uuid { builder.add_image_uuid(x); }
     if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
     builder.finish()
@@ -667,6 +697,10 @@ impl<'a> ImageStoredEvent<'a> {
   #[inline]
   pub fn image_uuid(&self) -> Option<&'a str> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageStoredEvent::VT_IMAGE_UUID, None)
+  }
+  #[inline]
+  pub fn image_format(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageStoredEvent::VT_IMAGE_FORMAT, None)
   }
   #[inline]
   pub fn destination(&self) -> Option<&'a str> {
@@ -683,6 +717,7 @@ impl flatbuffers::Verifiable for ImageStoredEvent<'_> {
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_uuid", Self::VT_IMAGE_UUID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_format", Self::VT_IMAGE_FORMAT, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("destination", Self::VT_DESTINATION, false)?
      .finish();
     Ok(())
@@ -691,6 +726,7 @@ impl flatbuffers::Verifiable for ImageStoredEvent<'_> {
 pub struct ImageStoredEventArgs<'a> {
     pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
     pub image_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub image_format: Option<flatbuffers::WIPOffset<&'a str>>,
     pub destination: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for ImageStoredEventArgs<'a> {
@@ -699,6 +735,7 @@ impl<'a> Default for ImageStoredEventArgs<'a> {
     ImageStoredEventArgs {
       event_create_ts: None,
       image_uuid: None,
+      image_format: None,
       destination: None,
     }
   }
@@ -716,6 +753,10 @@ impl<'a: 'b, 'b> ImageStoredEventBuilder<'a, 'b> {
   #[inline]
   pub fn add_image_uuid(&mut self, image_uuid: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageStoredEvent::VT_IMAGE_UUID, image_uuid);
+  }
+  #[inline]
+  pub fn add_image_format(&mut self, image_format: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageStoredEvent::VT_IMAGE_FORMAT, image_format);
   }
   #[inline]
   pub fn add_destination(&mut self, destination: flatbuffers::WIPOffset<&'b  str>) {
@@ -741,6 +782,7 @@ impl core::fmt::Debug for ImageStoredEvent<'_> {
     let mut ds = f.debug_struct("ImageStoredEvent");
       ds.field("event_create_ts", &self.event_create_ts());
       ds.field("image_uuid", &self.image_uuid());
+      ds.field("image_format", &self.image_format());
       ds.field("destination", &self.destination());
       ds.finish()
   }
@@ -763,6 +805,7 @@ impl<'a> flatbuffers::Follow<'a> for ImageDeletedEvent<'a> {
 impl<'a> ImageDeletedEvent<'a> {
   pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
   pub const VT_IMAGE_UUID: flatbuffers::VOffsetT = 6;
+  pub const VT_IMAGE_FORMAT: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -774,6 +817,7 @@ impl<'a> ImageDeletedEvent<'a> {
     args: &'args ImageDeletedEventArgs<'args>
   ) -> flatbuffers::WIPOffset<ImageDeletedEvent<'bldr>> {
     let mut builder = ImageDeletedEventBuilder::new(_fbb);
+    if let Some(x) = args.image_format { builder.add_image_format(x); }
     if let Some(x) = args.image_uuid { builder.add_image_uuid(x); }
     if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
     builder.finish()
@@ -788,6 +832,10 @@ impl<'a> ImageDeletedEvent<'a> {
   pub fn image_uuid(&self) -> Option<&'a str> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageDeletedEvent::VT_IMAGE_UUID, None)
   }
+  #[inline]
+  pub fn image_format(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageDeletedEvent::VT_IMAGE_FORMAT, None)
+  }
 }
 
 impl flatbuffers::Verifiable for ImageDeletedEvent<'_> {
@@ -799,6 +847,7 @@ impl flatbuffers::Verifiable for ImageDeletedEvent<'_> {
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_uuid", Self::VT_IMAGE_UUID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_format", Self::VT_IMAGE_FORMAT, false)?
      .finish();
     Ok(())
   }
@@ -806,6 +855,7 @@ impl flatbuffers::Verifiable for ImageDeletedEvent<'_> {
 pub struct ImageDeletedEventArgs<'a> {
     pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
     pub image_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub image_format: Option<flatbuffers::WIPOffset<&'a str>>,
 }
 impl<'a> Default for ImageDeletedEventArgs<'a> {
   #[inline]
@@ -813,6 +863,7 @@ impl<'a> Default for ImageDeletedEventArgs<'a> {
     ImageDeletedEventArgs {
       event_create_ts: None,
       image_uuid: None,
+      image_format: None,
     }
   }
 }
@@ -829,6 +880,10 @@ impl<'a: 'b, 'b> ImageDeletedEventBuilder<'a, 'b> {
   #[inline]
   pub fn add_image_uuid(&mut self, image_uuid: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageDeletedEvent::VT_IMAGE_UUID, image_uuid);
+  }
+  #[inline]
+  pub fn add_image_format(&mut self, image_format: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageDeletedEvent::VT_IMAGE_FORMAT, image_format);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ImageDeletedEventBuilder<'a, 'b> {
@@ -850,6 +905,7 @@ impl core::fmt::Debug for ImageDeletedEvent<'_> {
     let mut ds = f.debug_struct("ImageDeletedEvent");
       ds.field("event_create_ts", &self.event_create_ts());
       ds.field("image_uuid", &self.image_uuid());
+      ds.field("image_format", &self.image_format());
       ds.finish()
   }
 }

@@ -107,7 +107,7 @@ impl Plugin for ImageScorePlugin {
     /// Return the event subscriptions, as a vector of strings, that this plugin is interested in.
     fn get_subscriptions(&self) -> Result<Vec<Box<dyn EventType>>, EngineError> {
         Ok(vec![
-            Box::new(events::ImageReceivedEvent::new(Uuid::new_v4())),
+            Box::new(events::ImageReceivedEvent::new(Uuid::new_v4(), "fake".to_string())),
             Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
         ])
     }
@@ -140,7 +140,7 @@ impl ImageScorePlugin {
     // ---------------------------------------------------------------------------
     fn send_event(&self, event: gen_events::Event, pub_socket: &Socket) {
         // Extract the image uuid from the new image event.
-        let new_image_event = match event.event_as_image_received_event() {
+        let image_recv_event = match event.event_as_image_received_event() {
             Some(ev) => ev,
             None => {
                 // Log the error and just return.
@@ -148,7 +148,7 @@ impl ImageScorePlugin {
                 return
             }
         };
-        let uuid_str = match new_image_event.image_uuid() {
+        let uuid_str = match image_recv_event.image_uuid() {
             Some(s) => s,
             None => {
                 // Log the error and just return.
@@ -165,6 +165,17 @@ impl ImageScorePlugin {
             }
         };
 
+        let image_format = match image_recv_event.image_format() {
+            Some(s) => s,
+            None => {
+                // Log the error and just return.
+                let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                          self.get_name(), "ImageReceivedEvent".to_string()));
+                error!("{}", msg);
+                return
+            }
+        };
+
         // Create the image label and put it in a vector.
         let mut rng = rand::thread_rng();
         let prob = rng.gen_range(0.0..1.0);
@@ -173,7 +184,7 @@ impl ImageScorePlugin {
         let labels = vec![image_label];
 
         // Create the image received event and serialize it.
-        let ev = events::ImageScoredEvent::new(uuid, labels);
+        let ev = events::ImageScoredEvent::new(uuid, image_format.to_string(), labels);
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {
