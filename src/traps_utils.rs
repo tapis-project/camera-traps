@@ -77,11 +77,11 @@ pub fn get_absolute_path(path: &str) -> String {
 // create_image_filepath:
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. */
-pub fn create_image_filepath(abs_dir: &String, image_file_prefix: &Option<String>, 
-                             uuid_str: &str, suffix: &String) -> String {
+pub fn create_image_filepath(abs_dir: &str, image_file_prefix: &Option<String>, 
+                             uuid_str: &str, suffix: &str) -> String {
     // Get absolute path of the image directory with a trailing slash.
     let slash = if abs_dir.ends_with('/') {""} else {"/"};
-    let mut filepath = abs_dir.clone();
+    let mut filepath = abs_dir.to_owned();
     filepath.push_str(slash);
 
     // Prepend the file prefix if one is specified.
@@ -94,7 +94,7 @@ pub fn create_image_filepath(abs_dir: &String, image_file_prefix: &Option<String
     // the image type as the file extension.
     filepath.push_str(uuid_str);
     filepath.push('.');
-    filepath.push_str(suffix.as_str());
+    filepath.push_str(suffix);
     filepath
 }
 

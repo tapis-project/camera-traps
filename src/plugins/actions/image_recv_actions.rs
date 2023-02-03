@@ -155,7 +155,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
 // create_image_filepath:
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. */
-fn create_image_filepath(plugin: &ImageReceivePlugin, uuid_str: &str, suffix: &String) -> String {
+fn create_image_filepath(plugin: &ImageReceivePlugin, uuid_str: &str, suffix: &str) -> String {
     return traps_utils::create_image_filepath(&plugin.get_runctx().abs_image_dir, 
                                               &plugin.get_runctx().parms.config.image_file_prefix, 
                                               uuid_str, 

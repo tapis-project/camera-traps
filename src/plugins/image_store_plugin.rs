@@ -31,7 +31,7 @@ const DEFAULT_CONFIG_FILE : &str = "~/traps-image-store.toml";
 //                            Structs and Enums
 // ***************************************************************************
 #[allow(dead_code)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum StoreAction {
     Delete,
     Noop,
@@ -287,7 +287,7 @@ impl ImageStorePlugin {
      */
     pub fn init_store_parms(&self) -> Result<StoreParms> {
         // Get the config file path from the environment, command line or default.
-        let config_file = env::var(ENV_CONFIG_FILE_KEY).unwrap_or(DEFAULT_CONFIG_FILE.to_string());
+        let config_file = env::var(ENV_CONFIG_FILE_KEY).unwrap_or_else(|_| DEFAULT_CONFIG_FILE.to_string());
 
         // Read the cofiguration file.
         let config_file_abs = traps_utils::get_absolute_path(&config_file);
@@ -350,7 +350,8 @@ impl ImageStorePlugin {
         // We use the stable sort so as to not reorder tuples with
         // the same numeric value, which we tolerate on input but is 
         // sloppy on the part of users (only the first one has an effect).
-        list.sort_by(|a, b| (&b.0).cmp(&a.0));
+        // For some reason, clippy says (&b.0) is an unnecessary borrow.
+        list.sort_by(|a, b| (b.0).cmp(&a.0));
 
         // Convert the u8 element to f32 to match the scoring type.
         let mut listf32: Vec<(f32, StoreAction)> = Vec::new();

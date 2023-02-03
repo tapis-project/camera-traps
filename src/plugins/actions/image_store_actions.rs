@@ -153,7 +153,7 @@ fn get_action_for_score(store_parms_ref: &StoreParms, score: f32) -> StoreAction
 // create_image_filepath:
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. */
-fn create_image_filepath(plugin: &ImageStorePlugin, uuid_str: &str, suffix: &String) -> String {
+fn create_image_filepath(plugin: &ImageStorePlugin, uuid_str: &str, suffix: &str) -> String {
     return traps_utils::create_image_filepath(&plugin.get_runctx().abs_image_dir, 
                                               &plugin.get_runctx().parms.config.image_file_prefix, 
                                               uuid_str, 
