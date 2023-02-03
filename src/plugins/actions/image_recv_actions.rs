@@ -1,7 +1,7 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
-use crate::Config;
+use crate::{Config, traps_utils};
 use crate::plugins::image_recv_plugin::ImageReceivePlugin;
 use event_engine::{plugins::Plugin};
 use crate::{config::errors::Errors};
@@ -156,22 +156,8 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. */
 fn create_image_filepath(plugin: &ImageReceivePlugin, uuid_str: &str, suffix: &String) -> String {
-    // Get absolute path of the image directory with a trailing slash.
-    let abs_dir = &plugin.get_runctx().abs_image_dir;
-    let slash = if abs_dir.ends_with('/') {""} else {"/"};
-    let mut filepath = abs_dir.clone();
-    filepath.push_str(slash);
-
-    // Prepend the file prefix if one is specified.
-    match &plugin.get_runctx().parms.config.image_file_prefix {
-        Some(s) => filepath.push_str(s),
-        None => {}
-    }
-
-    // Append the image uuid as the file name and 
-    // the image type as the file extension.
-    filepath.push_str(uuid_str);
-    filepath.push('.');
-    filepath.push_str(suffix.as_str());
-    filepath
+    return traps_utils::create_image_filepath(&plugin.get_runctx().abs_image_dir, 
+                                              &plugin.get_runctx().parms.config.image_file_prefix, 
+                                              uuid_str, 
+                                              suffix);
 }

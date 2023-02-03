@@ -1,5 +1,9 @@
+use std::collections::BTreeMap;
 use uuid::Uuid;
 use zmq::Socket;
+use serde::Deserialize;
+use std::{env, fs};
+use anyhow::{Result, anyhow};
 use event_engine::{plugins::Plugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
@@ -12,8 +16,44 @@ use crate::Config;
 use crate::events::{IMAGE_SCORED_PREFIX, PLUGIN_TERMINATE_PREFIX};
 use crate::plugins::actions::image_store_actions::select_action;
 
-
 use log::{info, error, debug};
+
+// ***************************************************************************
+//                                Constants
+// ***************************************************************************
+// Constants.
+#[allow(dead_code)]
+const ENV_CONFIG_FILE_KEY : &str = "TRAPS_IMAGE_STORE_FILE";
+#[allow(dead_code)]
+const DEFAULT_CONFIG_FILE : &str = "~/traps-image-store.toml";
+
+// ***************************************************************************
+//                            Structs and Enums
+// ***************************************************************************
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone)]
+pub enum StoreAction {
+    Delete,
+    Noop,
+    ReduceSave,
+    Save,
+}
+
+#[derive(Debug)]
+pub struct StoreParms {
+    pub config_file: String,
+    pub config: StoreConfig,
+}
+
+#[derive(Debug)]
+pub struct StoreConfig {
+    pub action_thresholds: Vec<(f32, StoreAction)>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StoreInput {
+    pub action_thresholds: BTreeMap<String, u8>,
+}
 
 pub struct ImageStorePlugin {
     name: String,
@@ -21,6 +61,9 @@ pub struct ImageStorePlugin {
     runctx: &'static RuntimeCtx,
 }
 
+// ***************************************************************************
+//                                Functions
+// ***************************************************************************
 impl Plugin for ImageStorePlugin {
     // ---------------------------------------------------------------------------
     // start:
@@ -37,6 +80,16 @@ impl Plugin for ImageStorePlugin {
 
         // Announce our arrival.
         info!("{}", format!("{}", Errors::PluginStarted(self.name.clone(), self.get_id().hyphenated().to_string())));
+
+        // Read the configuration file.
+        let store_parms = match self.init_store_parms() {
+            Ok(a) => a,
+            Err(e) => {
+                return Err(EngineError::PluginExecutionError(self.name.clone(), 
+                                                             self.get_id().hyphenated().to_string(), 
+                                                             e.to_string()));
+            }
+        };
 
         // Get this plugin's required action function pointer.
         #[allow(unused_variables)]
@@ -76,7 +129,7 @@ impl Plugin for ImageStorePlugin {
             let terminate = match ev_in.prefix_array {
                 IMAGE_SCORED_PREFIX => {
                     debug!("\n  -> {} received event {}", self.name, String::from("ImageScoredEvent"));
-                    self.send_event(ev_in.gen_event, &pub_socket);
+                    self.send_event(ev_in.gen_event, &pub_socket, action, &store_parms);
                     false
                 },
                 PLUGIN_TERMINATE_PREFIX => {
@@ -140,9 +193,11 @@ impl ImageStorePlugin {
     // ---------------------------------------------------------------------------
     // send_event:
     // ---------------------------------------------------------------------------
-    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket) {
+    fn send_event(&self, event: gen_events::Event, pub_socket: &Socket,
+                  action: fn(&ImageStorePlugin, &gen_events::ImageScoredEvent, &StoreParms)->StoreAction,
+                  store_parms_ref: &StoreParms) {
         // Extract the image uuid from the new image event.
-        let new_image_event = match event.event_as_image_scored_event() {
+        let image_scored_event = match event.event_as_image_scored_event() {
             Some(ev) => ev,
             None => {
                 // Log the error and just return.
@@ -150,7 +205,7 @@ impl ImageStorePlugin {
                 return
             }
         };
-        let uuid_str = match new_image_event.image_uuid() {
+        let uuid_str = match image_scored_event.image_uuid() {
             Some(s) => s,
             None => {
                 // Log the error and just return.
@@ -168,7 +223,7 @@ impl ImageStorePlugin {
         };
 
         // Determine the destination based on the first score.
-        let labels= match new_image_event.scores() {
+        let labels= match image_scored_event.scores() {
             Some(v) => v,
             None => {
                 // Log the error and just return.
@@ -183,13 +238,12 @@ impl ImageStorePlugin {
             return
         }
 
-        // Get the first score.
-        let first = labels.get(0);
-        let dest = if first.probability() > 0.5 {"saved"} 
-                            else {"deleted"};
+        // Execute the action function.
+        let action_taken = action(self, &image_scored_event, store_parms_ref);
+        let dest = format!("{:?}", action_taken);
 
-        // Create the image received event and serialize it.
-        let ev = events::ImageStoredEvent::new(uuid, dest.to_string());
+        // Create the image stored event and serialize it.
+        let ev = events::ImageStoredEvent::new(uuid, dest);
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {
@@ -211,14 +265,146 @@ impl ImageStorePlugin {
             }
         };
     }
+
+    // ---------------------------------------------------------------------------
+    // init_store_parms:
+    // ---------------------------------------------------------------------------
+    /** Retrieve the application parameters from the configuration file specified
+     * either through an environment variable or as the first (and only) command
+     * line argument.  If neither are provided, an attempt is made to use the
+     * default file path.
+     */
+    pub fn init_store_parms(&self) -> Result<StoreParms> {
+        // Get the config file path from the environment, command line or default.
+        let config_file = env::var(ENV_CONFIG_FILE_KEY).unwrap_or(DEFAULT_CONFIG_FILE.to_string());
+
+        // Read the cofiguration file.
+        let config_file_abs = traps_utils::get_absolute_path(&config_file);
+        // println!("{}", Errors::ReadingConfigFile(config_file_abs.clone()));
+        let contents = match fs::read_to_string(&config_file_abs) {
+            Ok(c) => c,
+            Err(e) => return Result::Err(anyhow!(e.to_string())),
+        };
+
+        // Parse the toml configuration.
+        let raw_input : StoreInput = match toml::from_str(&contents) {
+            Ok(c)  => c,
+            Err(e) => return Result::Err(anyhow!(e.to_string())),
+        };
+
+        // Create the mutable list into which we'll write the threshold tuples.
+        let mut list: Vec<(u8, StoreAction)> = Vec::new();
+        if !raw_input.action_thresholds.is_empty() {
+            // Iterator through all configured thresholds allowing for
+            // some case insensitivity.
+            for entry in &raw_input.action_thresholds {
+                let act = match entry.0.as_str() {
+                    "Delete"     => StoreAction::Delete,
+                    "Save"       => StoreAction::Save,
+                    "ReduceSave" => StoreAction::ReduceSave,
+                    "Noop"       => StoreAction::Noop,
+                    "delete"     => StoreAction::Delete,
+                    "save"       => StoreAction::Save,
+                    "reducesave" => StoreAction::ReduceSave,
+                    "noop"       => StoreAction::Noop,
+                    &_           => return Result::Err(anyhow!("Invalid store action configured for image_store_plugin".to_string())),
+                };
+
+                // Add the new tuple to the list unless
+                // it's a noop, which we ignore.
+                if act != StoreAction::Noop {
+                    list.push((*entry.1, act));
+                }
+            }
+        } 
+
+        // Make sure we have the whole confidence range of 0-100 covered.
+        // Threshold semantics are, "If the score is greater than or equal
+        // to the entry number, then perform the associated store action."
+        // If no 0 entry number was specified, we insert a delete action
+        // entry by default.
+        let mut found_zero = false;
+        for entry in &list {
+            if entry.0 == 0 {
+                found_zero = true;
+                break;
+            }
+        }
+        if !found_zero{
+            list.push((0, StoreAction::Delete));
+        }
+        
+        // Sort the list in descending order of numerical values.
+        // a.cmp(b) yields ascending order, b.cmp(a) descending. 
+        // We use the stable sort so as to not reorder tuples with
+        // the same numeric value, which we tolerate on input but is 
+        // sloppy on the part of users (only the first one has an effect).
+        list.sort_by(|a, b| (&b.0).cmp(&a.0));
+
+        // Convert the u8 element to f32 to match the scoring type.
+        let mut listf32: Vec<(f32, StoreAction)> = Vec::new();
+        let it = list.iter().map(|cur| (cur.0 as f32, cur.1.clone()));
+        for item in it {
+            listf32.push(item);
+        }
+
+        // Return a newly constructed storage parms object.
+        Result::Ok(StoreParms { config_file: config_file_abs, config: StoreConfig {action_thresholds: listf32} })
+    }
+
 }
 
 
 #[cfg(test)]
 mod tests {
+    use crate::plugins::image_store_plugin::StoreAction;
 
     #[test]
     fn here_i_am() {
         println!("file test: image_store_plugin.rs");
+    }
+
+    #[test]
+    fn ordtest() {
+        let mut list: Vec<(u8, StoreAction)> = Vec::new();
+        list.push((5,  StoreAction::Save));
+        list.push((25, StoreAction::ReduceSave));
+        list.push((15, StoreAction::Delete));
+        list.push((15, StoreAction::Noop));
+        list.push((0,  StoreAction::Delete));
+        list.push((45, StoreAction::Save));
+        list.push((35, StoreAction::Noop));
+
+        // Assert original order.
+        // println!("{}", "Before sort");
+        // for entry in &list {
+        //     println!("{} {:?}", entry.0, entry.1);
+        // }
+        assert_eq!(&list[0], &(5u8,   StoreAction::Save));
+        assert_eq!(&list[1], &(25u8,  StoreAction::ReduceSave));
+        assert_eq!(&list[2], &(15u8,  StoreAction::Delete));
+        assert_eq!(&list[3], &(15u8,  StoreAction::Noop));
+        assert_eq!(&list[4], &(0u8,   StoreAction::Delete));
+        assert_eq!(&list[5], &(45u8,  StoreAction::Save));
+        assert_eq!(&list[6], &(35u8,  StoreAction::Noop));
+
+        // Reorder list in descending order of first tuple element.
+        // This should be the same code that we use in init_store_parms()
+        // to order the thresholds read in from the configuration file. 
+        list.sort_by(|a, b| (&b.0).cmp(&a.0));
+
+        // Assert sorted order.
+        // println!("\n{}", "After sort");
+        // for entry in &list {
+        //     println!("{} {:?}", entry.0, entry.1);
+        // }
+        assert_eq!(&list[0], &(45u8,  StoreAction::Save));
+        assert_eq!(&list[1], &(35u8,  StoreAction::Noop));
+        assert_eq!(&list[2], &(25u8,  StoreAction::ReduceSave));
+        assert_eq!(&list[3], &(15u8,  StoreAction::Delete));
+        assert_eq!(&list[4], &(15u8,  StoreAction::Noop));
+        assert_eq!(&list[5], &(5u8,   StoreAction::Save));
+        assert_eq!(&list[6], &(0u8,   StoreAction::Delete));
+
     }
 }

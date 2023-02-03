@@ -118,7 +118,7 @@ fn init_app(parms: &'static Parms) -> Result<App, Errors>{
                 app = app.register_plugin(Arc::new(Box::new(plugin)));
             },
             "image_store_plugin" => {
-                let plugin =ImageStorePlugin::new(&RUNTIME_CTX);
+                let plugin = ImageStorePlugin::new(&RUNTIME_CTX);
                 let uuid = plugin.get_id();
                 info!("{}",Errors::RegisteringInternalPlugin("image_store_plugin".to_string(), uuid.hyphenated().to_string()));
                 app = app.register_plugin(Arc::new(Box::new(plugin)));

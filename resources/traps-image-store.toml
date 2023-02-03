@@ -1,0 +1,5 @@
+# This configuration file is used by the image_store_plugin.
+
+[action_thresholds]
+Save = 70
+ReduceSave = 40
