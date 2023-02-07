@@ -23,15 +23,7 @@ RUN git clone https://github.com/microsoft/CameraTraps \
     && git clone https://github.com/ultralytics/yolov5/ \
     && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
 
-RUN pip install humanfriendly jsonpickle
-RUN pip install torch==1.11.0 torchvision==0.12.0
-RUN pip install tqdm
-RUN pip install matplotlib
-RUN apt-get update && apt-get install -y libgl1
-RUN pip install opencv-python
-RUN pip install pandas
-RUN pip install pyyaml
-RUN pip install seaborn
+RUN pip install -r requirements.txt
 
 ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/CameraTraps:/yolov5
 
@@ -41,5 +33,7 @@ ENV output_file_path='/example_images/detections.json'
 ADD example_images /example_images
 ADD entrypoint.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
+
+RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["./entrypoint.sh"]
