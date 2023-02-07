@@ -29,7 +29,8 @@ internal = [
 # take when new work is received.  If no action is specified for a plugin, its no-op action 
 # is used by default. 
 internal_actions = [
-    "image_recv_write_file_action"
+    "image_recv_write_file_action",
+    "image_store_file_action"
 ]
 
 # External plugins require more configuration information than internal plugins.

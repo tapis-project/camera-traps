@@ -3,14 +3,20 @@
 use crate::{Config, traps_utils};
 use crate::plugins::image_store_plugin::{ImageStorePlugin, StoreAction, StoreParms};
 use crate::events_generated::gen_events::ImageScoredEvent;
-use crate::{config::errors::Errors};
-use anyhow::{Result, anyhow};
+use crate::{events, config::errors::Errors};
+use event_engine::{plugins::Plugin};
 
+use anyhow::{Result, anyhow};
+use std::fs;
+use serde_json;
 
 use log::{info, error};
 
 // The search string prefix for this plugin.
 const PREFIX: &str  = "image_store_";
+
+// The score file suffix.
+const SCORE_SUFFIX: &str = "score";
 
 // ***************************************************************************
 //                            PUBLIC FUNCTIONS
@@ -96,10 +102,10 @@ pub fn image_store_file_action(plugin: &ImageStorePlugin, event: &ImageScoredEve
 
     // Perform the action.
     match store_action {
-        StoreAction::Delete => action_delete(event),
-        StoreAction::Noop   => action_noop(event),
-        StoreAction::ReduceSave => action_reduce_save(event),
-        StoreAction::Save       => action_save(event),
+        StoreAction::Delete     => action_delete(plugin, event),
+        StoreAction::Noop       => {},
+        StoreAction::ReduceSave => action_reduce_save(plugin, event),
+        StoreAction::Save       => action_save(plugin, event),
     }
 
     // Return the action taken.
@@ -150,39 +156,149 @@ fn get_action_for_score(store_parms_ref: &StoreParms, score: f32) -> StoreAction
 }
 
 // ---------------------------------------------------------------------------
-// create_image_filepath:
+// make_image_filepath:
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. */
-fn create_image_filepath(plugin: &ImageStorePlugin, uuid_str: &str, suffix: &str) -> String {
-    return traps_utils::create_image_filepath(&plugin.get_runctx().abs_image_dir, 
-                                              &plugin.get_runctx().parms.config.image_file_prefix, 
-                                              uuid_str, 
-                                              suffix);
+fn make_image_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> Option<String> {
+    // Get the uuid string for use in the file name.
+    let uuid_str = match event.image_uuid() {
+        Some(s) => s,
+        None => {
+            // Log the error and just return.
+            let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                      plugin.get_name(), "NewImageEvent".to_string()));
+            error!("{}", msg);
+            return None;
+        }
+    };
+
+    // Standardize image type suffixes to lowercase.
+    let suffix = match event.image_format() {
+        Some(s) => s.to_string().to_lowercase(),
+        None => {
+            // Log the error and just return.
+            let msg = format!("{}", Errors::ActionImageFormatTypeError(
+                                      plugin.get_name(), "NewImageEvent".to_string()));
+            error!("{}", msg);
+            return None;
+        } 
+    };
+
+    // Get the path.
+    let path = traps_utils::create_image_filepath(&plugin.get_runctx().abs_image_dir, 
+                                                          &plugin.get_runctx().parms.config.image_file_prefix, 
+                                                          uuid_str, 
+                                                          suffix.as_str());
+
+    Option::Some(path)
+}
+
+// ---------------------------------------------------------------------------
+// make_score_filepath:
+// ---------------------------------------------------------------------------
+/** Create absolute file path for the image. */
+fn make_score_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> Option<String> {
+    // Get the uuid string for use in the file name.
+    let uuid_str = match event.image_uuid() {
+        Some(s) => s,
+        None => {
+            // Log the error and just return.
+            let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                      plugin.get_name(), "NewImageEvent".to_string()));
+            error!("{}", msg);
+            return None;
+        }
+    };
+
+    // Get the path.
+    let path = traps_utils::create_image_filepath(&plugin.get_runctx().abs_image_dir, 
+                                                          &plugin.get_runctx().parms.config.image_file_prefix, 
+                                                          uuid_str, 
+                                                          SCORE_SUFFIX);
+
+    Option::Some(path)
 }
 
 // ---------------------------------------------------------------------------
 // action_delete:
 // ---------------------------------------------------------------------------
-fn action_delete(event: &ImageScoredEvent) {
-    let uuid = event.image_uuid();
-}
+/** Delete the image file and don't save the scores.
+ */
+fn action_delete(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
+    // Create absolute file path for the image.  Errors have alread been logged.
+    let filepath = match make_image_filepath(plugin, event) {
+        Some(p) => p,
+        None => return,
+    };
 
-// ---------------------------------------------------------------------------
-// action_noop:
-// ---------------------------------------------------------------------------
-fn action_noop(event: &ImageScoredEvent) {
-
+    // Delete the file.
+    match fs::remove_file(filepath.clone()){
+        Ok(_) => {},
+        Err(e) => {
+            // Log error.
+            let msg = format!("{}", Errors::FileDeleteError(
+                                      filepath, e.to_string()));
+            error!("{}", msg);
+        }
+    };
 }
 
 // ---------------------------------------------------------------------------
 // action_reduce_save:
 // ---------------------------------------------------------------------------
-fn action_reduce_save(event: &ImageScoredEvent) {
+/** Reduce the image resolution and then save it and it's scores.
+ */
+fn action_reduce_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
+    // TODO: reduce image size
 
+    action_save(plugin, event)
 }
+
 // ---------------------------------------------------------------------------
 // action_save:
 // ---------------------------------------------------------------------------
-fn action_save(event: &ImageScoredEvent) {
+/** Leave the image file as-is and save its scores.  On error, just log and return.
+ */
+fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
+    // Extract the image uuid from the new image event.
+    let image_scored_event = match events::ImageScoredEvent::new_from_gen(*event) {
+        Ok(ev) => ev,
+        Err(e) => {
+            let msg = format!("{}", Errors::PluginEventDeserializationError(
+                                      plugin.get_name(), "ImageScoredEvent".to_string()));           
+            error!("{}: {}", msg, e.to_string());
+            return
+        }
+    };
 
+    // Convert the event scores to json.
+    let json_str = match serde_json::to_string(&image_scored_event) {
+        Ok(s) => s,
+        Err(e) => {
+            let msg = format!("{}", Errors::EventToJsonError(
+                                      plugin.get_name(), "ImageScoredEvent".to_string(), e.to_string()));           
+            error!("{}", msg);
+            return;
+        }
+    };
+
+    // Construct the score output path name.
+    let filepath = match make_score_filepath(plugin, event) {
+        Some(fp)=> fp,
+        None => {
+            // Error already logged.
+            return;
+        }
+    };
+
+    // Write the json to the score output file.
+    match traps_utils::create_or_replace_file(&filepath, json_str.as_bytes()) {
+        Ok(_) => (),
+        Err(e) => {
+            let msg = format!("{}", Errors::ActionWriteFileError(plugin.get_name(),
+                                      "action_save".to_string(), filepath, e.to_string()));
+            error!("{}", msg);
+            return;
+        }
+    };
 }

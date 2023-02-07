@@ -3,6 +3,7 @@ use event_engine::events::{Event, EventType};
 use flatbuffers::{FlatBufferBuilder, InvalidFlatbuffer};
 use std::error::Error;
 use uuid::Uuid;
+use serde::Serialize;
 
 // Logging imports.
 use anyhow::Result;
@@ -379,6 +380,7 @@ impl ImageReceivedEvent {
 // ------------------------------
 // ------ ImageLabelScore
 // ------------------------------
+#[derive(Serialize)]
 pub struct ImageLabelScore {
     image_uuid: Uuid,
     label: String,
@@ -432,6 +434,7 @@ impl ImageLabelScore {
 // ------------------------------
 // ------ ImageScoredEvent
 // ------------------------------
+#[derive(Serialize)]
 pub struct ImageScoredEvent {
     created: String,
     image_uuid: Uuid,
@@ -545,9 +548,25 @@ impl Event for ImageScoredEvent {
 // ------------------------------
 impl ImageScoredEvent {
     // ----------------------------------------------------------------------
+    // accessors:
+    // ----------------------------------------------------------------------
+    pub fn get_created(&self) -> &String {
+        return &self.created;
+    }
+    pub fn get_image_uuid(&self) -> &Uuid {
+        return &self.image_uuid;
+    }
+    pub fn get_image_format(&self) -> &String {
+        return &self.image_format;
+    }
+    pub fn get_scores(&self) -> &Vec<ImageLabelScore> {
+        return &self.scores;
+    }
+
+    // ----------------------------------------------------------------------
     // new:
     // ----------------------------------------------------------------------
-    #![allow(unused)]
+    #[allow(unused)]
     pub fn new(image_uuid: Uuid, image_format: String, scores: Vec<ImageLabelScore>) -> Self {
         ImageScoredEvent {
             created: timestamp_str(),

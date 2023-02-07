@@ -69,8 +69,14 @@ pub enum Errors {
     #[error("Plugin {} is unable to convert a {} event to vector of bytes: {}", .0, .1, .2)]
     EventToBytesError(String, String, String),
 
+    #[error("Plugin {} is unable to convert a {} event to vector to JSON: {}", .0, .1, .2)]
+    EventToJsonError(String, String, String),
+
     #[error("Expected event type {}, but received event {} instead.", .0, .1)]
     EventUnexpectedError(String, String),
+
+    #[error("Failed to delete file {0}: {1}")]
+    FileDeleteError(String, String),
 
     #[error("File IO error: {}", .0)]
     FileIOError(String),

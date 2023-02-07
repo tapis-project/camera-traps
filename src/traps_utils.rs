@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::path::Path;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
+use std::io::Write;
 
 use event_engine::events::{Event, EventType,};
 use event_engine::plugins::Plugin;
@@ -77,6 +78,7 @@ pub fn get_absolute_path(path: &str) -> String {
 // create_image_filepath:
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. */
+#[allow(dead_code)]
 pub fn create_image_filepath(abs_dir: &str, image_file_prefix: &Option<String>, 
                              uuid_str: &str, suffix: &str) -> String {
     // Get absolute path of the image directory with a trailing slash.
@@ -204,6 +206,17 @@ pub fn timestamp_str() -> String {
 #[allow(dead_code)]
 pub fn timestamp_str_to_datetime(ts: &str) -> Result<DateTime<FixedOffset>, ParseError> {
     DateTime::parse_from_rfc3339(ts)
+}
+
+// ---------------------------------------------------------------------------
+// create_or_replace_file:
+// ---------------------------------------------------------------------------
+/** Create a file if it doesn't exist, then write the data to it replacing any
+ * existing content.
+ */
+pub fn create_or_replace_file(filepath: &String, buf: &[u8]) -> Result<(), std::io::Error> {
+    let mut file = fs::File::create(filepath)?;
+    file.write_all(buf)
 }
 
 // ***************************************************************************

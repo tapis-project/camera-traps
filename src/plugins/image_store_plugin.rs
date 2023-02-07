@@ -370,6 +370,9 @@ impl ImageStorePlugin {
 #[cfg(test)]
 mod tests {
     use crate::plugins::image_store_plugin::StoreAction;
+    use crate::events::{ImageLabelScore, ImageScoredEvent};
+    use uuid::Uuid;
+    use serde_json;
 
     #[test]
     fn here_i_am() {
@@ -417,6 +420,24 @@ mod tests {
         assert_eq!(&list[4], &(15u8,  StoreAction::Noop));
         assert_eq!(&list[5], &(5u8,   StoreAction::Save));
         assert_eq!(&list[6], &(0u8,   StoreAction::Delete));
-
     }
+
+    #[test]
+    fn sertest() {
+        // Image uuid.
+        let uuid = Uuid::new_v4();
+        
+        // Create label vector.
+        let label1 = ImageLabelScore::new(uuid.clone(), "cow".to_string(), 0.8); 
+        let label2 = ImageLabelScore::new(uuid.clone(), "dog".to_string(), 0.3); 
+        let labels:Vec<ImageLabelScore> = vec!(label1, label2);
+
+        // Create the event.
+        let ev = ImageScoredEvent::new(uuid.clone(), "png".to_string(), labels);
+
+        // Serialize event to json.
+        let json_str = serde_json::to_string(&ev).unwrap();
+        println!("{}", json_str); // assert is difficult because of timestamp.
+    }
+
 }
