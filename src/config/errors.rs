@@ -99,6 +99,9 @@ pub enum Errors {
     #[error("Plugin {0} failed when trying to access a {1} event's image_uuid.")]
     PluginEventAccessUuidError(String, String),
 
+    #[error("Plugin {0} failed executing action on {1} event; processing aborted for image {2}.")]
+    PluginEventActionError(String, String, String),
+
     #[error("Plugin {0} failed when trying to parse a {1} event's image_uuid: {2}")]
     PluginEventParseUuidError(String, String, String),
 

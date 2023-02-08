@@ -34,6 +34,7 @@ const DEFAULT_CONFIG_FILE : &str = "~/traps-image-store.toml";
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum StoreAction {
     Delete,
+    ErrorOut,
     Noop,
     ReduceSave,
     Save,
@@ -249,11 +250,17 @@ impl ImageStorePlugin {
             return
         }
 
-        // Execute the action function.
+        // Execute the action function and abort image on error.
         let action_taken = action(self, &image_scored_event, store_parms_ref);
-        let dest = format!("{:?}", action_taken);
-
+        if action_taken == StoreAction::ErrorOut {
+            let msg = format!("{}", Errors::PluginEventActionError(
+                                      self.get_name(), "NewImageEvent".to_string(), uuid_str.to_string()));
+            error!("{}", msg);
+            return
+        }
+        
         // Create the image stored event and serialize it.
+        let dest = format!("{:?}", action_taken);
         let ev = events::ImageStoredEvent::new(uuid, image_format.to_string(), dest);
         let bytes = match ev.to_bytes() {
             Ok(v) => v,

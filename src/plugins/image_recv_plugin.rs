@@ -138,7 +138,7 @@ impl ImageReceivePlugin {
     // send_event:
     // ---------------------------------------------------------------------------
     fn send_event(&self, event: gen_events::Event, pub_socket: &Socket, 
-                  action: fn(&ImageReceivePlugin, &gen_events::NewImageEvent)) {
+                  action: fn(&ImageReceivePlugin, &gen_events::NewImageEvent) -> bool) {
         // Extract the image uuid from the new image event.
         let new_image_event = match event.event_as_new_image_event() {
             Some(ev) => ev,
@@ -182,8 +182,14 @@ impl ImageReceivePlugin {
             }
         };
 
-        // Execute the action function.
-        action(self, &new_image_event);
+        // Execute the action function.  False is returned by actions if they are 
+        // unable to complete their tasks and processing for this event should abort. 
+        if !action(self, &new_image_event) {
+            let msg = format!("{}", Errors::PluginEventActionError(
+                                      self.get_name(), "NewImageEvent".to_string(), uuid_str.to_string()));
+            error!("{}", msg);
+            return
+        }
 
         // Create the image received event and serialize it.
         let ev = events::ImageReceivedEvent::new(uuid, image_format.to_string());

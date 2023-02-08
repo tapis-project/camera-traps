@@ -31,7 +31,7 @@ const PREFIX: &str  = "image_recv_";
  * Each action function associated with this plugin requires an arm in the match 
  * statement, which requires maintenance when new action functions are developed. 
  */
-pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin, &NewImageEvent)> {
+pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin, &NewImageEvent) -> bool > {
     
     // Internal plugins are optional.
     let int_actions = match config.plugins.internal_actions.clone() {
@@ -72,15 +72,18 @@ pub fn select_action(config: &'static Config) -> Result<fn(&ImageReceivePlugin, 
 // ---------------------------------------------------------------------------
 // image_recv_noop_action:
 // ---------------------------------------------------------------------------
-/** No-op action. */
+/** No-op action always returns true to allow processing to continue. */
 #[allow(unused)]
-pub fn image_recv_noop_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {}
+pub fn image_recv_noop_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) -> bool 
+{true}
 
 // ---------------------------------------------------------------------------
 // image_recv_write_file_action:
 // ---------------------------------------------------------------------------
-/** Write image to file. */
-pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) {
+/** Write image to file.  Return true if task complete successfully, otherwise
+ * return false to abort processing for this image.
+*/
+pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImageEvent) -> bool {
 
     // There's no point in moving on if we can't access the image data.
     let bytes = match event.image() {
@@ -91,7 +94,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
                                       "NewImageEvent".to_string(),
                                     ));
             error!("{}", msg);
-            return
+            return false;
         } 
     };
     
@@ -103,7 +106,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
             let msg = format!("{}", Errors::PluginEventAccessUuidError(
                                       plugin.get_name(), "NewImageEvent".to_string()));
             error!("{}", msg);
-            return
+            return false;
         }
     };
 
@@ -115,7 +118,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
             let msg = format!("{}", Errors::ActionImageFormatTypeError(
                                       plugin.get_name(), "NewImageEvent".to_string()));
             error!("{}", msg);
-            return
+            return false;
         } 
     };
 
@@ -134,7 +137,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
                                     plugin.get_name(), "image_recv_write_file_action".to_string(), 
                                     filepath, e.to_string()));
                                 error!("{}", msg);
-                                return
+                                return false;
                             }
     };
 
@@ -146,9 +149,12 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
                 plugin.get_name(), "image_recv_write_file_action".to_string(), 
                 filepath, e.to_string()));
             error!("{}", msg);
-            //return
+            return false;
         }
     }
+
+    // Success
+    true
 }
 
 // ---------------------------------------------------------------------------

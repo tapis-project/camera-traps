@@ -100,16 +100,14 @@ pub fn image_store_file_action(plugin: &ImageStorePlugin, event: &ImageScoredEve
     // Get the action for the score.
     let store_action = get_action_for_score(store_parms_ref, highest_score);
 
-    // Perform the action.
+    // Perform the action and return either the action taken or ErrorOut.
     match store_action {
+        StoreAction::ErrorOut   => {StoreAction::ErrorOut}, // This is an output-only action and should never happen.
         StoreAction::Delete     => action_delete(plugin, event),
-        StoreAction::Noop       => {},
+        StoreAction::Noop       => {StoreAction::Noop},
         StoreAction::ReduceSave => action_reduce_save(plugin, event),
         StoreAction::Save       => action_save(plugin, event),
     }
-
-    // Return the action taken.
-    store_action
 }
 
 // ***************************************************************************
@@ -118,6 +116,9 @@ pub fn image_store_file_action(plugin: &ImageStorePlugin, event: &ImageScoredEve
 // ---------------------------------------------------------------------------
 // get_highest_score:
 // ---------------------------------------------------------------------------
+/** Return the highest score in the list of scores.  If no scores are present,
+ * return 0.
+ */
 fn get_highest_score(event: &ImageScoredEvent) -> f32 {
     // Get a reference to the score vector.
     let scores = match event.scores() {
@@ -137,6 +138,9 @@ fn get_highest_score(event: &ImageScoredEvent) -> f32 {
 // ---------------------------------------------------------------------------
 // get_action_for_score:
 // ---------------------------------------------------------------------------
+/** Compare the highest score for all against the configured thresholds.  The
+ * highest threshold met determines the action.
+ */
 fn get_action_for_score(store_parms_ref: &StoreParms, score: f32) -> StoreAction {
 
     // Iterate through the threshold parameters configured at startup.
@@ -158,7 +162,14 @@ fn get_action_for_score(store_parms_ref: &StoreParms, score: f32) -> StoreAction
 // ---------------------------------------------------------------------------
 // make_image_filepath:
 // ---------------------------------------------------------------------------
-/** Create absolute file path for the image. */
+/** Create absolute file path for the image.  The path conforms to this template:
+ * 
+ *   <image directory>/<filename prefix>/<image uuid>.<image format>
+ * 
+ * The image directory is always an absolute path.  The filename prefix can be 
+ * the empty string.  Both of these values are part of the application configuration.
+ * The image uuid and format are returned in the NewImageEvent. 
+ */
 fn make_image_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> Option<String> {
     // Get the uuid string for use in the file name.
     let uuid_str = match event.image_uuid() {
@@ -196,7 +207,14 @@ fn make_image_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> O
 // ---------------------------------------------------------------------------
 // make_score_filepath:
 // ---------------------------------------------------------------------------
-/** Create absolute file path for the image. */
+/** Create absolute file path for the image. The path conforms to this template:
+ * 
+ *   <image directory>/<filename prefix>/<image uuid>.score
+ * 
+ * The image directory is always an absolute path.  The filename prefix can be 
+ * the empty string.  Both of these values are part of the application configuration.
+ * The image uuid is returned in the NewImageEvent and the suffix is constant. 
+ */
 fn make_score_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> Option<String> {
     // Get the uuid string for use in the file name.
     let uuid_str = match event.image_uuid() {
@@ -224,11 +242,11 @@ fn make_score_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> O
 // ---------------------------------------------------------------------------
 /** Delete the image file and don't save the scores.
  */
-fn action_delete(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
+fn action_delete(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> StoreAction{
     // Create absolute file path for the image.  Errors have alread been logged.
     let filepath = match make_image_filepath(plugin, event) {
         Some(p) => p,
-        None => return,
+        None => return StoreAction::ErrorOut,
     };
 
     // Delete the file.
@@ -239,8 +257,12 @@ fn action_delete(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
             let msg = format!("{}", Errors::FileDeleteError(
                                       filepath, e.to_string()));
             error!("{}", msg);
+            return StoreAction::ErrorOut
         }
     };
+
+    // Success.
+    StoreAction::Delete
 }
 
 // ---------------------------------------------------------------------------
@@ -248,10 +270,17 @@ fn action_delete(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
 // ---------------------------------------------------------------------------
 /** Reduce the image resolution and then save it and it's scores.
  */
-fn action_reduce_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
-    // TODO: reduce image size
+fn action_reduce_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> StoreAction {
+    // TODO: reduce image size and replace existing image file.
 
-    action_save(plugin, event)
+    // Save the reduced image score.
+    let result_action = action_save(plugin, event);
+    if result_action == StoreAction::ErrorOut {
+        return StoreAction::ErrorOut;
+    }
+
+    // Success.
+    StoreAction::ReduceSave
 }
 
 // ---------------------------------------------------------------------------
@@ -259,7 +288,7 @@ fn action_reduce_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
 // ---------------------------------------------------------------------------
 /** Leave the image file as-is and save its scores.  On error, just log and return.
  */
-fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
+fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> StoreAction{
     // Extract the image uuid from the new image event.
     let image_scored_event = match events::ImageScoredEvent::new_from_gen(*event) {
         Ok(ev) => ev,
@@ -267,7 +296,7 @@ fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
             let msg = format!("{}", Errors::PluginEventDeserializationError(
                                       plugin.get_name(), "ImageScoredEvent".to_string()));           
             error!("{}: {}", msg, e.to_string());
-            return
+            return StoreAction::ErrorOut;
         }
     };
 
@@ -278,7 +307,7 @@ fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
             let msg = format!("{}", Errors::EventToJsonError(
                                       plugin.get_name(), "ImageScoredEvent".to_string(), e.to_string()));           
             error!("{}", msg);
-            return;
+            return StoreAction::ErrorOut;
         }
     };
 
@@ -287,7 +316,7 @@ fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
         Some(fp)=> fp,
         None => {
             // Error already logged.
-            return;
+            return StoreAction::ErrorOut;
         }
     };
 
@@ -298,7 +327,10 @@ fn action_save(plugin: &ImageStorePlugin, event: &ImageScoredEvent) {
             let msg = format!("{}", Errors::ActionWriteFileError(plugin.get_name(),
                                       "action_save".to_string(), filepath, e.to_string()));
             error!("{}", msg);
-            return;
+            return StoreAction::ErrorOut;
         }
     };
+
+    // Success.
+    StoreAction::Save
 }

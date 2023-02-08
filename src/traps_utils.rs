@@ -214,6 +214,7 @@ pub fn timestamp_str_to_datetime(ts: &str) -> Result<DateTime<FixedOffset>, Pars
 /** Create a file if it doesn't exist, then write the data to it replacing any
  * existing content.
  */
+#[allow(dead_code)]
 pub fn create_or_replace_file(filepath: &String, buf: &[u8]) -> Result<(), std::io::Error> {
     let mut file = fs::File::create(filepath)?;
     file.write_all(buf)

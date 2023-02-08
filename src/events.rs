@@ -551,16 +551,16 @@ impl ImageScoredEvent {
     // accessors:
     // ----------------------------------------------------------------------
     pub fn get_created(&self) -> &String {
-        return &self.created;
+        &self.created
     }
     pub fn get_image_uuid(&self) -> &Uuid {
-        return &self.image_uuid;
+        &self.image_uuid
     }
     pub fn get_image_format(&self) -> &String {
-        return &self.image_format;
+        &self.image_format
     }
     pub fn get_scores(&self) -> &Vec<ImageLabelScore> {
-        return &self.scores;
+        &self.scores
     }
 
     // ----------------------------------------------------------------------
