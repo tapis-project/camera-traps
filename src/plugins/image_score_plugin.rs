@@ -178,7 +178,7 @@ impl ImageScorePlugin {
 
         // Create the image label and put it in a vector.
         let mut rng = rand::thread_rng();
-        let prob = rng.gen_range(0.0..1.0);
+        let prob = rng.gen_range(0.0..100.0);
         let image_label = 
             events::ImageLabelScore::new(uuid, "cow".to_string(), prob);
         let labels = vec![image_label];
