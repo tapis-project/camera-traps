@@ -22,7 +22,7 @@ internal = [
     "image_recv_plugin",
 #    "image_score_plugin",
     "image_store_plugin",
-    "observer_plugin"
+#    "observer_plugin"
 ]
 
 # Configure each of the active internal plugins with the image processing action they should 

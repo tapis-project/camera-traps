@@ -30,7 +30,7 @@ appenders:
         pattern: "logs/roller{}.log"
         
 root:
-  level: trace
+  level: error
   appenders:
     - stdout
 

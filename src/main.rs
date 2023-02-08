@@ -26,6 +26,7 @@ use event_engine::App;
 //                                Constants
 // ***************************************************************************
 // Constants.
+const ENV_LOG4RS_FILE_KEY : &str = "TRAPS_LOG4RS_CONFIG_FILE";
 const LOG4RS_CONFIG_FILE  : &str = "resources/log4rs.yml";
 const ENV_CONFIG_FILE_KEY : &str = "TRAPS_CONFIG_FILE";
 const DEFAULT_CONFIG_FILE : &str = "~/traps.toml";
@@ -50,8 +51,8 @@ fn main() -> Result<()> {
     println!("Starting camera-traps!");
 
     // Initialize log4rs logging.
-    log4rs::init_file(LOG4RS_CONFIG_FILE, Default::default())
-        .context(format!("{}", Errors::Log4rsInitialization(LOG4RS_CONFIG_FILE.to_string())))?;
+    log4rs::init_file(init_log_config(), Default::default())
+        .context(format!("{}", Errors::Log4rsInitialization(init_log_config())))?;
 
     // Force the reading of input parameters and initialization of runtime context.
     info!("{}", Errors::InputParms(format!("{:#?}", *RUNTIME_CTX)));
@@ -240,6 +241,13 @@ fn init_image_dir(dir: &str) -> Result<String> {
     // Get the absolute filepath to the images directory.
     let abs_dir = traps_utils::get_absolute_path(dir);
     Result::Ok(abs_dir)
+}
+
+// ---------------------------------------------------------------------------
+// init_log_config:
+// ---------------------------------------------------------------------------
+fn init_log_config() -> String {
+    env::var(ENV_LOG4RS_FILE_KEY).unwrap_or_else(|_| LOG4RS_CONFIG_FILE.to_string())
 }
 
 // ***************************************************************************

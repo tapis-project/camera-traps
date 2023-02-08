@@ -164,7 +164,7 @@ fn get_action_for_score(store_parms_ref: &StoreParms, score: f32) -> StoreAction
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image.  The path conforms to this template:
  * 
- *   <image directory>/<filename prefix>/<image uuid>.<image format>
+ *   <image directory>/<filename prefix><image uuid>.<image format>
  * 
  * The image directory is always an absolute path.  The filename prefix can be 
  * the empty string.  Both of these values are part of the application configuration.
@@ -209,7 +209,7 @@ fn make_image_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> O
 // ---------------------------------------------------------------------------
 /** Create absolute file path for the image. The path conforms to this template:
  * 
- *   <image directory>/<filename prefix>/<image uuid>.score
+ *   <image directory>/<filename prefix><image uuid>.score
  * 
  * The image directory is always an absolute path.  The filename prefix can be 
  * the empty string.  Both of these values are part of the application configuration.

@@ -1,12 +1,26 @@
 # camera-traps
 
-The camera-traps application is both a simulator and an edge device application for classifying images, with the first deployment specializing in wildlife images.  The simulation environment will be implemented first and serve as a test bed for protocols and techniques that optimize storage, execution time, power and accuracy.  The ultimate goal is to deploy a version of this application on camera-trap devices in the wild. 
+The camera-traps application is both a simulator and an edge device application for classifying images, with the first deployment specializing in wildlife images.  The simulation environment will be implemented first and serve as a test bed for protocols and techniques that optimize storage, execution time, power and accuracy.  The ultimate goal is to deploy a version of this application on camera-trap devices in the wild.
 
 ## Architectual Overview
 
 This application uses the [event-engine](https://github.com/tapis-project/event-engine) library to implement its plugin architecture and event-driven communication.  The engine uses [zmq](https://zeromq.org/) sockets to deliver events between senders and the subscribers interested in specific events.  
 
 The event-engine supports *internal* and *external* plugins.  Internal plugins are Rust plugins delivered with camera-traps and run in the camera-traps process.  External plugins are configured by camera-traps to run outside the camera-traps process and use a TCP port to send and receive events.  By using TCP, external plugins can be written in any language that supports the [flatbuffers](https://google.github.io/flatbuffers/) wire protocol.
+
+## Application Configuation 
+
+The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or accepting the default file path.  In addition, internal plugins and test programs may also require configuration files. 
+
+
+| **Target**                | **Environment  Variable**     | **Default  File**        | **Notes**                             |
+|---------------------------|-------------------------------|--------------------------|---------------------------------------|
+| camera-traps application  | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter     |
+| image_store_plugin        | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                       |
+| integration tests         | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                       |
+| logger                    | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application             |
+
+The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/) as its log manager.  The log settings in resources/log4rs.yml source code will be used unless overridden by assigning a log4rs.yml configuration filepath to the TRAPS_LOG4RS_CONFIG_FILE environment variable.
 
 ## Plugin Configuration
 
@@ -35,14 +49,15 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
         "image_recv_plugin",
     #   "image_score_plugin",
         "image_store_plugin",
-        "observer_plugin"
+    #   "observer_plugin"
     ]
 
     # Configure each of the active internal plugins with the image processing action they should 
     # take when new work is received.  If no action is specified for a plugin, its no-op action 
     # is used by default. 
     internal_actions = [
-        "image_recv_write_file_action"
+        "image_recv_write_file_action",
+        "image_store_file_action"
     ]
 
     # External plugins require more configuration information than internal plugins.
@@ -82,7 +97,7 @@ The first file it finds it uses.  If no configuration file is found the program 
 
 The names listed in the *internal* list are the rust plugin file names.  These plugins run as separate threads in the camera-traps process.  The *internal_actions* list contains the file names that implement the different algorithms or actions associated with each internal plugin.  
 
-A naming convention is used to associate actions with their plugins:  An action name starts with its plugin name minus the trailing "plugin" part, followed by an action identifier part, and ends with "_action".  Each plugin has a no-op action that causes it to take no action other than, possibly, generating the next event in the pipeline.  For example, *image_gen_noop_action* is associated with the *image_gen_plugin*. 
+A naming convention is used to associate actions with their plugins:  An action name starts with its plugin name minus the trailing "plugin" part, followed by an action identifier part, and ends with "_action".  Each plugin has a no-op action that causes it to take no action other than, possibly, generating the next event in the pipeline.  For example, *image_gen_noop_action* is associated with the *image_gen_plugin*.
 
 Internal plugins for which no corresponding action is specified are assigned their no-op plugin by default.
 
@@ -92,7 +107,7 @@ When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses th
 
     <image_file_prefix><image_uuid>.<image_format>
 
-The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.    
+The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
 
 ## Using Flatbuffers
