@@ -10,7 +10,7 @@ The event-engine supports *internal* and *external* plugins.  Internal plugins a
 
 ## Application Configuation 
 
-The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or using the default file path.  In addition, internal plugins and test programs may also require configuration files.  The resources directory contains examples of these files. 
+The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or using the default file path.  In addition, internal plugins and test programs may also require configuration files.  The *resources* directory contains examples of these files. 
 
 
 | **Target**                | **Environment  Variable**     | **Default  File**        | **Notes**                             |
