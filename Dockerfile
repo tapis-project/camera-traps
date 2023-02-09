@@ -46,5 +46,6 @@ COPY --from=builder /camera-traps/target/release/camera-traps .
 # copy default configs
 COPY resources/log4rs.yml /resources/log4rs.yml
 COPY resources/traps.toml /root/traps.toml 
+COPY resources/traps-image-store.toml /root/traps-image-store.toml
 # set the startup command to run camera-traps binary
 CMD ["./camera-traps"]
