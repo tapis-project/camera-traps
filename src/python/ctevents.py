@@ -478,3 +478,11 @@ def _event_to_typed_event(event):
         return union_plugin_terminate_event
     raise Exception(f"Unrecognized event type {event_type_int}")
 
+
+def bytes_to_typed_event(b: bytearray):
+    """
+    Takes a bytes array, b, (conceptually, this `b` represents a message coming off the zmq socket), and 
+    returns the typed Flatbuffers event object associated with it.
+    """
+    fb = _bytes_to_event(b)
+    return _event_to_typed_event(fb)
