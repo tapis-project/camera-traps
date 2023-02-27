@@ -3,7 +3,7 @@ import datetime
 import uuid
 from tokenize import String
 import flatbuffers
-from gen_events import NewImageEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent
+from gen_events import NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent
 from gen_events import Event
 from gen_events.EventType import EventType
 
@@ -101,10 +101,6 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     # call finish to instruct the builder that we are done
     builder.Finish(root_event)
     return builder.Output() # Of type `bytearray`
-    # fb_data = builder.Output() # Of type `bytearray`
-    # # still need to prepend the event type bytes prefix
-    # fb_data = _prepend_event_prefix("NEW_IMAGE", fb_data)
-    # return fb_data
 
 def _generate_new_image_fb_with_prefix(uuid: String, format: String, image: bytearray) -> bytearray:
     """
@@ -125,13 +121,37 @@ def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearr
     # send the message over the socket
     return publish_msg(socket, data)
 
-# type Score(dict):
-#     # list fields and types
-#     label: str
-#     probability: float
-#     image_uuid: uuid.uuid4
+def _generate_image_received_fb_event(image_uuid: String, image_format: String) -> bytearray:
+    builder = flatbuffers.Builder(1024)
+    
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    uuid_fb = builder.CreateString(image_uuid)
+    format_fb = builder.CreateString(image_format)
 
-def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
+    ImageReceivedEvent.Start(builder)
+    ImageReceivedEvent.AddEventCreateTs(builder, ts_fb)
+    ImageReceivedEvent.AddImageUuid(builder, uuid_fb)
+    ImageReceivedEvent.AddImageFormat(builder, format_fb)
+
+    image_received_event = ImageReceivedEvent.End(builder)
+
+    Event.Start(builder)
+    Event.EventAddEventType(builder, EventType.ImageReceivedEvent)
+    Event.AddEvent(builder,image_received_event)
+    root_event = Event.End(builder)
+
+    builder.Finish(root_event)
+    return builder.Output()
+
+def _generate_image_received_fb_event_with_prefix(image_uuid, image_format):
+    """
+    Create an image received event message with prefix.
+    """
+    fb = _generate_image_received_fb_event(image_uuid, image_format)
+    return _prepend_event_prefix("IMAGE_RECEIVED", fb)
+
+def _generate_image_scored_fb_event(image_uuid, image_format, scores: "list(dict)"):
     """
     Create a new image scored event flatubuffers object
     """    
@@ -141,6 +161,7 @@ def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
     ts = datetime.datetime.utcnow().isoformat()
     ts_fb = builder.CreateString(ts)
     uuid_fb = builder.CreateString(image_uuid)
+    format_fb = builder.CreateString(image_format)
 
     scores_fb = []
     for score in scores:
@@ -165,6 +186,7 @@ def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
     ImageScoredEvent.AddScores(builder, scores_fb_vector)
     ImageScoredEvent.AddEventCreateTs(builder, ts_fb)
     ImageScoredEvent.AddImageUuid(builder, uuid_fb)
+    ImageScoredEvent.AddImageFormat(builder, format_fb)
     image_scored_event = ImageScoredEvent.End(builder)
 
     Event.Start(builder)
@@ -176,11 +198,11 @@ def _generate_image_scored_fb_event(image_uuid, scores: "list(dict)"):
     builder.Finish(root_event)
     return builder.Output() # Of type `bytearray`
 
-def _generate_image_scored_fb_with_prefix(image_uuid, scores: "list(dict)") -> bytearray:
+def _generate_image_scored_fb_with_prefix(image_uuid, image_format, scores: "list(dict)") -> bytearray:
     """
-    Create a new image event message with prefix.
+    Create an image scored event message with prefix.
     """
-    fb = _generate_image_scored_fb_event(image_uuid, scores)
+    fb = _generate_image_scored_fb_event(image_uuid, image_format, scores)
     return _prepend_event_prefix("IMAGE_SCORED", fb)
 
 def send_image_scored_fb_event(socket, image_uuid, scores: "list(dict)") -> str:
@@ -195,7 +217,7 @@ def send_image_scored_fb_event(socket, image_uuid, scores: "list(dict)") -> str:
     # send the message over the socket
     return publish_msg(socket, data)
 
-def _generate_store_image_fb_event(image_uuid: String, destination: String)-> bytearray:
+def _generate_store_image_fb_event(image_uuid: String, image_format: String, destination: String)-> bytearray:
     """
     Create a new event to indicate image has been written to external destination
     """
@@ -205,11 +227,13 @@ def _generate_store_image_fb_event(image_uuid: String, destination: String)-> by
     ts_fb = builder.CreateString(ts)
     image_uuid_fb = builder.CreateString(image_uuid)
     destination_fb = builder.CreateString(destination)
+    image_format_fb = builder.CreateString(image_format)
 
     ImageStoredEvent.Start(builder)
     ImageStoredEvent.AddEventCreateTs(builder, ts_fb)
     ImageStoredEvent.AddImageUuid(builder, image_uuid_fb)
     ImageStoredEvent.AddDestination(builder, destination_fb)
+    ImageStoredEvent.AddImageFormat(builder, image_format_fb)
     
     image_stored_event = ImageStoredEvent.End(builder)
 
@@ -222,11 +246,11 @@ def _generate_store_image_fb_event(image_uuid: String, destination: String)-> by
     builder.Finish(root_event)
     return builder.Output()
 
-def _generate_store_image_fb_with_prefix(image_uuid: String, destination: String) -> bytearray:
+def _generate_store_image_fb_with_prefix(image_uuid: String, image_format: String, destination: String) -> bytearray:
     """
     Create a store image event message with prefix.
     """
-    fb = _generate_store_image_fb_event(image_uuid, destination)
+    fb = _generate_store_image_fb_event(image_uuid, image_format, destination)
     return _prepend_event_prefix("IMAGE_STORED", fb)
 
 def send_store_image_fb_event(socket, image_uuid, destination) -> str:
@@ -241,7 +265,7 @@ def send_store_image_fb_event(socket, image_uuid, destination) -> str:
     # send the message over the socket
     return publish_msg(socket, data)
 
-def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
+def _generate_delete_image_fb_event(image_uuid: String, image_format: String)-> bytearray:
     """
     Create an event that indicates image has been deleted from database
     """
@@ -250,11 +274,13 @@ def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
     ts = datetime.datetime.utcnow().isoformat()
     ts_fb = builder.CreateString(ts)
     image_uuid_fb = builder.CreateString(image_uuid)
+    image_format_fb = builder.CreateString(image_format)
 
     ImageDeletedEvent.Start(builder)
     ImageDeletedEvent.AddEventCreateTs(builder, ts_fb)
     ImageDeletedEvent.AddImageUuid(builder, image_uuid_fb)
-    
+    ImageDeletedEvent.AddImageFormat(builder, image_format_fb)
+
     image_deleted_event = ImageDeletedEvent.End(builder)
 
     # -- root object --
@@ -266,11 +292,11 @@ def _generate_delete_image_fb_event(image_uuid: String)-> bytearray:
     builder.Finish(root_event)
     return builder.Output()
 
-def _generate_delete_image_fb_with_prefix(image_uuid: String) -> bytearray:
+def _generate_delete_image_fb_with_prefix(image_uuid: String, image_format: String) -> bytearray:
     """
     Create a delete image event message with prefix.
     """
-    fb = _generate_delete_image_fb_event(image_uuid)
+    fb = _generate_delete_image_fb_event(image_uuid, image_format)
     return _prepend_event_prefix("IMAGE_DELETED", fb)
 
 def send_delete_image_fb_event(socket, image_uuid) -> str:
@@ -452,6 +478,10 @@ def _event_to_typed_event(event):
         union_new_image_event = NewImageEvent.NewImageEvent()
         union_new_image_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_new_image_event
+    if event_type_int == EventType.ImageReceivedEvent:
+        union_image_received_event = ImageReceivedEvent.ImageReceivedEvent()
+        union_image_received_event.Init(event.Event().Bytes, event.Event().Pos)
+        return union_image_received_event
     if event_type_int == EventType.ImageScoredEvent:
         union_image_scored_event = ImageScoredEvent.ImageScoredEvent()
         union_image_scored_event.Init(event.Event().Bytes, event.Event().Pos)
