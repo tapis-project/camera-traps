@@ -39,8 +39,15 @@ class ImageScoredEvent(object):
         return None
 
     # ImageScoredEvent
-    def Scores(self, j):
+    def ImageFormat(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.String(o + self._tab.Pos)
+        return None
+
+    # ImageScoredEvent
+    def Scores(self, j):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
@@ -53,17 +60,17 @@ class ImageScoredEvent(object):
 
     # ImageScoredEvent
     def ScoresLength(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # ImageScoredEvent
     def ScoresIsNone(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         return o == 0
 
-def ImageScoredEventStart(builder): builder.StartObject(3)
+def ImageScoredEventStart(builder): builder.StartObject(4)
 def Start(builder):
     return ImageScoredEventStart(builder)
 def ImageScoredEventAddEventCreateTs(builder, eventCreateTs): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(eventCreateTs), 0)
@@ -72,7 +79,10 @@ def AddEventCreateTs(builder, eventCreateTs):
 def ImageScoredEventAddImageUuid(builder, imageUuid): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(imageUuid), 0)
 def AddImageUuid(builder, imageUuid):
     return ImageScoredEventAddImageUuid(builder, imageUuid)
-def ImageScoredEventAddScores(builder, scores): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(scores), 0)
+def ImageScoredEventAddImageFormat(builder, imageFormat): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(imageFormat), 0)
+def AddImageFormat(builder, imageFormat):
+    return ImageScoredEventAddImageFormat(builder, imageFormat)
+def ImageScoredEventAddScores(builder, scores): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(scores), 0)
 def AddScores(builder, scores):
     return ImageScoredEventAddScores(builder, scores)
 def ImageScoredEventStartScoresVector(builder, numElems): return builder.StartVector(4, numElems, 4)
