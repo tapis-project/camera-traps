@@ -1,10 +1,12 @@
 import json
 import os
-import ctevents
+from ctevents import bytes_to_typed_event
 from events import get_plugin_socket, get_next_msg, send_quit_command
 
 import zmq
 PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+base_path = os.environ('IMAGE_PATH')
+
 def get_socket():
     # create the zmq context object
     context = zmq.Context()
@@ -15,15 +17,17 @@ done = False
 total_messages = 1
 while not done:
     # get the next message
+    
     print(f"waiting on message: {total_messages}")
-    f = get_next_msg(socket)
+    m = get_next_msg(socket)
+    e = bytes_to_typed_event(m)
     print(f"just got message {total_messages}; contents: {msg_bytes}")
     total_messages += 1
     
     if total_messages == 11:
         done = True
 
-#f = open('/example_images/detections.json')
+f = open('/example_images/detections.json')
 
 data = json.load(f)
 for i in data['images'] :
