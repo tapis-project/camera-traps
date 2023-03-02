@@ -144,7 +144,7 @@ def _generate_image_received_fb_event(image_uuid: String, image_format: String) 
     builder.Finish(root_event)
     return builder.Output()
 
-def _generate_image_received_fb_event_with_prefix(image_uuid, image_format):
+def _generate_image_received_fb_with_prefix(image_uuid, image_format):
     """
     Create an image received event message with prefix.
     """
