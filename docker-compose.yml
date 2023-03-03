@@ -5,18 +5,39 @@ networks:
     driver: bridge
 
 services:
-  # engine:
-  #   container_name: engine
-  #   image: tapis/camera_traps_engine
-  #   networks:
-  #     - cameratraps
-  #   volumes: 
-  #     - ./traps.toml:/traps.toml:ro
+  # the name `engine` is important here; in general, the sevice name is addressable by other conatiners on the same
+  # docker network. The default "hostname" used by the python plugin library (pyevents) is "engine"
+  engine:
+    container_name: engine
+    image: tapis/camera_traps_engine
+    networks:
+      - cameratraps
+    environment:
+      - TRAPS_CONFIG_FILE=/
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./traps-v0.1.toml:/traps.toml:ro
 
-  imagegeneratingPlugin:
-    container_name: imagegenerating
+  imageGeneratingPlugin:
+    container_name: image_generating
     image: tapis/image_generating_plugin_py
     networks:
       - cameratraps
+    environment:
+      - IMAGE_GENERATING_PLUGIN_PORT=6000
     volumes:
+      # mount the traps.toml in the current working directory.
+      - ./traps-v0.1.toml:/traps.toml:ro
+      - ./external_plugins/image_generating_plugin/example_images:/input_images:ro
+
+  imageScoringPlugin:
+    container_name: image_scoring
+    image: tapis/image_scoring_plugin_py:3.8
+    networks:
+      - cameratraps
+    environment:
+      - IMAGE_SCORING_PLUGIN_PORT=6001
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./traps-v0.1.toml:/traps.toml:ro
       - ./external_plugins/image_generating_plugin/example_images:/input_images:ro

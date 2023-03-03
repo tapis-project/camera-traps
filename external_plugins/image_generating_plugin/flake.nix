@@ -19,7 +19,19 @@
       in
       rec {
         packages = {
-          myapp = mkPoetryApplication { projectDir = ./.; };
+          myapp = mkPoetryApplication { 
+            projectDir = ./.; 
+            overrides = poetry2nix.defaultPoetryOverrides.extend
+              (self: super: {
+                # opencv-contrib-python-headless = super.opencv-contrib-python-headless.overridePythonAttrs
+                znq = super.zmq.overridePythonAttrs
+                (
+                  old: {
+                    buildInputs = (old.buildInputs or [ ]) ++ [ super.setuptools ];
+                  }
+                );
+              });
+          };
           myenv = mkPoetryEnv { projectDir = ./.; };
           default = self.packages.${system}.myapp;
         };

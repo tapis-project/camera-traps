@@ -4,14 +4,16 @@ version = "0.1.0"
 description = "Camera Traps Image Generating Plugin written in Python."
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [{include = "image_generating_plugin"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-opencv-contrib-python-headless = "^4.7.0.72"
 pillow = "^9.4.0"
+zmq = "^0.0.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+image_generating_plugin = 'image_generating_plugin.image_generating_plugin:main'
