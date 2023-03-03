@@ -39,13 +39,20 @@ class ImageStoredEvent(object):
         return None
 
     # ImageStoredEvent
-    def Destination(self):
+    def ImageFormat(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
-def ImageStoredEventStart(builder): builder.StartObject(3)
+    # ImageStoredEvent
+    def Destination(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            return self._tab.String(o + self._tab.Pos)
+        return None
+
+def ImageStoredEventStart(builder): builder.StartObject(4)
 def Start(builder):
     return ImageStoredEventStart(builder)
 def ImageStoredEventAddEventCreateTs(builder, eventCreateTs): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(eventCreateTs), 0)
@@ -54,7 +61,10 @@ def AddEventCreateTs(builder, eventCreateTs):
 def ImageStoredEventAddImageUuid(builder, imageUuid): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(imageUuid), 0)
 def AddImageUuid(builder, imageUuid):
     return ImageStoredEventAddImageUuid(builder, imageUuid)
-def ImageStoredEventAddDestination(builder, destination): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(destination), 0)
+def ImageStoredEventAddImageFormat(builder, imageFormat): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(imageFormat), 0)
+def AddImageFormat(builder, imageFormat):
+    return ImageStoredEventAddImageFormat(builder, imageFormat)
+def ImageStoredEventAddDestination(builder, destination): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(destination), 0)
 def AddDestination(builder, destination):
     return ImageStoredEventAddDestination(builder, destination)
 def ImageStoredEventEnd(builder): return builder.EndObject()

@@ -38,7 +38,14 @@ class ImageDeletedEvent(object):
             return self._tab.String(o + self._tab.Pos)
         return None
 
-def ImageDeletedEventStart(builder): builder.StartObject(2)
+    # ImageDeletedEvent
+    def ImageFormat(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.String(o + self._tab.Pos)
+        return None
+
+def ImageDeletedEventStart(builder): builder.StartObject(3)
 def Start(builder):
     return ImageDeletedEventStart(builder)
 def ImageDeletedEventAddEventCreateTs(builder, eventCreateTs): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(eventCreateTs), 0)
@@ -47,6 +54,9 @@ def AddEventCreateTs(builder, eventCreateTs):
 def ImageDeletedEventAddImageUuid(builder, imageUuid): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(imageUuid), 0)
 def AddImageUuid(builder, imageUuid):
     return ImageDeletedEventAddImageUuid(builder, imageUuid)
+def ImageDeletedEventAddImageFormat(builder, imageFormat): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(imageFormat), 0)
+def AddImageFormat(builder, imageFormat):
+    return ImageDeletedEventAddImageFormat(builder, imageFormat)
 def ImageDeletedEventEnd(builder): return builder.EndObject()
 def End(builder):
     return ImageDeletedEventEnd(builder)
