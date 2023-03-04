@@ -6,7 +6,8 @@ from collections import OrderedDict
 import zmq
 from PIL import Image
 import ctevents
-from events import get_plugin_socket, get_next_msg, send_quit_command
+from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
+
 
 # get the port assigned to the Image Generating plugin
 PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
@@ -117,24 +118,27 @@ def randomImage(timestamp_min, index):
     return timestamp_min, index
 
 
+list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
+list_of_files = sorted(list_of_files, key=os.path.getmtime)
+print(f"list_of_files: {list_of_files}")
+img_dict = OrderedDict()
+for file_name_full in list_of_files:
+    if ('.DS_Store' not in file_name_full):
+        timestamp = int(os.path.getmtime(file_name_full))
+        if timestamp in img_dict.keys():
+            img_dict[timestamp] += [file_name_full]
+        else:
+            img_dict[timestamp] = [file_name_full]
+timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
+socket = get_socket()
+
+
 def main():
-    list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
-    list_of_files = sorted(list_of_files, key=os.path.getmtime)
-    print(f"list_of_files: {list_of_files}")
-    img_dict = OrderedDict()
-    for file_name_full in list_of_files:
-        if ('.DS_Store' not in file_name_full):
-            timestamp = int(os.path.getmtime(file_name_full))
-            if timestamp in img_dict.keys():
-                img_dict[timestamp] += [file_name_full]
-            else:
-                img_dict[timestamp] = [file_name_full]
     timestamp_min = list(img_dict.keys())[0]
-    timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
     initial_index = 0
     index = 0
     indexvalue = 0
-    socket = get_socket()
+
     done = False
     # while not done:
     for i in range(0, 15):

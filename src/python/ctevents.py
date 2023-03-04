@@ -9,7 +9,7 @@ from gen_events.EventType import EventType
 
 # zmq and socket helper lib
 import zmq
-from events import publish_msg
+from pyevents.events import publish_msg
 
 PYPLUGIN_TCP_PORT = 6000
 
