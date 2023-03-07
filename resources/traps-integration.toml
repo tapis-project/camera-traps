@@ -7,7 +7,7 @@
 # The number of times an image is injecting into the application.
 iterations = 10
 
-# The directory that must contain at least on image.
+# The directory that must contain at least one image.
 image_input_dir = "~/traps/input"
 
 # The external plugin configuration for the integration test
