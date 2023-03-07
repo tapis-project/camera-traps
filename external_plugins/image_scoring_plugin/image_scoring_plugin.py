@@ -63,12 +63,19 @@ def main():
                                        image_size=IMAGE_SIZE)
         # create and send an image scored event with the probability scores:
         scores = []
-        for r in results['detections']:
-           # Each score object should have the format: {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
-           # TODO -- get the probability and the label out of the result, r
-           
-           scores.append({"image_uuid": image_uuid, "label": "animal", "probability": 0.85})
-           
+        for r in results:
+           # Each score object should have the format: 
+           #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
+           # Each result returned from detector is a dictionary with `category` and `conf`
+           label = "unknown"
+           if r['category'] == '1':
+              label = "animal"
+           elif r['category'] == '2':
+              label = "human"
+           elif r['category'] == '3':
+              label = "transport vehicle"
+           scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+        print(f"Sending image scored event with the following scores: {scores}")
         send_image_scored_fb_event(socket, image_uuid, scores)
         
 
