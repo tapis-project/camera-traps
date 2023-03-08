@@ -13,10 +13,12 @@ services:
     networks:
       - cameratraps
     environment:
-      - TRAPS_CONFIG_FILE=/
+      - TRAPS_CONFIG_FILE=/traps.toml
     volumes:
       # mount the traps.toml in the current working directory.
       - ./traps-v0.1.toml:/traps.toml:ro
+      # mount the shared images directory from the host to the directory specified in traps.toml
+      - ./images_dir:/root/camera-traps/images
 
   imageGeneratingPlugin:
     container_name: image_generating
@@ -28,7 +30,16 @@ services:
     volumes:
       # mount the traps.toml in the current working directory.
       - ./traps-v0.1.toml:/traps.toml:ro
-      - ./external_plugins/image_generating_plugin/example_images:/input_images:ro
+      # mount the example images directory; this is the source of the images used for
+      # generating NewImage events. The path `/example_images` is the default path
+      # where the plugin looks for images. This can be changed by providing a different
+      # configuration file. 
+      # NOTE: this is NOT the shared images directory!!
+      - ./external_plugins/image_generating_plugin/example_images:/example_images:ro
+      # The following is optional but can be used to mount a different configuration file
+      # into the Image Generating plugin. Note that if doing so, values in the configuration
+      # file must match configurations provided in other parts of this file.
+      - ./image_gen_config.json:/input.json
 
   imageScoringPlugin:
     container_name: image_scoring
@@ -37,7 +48,16 @@ services:
       - cameratraps
     environment:
       - IMAGE_SCORING_PLUGIN_PORT=6001
+      # The IMAGE_PATH variable needs to match what is specified in the vouume mount below for the
+      # container path portion of the shared images directory.
+      - IMAGE_PATH=/input_images
+      # The IMAGE_PATH_PREFIX is optional and needs to agree with the image_file_prefix
+      # variable in the traps.toml file; when not being used, comment the line.
+      # - IMAGE_FILE_PREFIX=
     volumes:
       # mount the traps.toml in the current working directory.
+      # NOTE -- not currently used (TODO)
       - ./traps-v0.1.toml:/traps.toml:ro
-      - ./external_plugins/image_generating_plugin/example_images:/input_images:ro
+      # mount the shared images directory from the host to the container directory specified in the
+      # IMAGE_PATH environment variable, above.
+      - ./images_dir:/input_images:ro

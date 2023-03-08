@@ -22,4 +22,4 @@ RUN pip install PILLOW
 ADD input_example.json /input.json
 ADD image_generating_plugin.py /image_generating_plugin.py
 
-ENTRYPOINT [ "python", "/image_generating_plugin.py" ]
+ENTRYPOINT [ "python", "-u", "/image_generating_plugin.py" ]

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python image_scoring_plugin.py
+python -u image_scoring_plugin.py
