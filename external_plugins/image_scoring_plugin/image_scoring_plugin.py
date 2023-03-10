@@ -16,7 +16,7 @@ from camera_traps_MD.run_detector import load_and_run_detector
 
 PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
 base_path = os.environ.get('IMAGE_PATH')
-image_path_prefix = os.environ.get('IMAGE_PATH_PREFIX')
+image_path_prefix = os.environ.get('IMAGE_FILE_PREFIX', '')
 
 
 def get_socket():
@@ -28,16 +28,19 @@ def get_image_file_path(image_uuid, image_format):
    """
    Returns the path on the file system to an image with the given uuid and format.
    """
-   return f"{base_path}/{image_path_prefix}/{image_uuid}.{image_format}"
+   return f"{base_path}/{image_path_prefix}{image_uuid}.{image_format}"
 
 
 def main():
+    print("top of main.")
     socket = get_socket()
+    print("got zmq socket.")
     done = False
-    total_messages = 1
+    total_messages = 0
     while not done:
+        
         # get the next message
-        print(f"waiting on message: {total_messages}")
+        print(f"waiting on message: {total_messages + 1}")
         m = get_next_msg(socket)
         e = bytes_to_typed_event(m)
 
@@ -63,12 +66,19 @@ def main():
                                        image_size=IMAGE_SIZE)
         # create and send an image scored event with the probability scores:
         scores = []
-        for r in results['detections']:
-           # Each score object should have the format: {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
-           # TODO -- get the probability and the label out of the result, r
-           
-           scores.append({"image_uuid": image_uuid, "label": "animal", "probability": 0.85})
-           
+        for r in results:
+           # Each score object should have the format: 
+           #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
+           # Each result returned from detector is a dictionary with `category` and `conf`
+           label = "unknown"
+           if r['category'] == '1':
+              label = "animal"
+           elif r['category'] == '2':
+              label = "human"
+           elif r['category'] == '3':
+              label = "transport vehicle"
+           scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+        print(f"Sending image scored event with the following scores: {scores}")
         send_image_scored_fb_event(socket, image_uuid, scores)
         
 
@@ -77,17 +87,15 @@ def main():
 
 
 
-
-f = open('/example_images/detections.json')
-
-data = json.load(f)
-for i in data['images'] :
-  for j in i['detections']:
-    if(j['category']=="1" and i['max_detection_conf']==j['conf']):
-      print(i["file"],j['conf'])
-
-
-f.close()
+# TODO -- remove the commented code below? -----
+# f = open('/example_images/detections.json')
+# data = json.load(f)
+# for i in data['images'] :
+#   for j in i['detections']:
+#     if(j['category']=="1" and i['max_detection_conf']==j['conf']):
+#       print(i["file"],j['conf'])
+# f.close()
+# ---------------
 
 if __name__ == "__main__":
    main()

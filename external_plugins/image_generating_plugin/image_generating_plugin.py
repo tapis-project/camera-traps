@@ -18,7 +18,7 @@ def get_socket():
     context = zmq.Context()
     return get_plugin_socket(context, PORT)
 
-
+print("Image Generating Plugin starting up...")
 with open('input.json') as f:
     data = json.load(f)
 user_input = data['path']
@@ -38,6 +38,7 @@ def get_binary(value):
 
 def simpleNext(i, value_index):
     if i >= len(img_dict):
+        print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}")
         exit()
     value = list(img_dict.values())[i]
     val_Length = len(value)
@@ -67,6 +68,7 @@ def burstNext(index):
 
 def identicalTimestamp(timestamp_min):
     if timestamp_min not in img_dict.keys():
+        print(f"Hit exit condition...timestamp_min not in img_dict.keys()")
         exit()
     if (len(img_dict[timestamp_min]) > 1):
         for i in range(0, len(img_dict[timestamp_min])):
@@ -76,7 +78,11 @@ def identicalTimestamp(timestamp_min):
 
 
 def nextImage(timestamp_min, index):
-    if index >= len(img_dict) or timestamp_min > timestamp_max:
+    if index >= len(img_dict):
+        print(f"Hitting exit condition; index: {index}; len(image_dict): {len(img_dict)}")
+        exit()
+    if timestamp_min > timestamp_max:
+        print(f"Hitting exit condition; timestamp_min: {timestamp_min}; timestamp_max: {timestamp_max}")
         exit()
     start1 = index
     end = len(img_dict)-1
@@ -159,7 +165,7 @@ def main():
             timestamp_min, initial_index = randomImage(
                 timestamp_min, initial_index)
         else:
-            print("Simple Next")
+            print(f"Simple Next; index: {index}; indexvalue: {indexvalue} ")
             index, indexvalue = simpleNext(index, indexvalue)
 
 
