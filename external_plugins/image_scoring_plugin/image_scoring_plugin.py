@@ -1,6 +1,6 @@
 import json
 import os
-from ctevents import bytes_to_typed_event, send_image_scored_fb_event
+from ctevents import socket_message_to_typed_event, send_image_scored_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 import zmq
 
@@ -14,7 +14,7 @@ IMAGE_SIZE = None
 from camera_traps_MD.run_detector import load_and_run_detector
 
 
-PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+PORT = os.environ.get('IMAGE_SCORING_PLUGIN_PORT', 6000)
 base_path = os.environ.get('IMAGE_PATH')
 image_path_prefix = os.environ.get('IMAGE_FILE_PREFIX', '')
 
@@ -28,6 +28,13 @@ def get_image_file_path(image_uuid, image_format):
    """
    Returns the path on the file system to an image with the given uuid and format.
    """
+   if type(image_uuid) == bytes:
+      image_uuid = image_uuid.decode('utf-8')
+   if type(image_format) == bytes:
+      image_format = image_format.decode('utf-8')
+   # also convert to lower case since that seems to be what the image received plugin is doing:
+   # TODO -- should not have to do this.
+   image_format = image_format.lower()
    return f"{base_path}/{image_path_prefix}{image_uuid}.{image_format}"
 
 
@@ -42,15 +49,19 @@ def main():
         # get the next message
         print(f"waiting on message: {total_messages + 1}")
         m = get_next_msg(socket)
-        e = bytes_to_typed_event(m)
+        e = socket_message_to_typed_event(m)
 
-        print(f"just got message {total_messages}; contents: {m}")
+        print(f"just got message {total_messages}; type(e): {type(e)}")
         total_messages += 1
         # TODO: we could check if e is not an image_received event, skip it....
         
         # - find the image on the file system, (the image path)
         image_uuid = e.ImageUuid()
+        if type(image_uuid) == bytes:
+           image_uuid = image_uuid.decode('utf-8')
         image_format = e.ImageFormat()
+        if type(image_format) == bytes:
+            image_format = image_format.decode('utf-8')
         image_file_path = get_image_file_path(image_uuid, image_format)                
         # score the image
         # NOTE: we already have the run_detector.py file (https://github.com/microsoft/CameraTraps/blob/main/detection/run_detector.py)
@@ -79,7 +90,7 @@ def main():
               label = "transport vehicle"
            scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         print(f"Sending image scored event with the following scores: {scores}")
-        send_image_scored_fb_event(socket, image_uuid, scores)
+        send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         
 
         if total_messages == 11:
