@@ -41,7 +41,7 @@ internal_actions = [
 # in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the
 # docker-compose.yml file. 
 [[plugins.external]]
-    plugin_name = "ext_image_gen_test_plugin"
+    plugin_name = "ext_image_gen_plugin"
     id = "d3266646-41ec-11ed-a96f-5391348bab46"
     external_port = 6000
     subscriptions = [
