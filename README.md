@@ -22,6 +22,8 @@ The camera-traps application requires that a configuration file be specified usi
 
 The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/) as its log manager.  The log settings in resources/log4rs.yml source code will be used unless overridden by assigning a log4rs.yml configuration filepath to the TRAPS_LOG4RS_CONFIG_FILE environment variable.
 
+To maximize logging, set root level to *trace* in the effective log4rs.yml file.  Also, include the *observer_plugin* in the internal plugins list in the effective traps.toml file.  
+
 ## Plugin Configuration
 
 Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  Here is the example resources/traps.toml file content:
