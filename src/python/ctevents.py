@@ -115,9 +115,7 @@ def send_new_image_fb_event(socket, uuid: String, format: String, image: bytearr
     Returns a string which is the reply from the event-engine thread or raises an 
     exception on error.
     """
-    fb_data = _generate_new_image_fb_with_prefix(uuid, format, image)
-    # add byte prefix
-    data = _prepend_event_prefix('NEW_IMAGE', fb_data)
+    data = _generate_new_image_fb_with_prefix(uuid, format, image)
     # send the message over the socket
     return publish_msg(socket, data)
 
@@ -205,17 +203,15 @@ def _generate_image_scored_fb_with_prefix(image_uuid, image_format, scores: "lis
     fb = _generate_image_scored_fb_event(image_uuid, image_format, scores)
     return _prepend_event_prefix("IMAGE_SCORED", fb)
 
-def send_image_scored_fb_event(socket, image_uuid, scores: "list(dict)") -> str:
+def send_image_scored_fb_event(socket, image_uuid, image_format, scores: "list(dict)") -> str:
     """
     Send an image scored event over the zmq socket.
     Returns a string which is the reply from the event-engine thread or raises an 
     exception on error.
     """
-    fb_data = _generate_image_scored_fb_with_prefix(image_uuid, scores)
-    # add byte prefix
-    data = _prepend_event_prefix('IMAGE_SCORED', fb_data)
+    fb_data = _generate_image_scored_fb_with_prefix(image_uuid, image_format, scores)
     # send the message over the socket
-    return publish_msg(socket, data)
+    return publish_msg(socket, fb_data)
 
 def _generate_store_image_fb_event(image_uuid: String, image_format: String, destination: String)-> bytearray:
     """
@@ -260,10 +256,8 @@ def send_store_image_fb_event(socket, image_uuid, destination) -> str:
     exception on error.
     """
     fb_data = _generate_store_image_fb_with_prefix(image_uuid, destination)
-    # add byte prefix
-    data = _prepend_event_prefix('IMAGE_STORED', fb_data)
     # send the message over the socket
-    return publish_msg(socket, data)
+    return publish_msg(socket, fb_data)
 
 def _generate_delete_image_fb_event(image_uuid: String, image_format: String)-> bytearray:
     """
@@ -306,10 +300,8 @@ def send_delete_image_fb_event(socket, image_uuid) -> str:
     exception on error.
     """
     fb_data = _generate_delete_image_fb_with_prefix(image_uuid)
-    # add byte prefix
-    data = _prepend_event_prefix('IMAGE_DELETED', fb_data)
     # send the message over the socket
-    return publish_msg(socket, data)
+    return publish_msg(socket, fb_data)
 
 def _generate_start_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
@@ -352,10 +344,9 @@ def send_start_plugin_fb_event(socket, plugin_name, plugin_uuid) -> str:
     exception on error.
     """
     fb_data = _generate_store_image_fb_with_prefix(plugin_name, plugin_uuid)
-    # add byte prefix
-    data = _prepend_event_prefix('PLUGIN_STARTED', fb_data)
     # send the message over the socket
-    return publish_msg(socket, data)
+    return publish_msg(socket, fb_data)
+
 
 def _generate_terminating_plugin_fb_event(plugin_name: String, plugin_uuid: String)-> bytearray:
     """
@@ -399,10 +390,8 @@ def send_terminating_plugin_fb_event(socket, plugin_name, plugin_uuid) -> str:
     exception on error.
     """
     fb_data = _generate_terminating_plugin_fb_with_prefix(plugin_name, plugin_uuid)
-    # add byte prefix
-    data = _prepend_event_prefix('PLUGIN_TERMINATING', fb_data)
     # send the message over the socket
-    return publish_msg(socket, data)
+    return publish_msg(socket, fb_data)
 
 def _generate_terminate_plugin_fb_event(target_plugin_name: String, target_plugin_uuid: String)-> bytearray:
     """
@@ -445,10 +434,8 @@ def send_terminate_plugin_fb_event(socket, target_plugin_name, target_plugin_uui
     exception on error.
     """
     fb_data = _generate_terminate_plugin_fb_with_prefix(target_plugin_name, target_plugin_uuid)
-    # add byte prefix
-    data = _prepend_event_prefix('PLUGIN_TERMINATE', fb_data)
     # send the message over the socket
-    return publish_msg(socket, data)
+    return publish_msg(socket, fb_data)
 
 def _bytes_to_event(b: bytearray):
     """
@@ -461,11 +448,6 @@ def _bytes_to_event(b: bytearray):
     except Exception as e:
         print(f"Got exception from GetRootAs: {e}")
     return None
-
-def _socket_message_to_event(msg: bytearray):
-    # first, remove the event type byte prefix
-    b = _remove_event_prefix(msg)
-    return _bytes_to_event(b)
 
 
 def _event_to_typed_event(event):
@@ -509,10 +491,13 @@ def _event_to_typed_event(event):
     raise Exception(f"Unrecognized event type {event_type_int}")
 
 
-def bytes_to_typed_event(b: bytearray):
-    """
-    Takes a bytes array, b, (conceptually, this `b` represents a message coming off the zmq socket), and 
-    returns the typed Flatbuffers event object associated with it.
-    """
-    fb = _bytes_to_event(b)
-    return _event_to_typed_event(fb)
+def socket_message_to_typed_event(msg: bytearray):
+    # Remove the event type byte prefix and then convert to an event.
+    # We can only do that with a bytearray, which is mutable, while a bytes object is not, 
+    # so first check 
+    if type(msg) == bytes:
+        # note: this makes an additional copy of the entire bytes object in memory, so will be less performant.
+        msg = bytearray(msg)
+    b = _remove_event_prefix(msg)
+    e = _bytes_to_event(b)
+    return _event_to_typed_event(e)
