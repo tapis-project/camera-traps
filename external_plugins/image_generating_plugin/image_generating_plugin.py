@@ -32,6 +32,7 @@ def get_binary(value):
         binary_img = f.read()
     img = Image.open(str(value)[1:-1])
     img_format = img.format
+    print(f"sending new image with the following data; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     ctevents.send_new_image_fb_event(
         socket, uuid_image, img_format, binary_img)
 
