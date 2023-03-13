@@ -176,9 +176,11 @@ impl ImageScorePlugin {
             }
         };
 
-        // Create the image label and put it in a vector.
+        // *** SIMULATED SCORING - USE PYTHON SCORING PLUGIN FOR REAL SCORING ***
+        // 
+        // Create the image label with a random score and put it in a vector.
         let mut rng = rand::thread_rng();
-        let prob = rng.gen_range(0.0..100.0);
+        let prob = rng.gen_range(0.0..=1.0); // inclusive range
         let image_label = 
             events::ImageLabelScore::new(uuid, "cow".to_string(), prob);
         let labels = vec![image_label];

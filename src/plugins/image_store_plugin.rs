@@ -53,7 +53,7 @@ pub struct StoreConfig {
 
 #[derive(Debug, Deserialize)]
 struct StoreInput {
-    pub action_thresholds: BTreeMap<String, u8>,
+    pub action_thresholds: BTreeMap<String, f32>,
 }
 
 pub struct ImageStorePlugin {
@@ -311,7 +311,7 @@ impl ImageStorePlugin {
         };
 
         // Create the mutable list into which we'll write the threshold tuples.
-        let mut list: Vec<(u8, StoreAction)> = Vec::new();
+        let mut list: Vec<(f32, StoreAction)> = Vec::new();
         if !raw_input.action_thresholds.is_empty() {
             // Iterator through all configured thresholds allowing for
             // some case insensitivity.
@@ -331,34 +331,38 @@ impl ImageStorePlugin {
                 // Add the new tuple to the list unless
                 // it's a noop, which we ignore.
                 if act != StoreAction::Noop {
-                    list.push((*entry.1, act));
+                    let prob = *entry.1;
+                    if prob < 0.0 || prob > 1.0 {
+                        return Result::Err(anyhow!("Invalid store threshold: {}. Thesholds must be between 0.0 and 1.0, inclusive.", prob));
+                    }
+                    list.push((prob, act));
                 }
             }
         } 
 
-        // Make sure we have the whole confidence range of 0-100 covered.
+        // Make sure we have the whole confidence range of 0.0-1.0 covered.
         // Threshold semantics are, "If the score is greater than or equal
         // to the entry number, then perform the associated store action."
-        // If no 0 entry number was specified, we insert a delete action
+        // If no 0.0 entry number was specified, we insert a delete action
         // entry by default.
         let mut found_zero = false;
         for entry in &list {
-            if entry.0 == 0 {
+            if entry.0 == 0.0 {
                 found_zero = true;
                 break;
             }
         }
         if !found_zero{
-            list.push((0, StoreAction::Delete));
+            list.push((0.0, StoreAction::Delete));
         }
         
         // Sort the list in descending order of numerical values.
-        // a.cmp(b) yields ascending order, b.cmp(a) descending. 
-        // We use the stable sort so as to not reorder tuples with
-        // the same numeric value, which we tolerate on input but is 
+        // a.partial_cmp(b) yields ascending order, b.partial_cmp(a) 
+        // descending. We use the stable sort so as to not reorder tuples 
+        // with the same numeric value, which we tolerate on input but is 
         // sloppy on the part of users (only the first one has an effect).
         // For some reason, clippy says (&b.0) is an unnecessary borrow.
-        list.sort_by(|a, b| (b.0).cmp(&a.0));
+        list.sort_by(|a, b| (&b.0).partial_cmp(&a.0).expect("failed f32 compare!"));
 
         // Convert the u8 element to f32 to match the scoring type.
         let mut listf32: Vec<(f32, StoreAction)> = Vec::new();
@@ -388,45 +392,45 @@ mod tests {
 
     #[test]
     fn ordtest() {
-        let mut list: Vec<(u8, StoreAction)> = Vec::new();
-        list.push((5,  StoreAction::Save));
-        list.push((25, StoreAction::ReduceSave));
-        list.push((15, StoreAction::Delete));
-        list.push((15, StoreAction::Noop));
-        list.push((0,  StoreAction::Delete));
-        list.push((45, StoreAction::Save));
-        list.push((35, StoreAction::Noop));
+        let mut list: Vec<(f32, StoreAction)> = Vec::new();
+        list.push((0.25,   StoreAction::ReduceSave));
+        list.push((0.15,   StoreAction::Delete));
+        list.push((0.15,   StoreAction::Noop));
+        list.push((0.5,    StoreAction::Save));
+        list.push((0.0,    StoreAction::Delete));
+        list.push((0.45,   StoreAction::Save));
+        list.push((0.3567, StoreAction::Noop));
 
         // Assert original order.
         // println!("{}", "Before sort");
         // for entry in &list {
         //     println!("{} {:?}", entry.0, entry.1);
         // }
-        assert_eq!(&list[0], &(5u8,   StoreAction::Save));
-        assert_eq!(&list[1], &(25u8,  StoreAction::ReduceSave));
-        assert_eq!(&list[2], &(15u8,  StoreAction::Delete));
-        assert_eq!(&list[3], &(15u8,  StoreAction::Noop));
-        assert_eq!(&list[4], &(0u8,   StoreAction::Delete));
-        assert_eq!(&list[5], &(45u8,  StoreAction::Save));
-        assert_eq!(&list[6], &(35u8,  StoreAction::Noop));
+        assert_eq!(&list[0], &(0.25,   StoreAction::ReduceSave));
+        assert_eq!(&list[1], &(0.15,   StoreAction::Delete));
+        assert_eq!(&list[2], &(0.15,   StoreAction::Noop));
+        assert_eq!(&list[3], &(0.5,    StoreAction::Save));
+        assert_eq!(&list[4], &(0.0,    StoreAction::Delete));
+        assert_eq!(&list[5], &(0.45,   StoreAction::Save));
+        assert_eq!(&list[6], &(0.3567, StoreAction::Noop));
 
         // Reorder list in descending order of first tuple element.
         // This should be the same code that we use in init_store_parms()
         // to order the thresholds read in from the configuration file. 
-        list.sort_by(|a, b| (&b.0).cmp(&a.0));
+        list.sort_by(|a, b| (&b.0).partial_cmp(&a.0).expect("failed f32 compare!"));
 
         // Assert sorted order.
         // println!("\n{}", "After sort");
         // for entry in &list {
         //     println!("{} {:?}", entry.0, entry.1);
         // }
-        assert_eq!(&list[0], &(45u8,  StoreAction::Save));
-        assert_eq!(&list[1], &(35u8,  StoreAction::Noop));
-        assert_eq!(&list[2], &(25u8,  StoreAction::ReduceSave));
-        assert_eq!(&list[3], &(15u8,  StoreAction::Delete));
-        assert_eq!(&list[4], &(15u8,  StoreAction::Noop));
-        assert_eq!(&list[5], &(5u8,   StoreAction::Save));
-        assert_eq!(&list[6], &(0u8,   StoreAction::Delete));
+        assert_eq!(&list[0], &(0.5,    StoreAction::Save));
+        assert_eq!(&list[1], &(0.45,   StoreAction::Save));
+        assert_eq!(&list[2], &(0.3567, StoreAction::Noop));
+        assert_eq!(&list[3], &(0.25,   StoreAction::ReduceSave));
+        assert_eq!(&list[4], &(0.15,   StoreAction::Delete));
+        assert_eq!(&list[5], &(0.15,   StoreAction::Noop));
+        assert_eq!(&list[6], &(0.0,    StoreAction::Delete));
     }
 
     #[test]
