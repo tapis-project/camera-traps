@@ -28,7 +28,7 @@ start = int(data['timestamp'])
 
 def get_binary(value):
     uuid_image = str(uuid.uuid5(uuid.NAMESPACE_URL, value))
-    with open(str(value)[1:-1], "rb") as f:
+    with open(str(value), "rb") as f:
         binary_img = f.read()
     img = Image.open(str(value)[1:-1])
     img_format = img.format
