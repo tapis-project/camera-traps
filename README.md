@@ -17,7 +17,7 @@ To quickly start the application under [Docker](https://docs.docker.com/get-dock
 3. cd camera-traps/resources
 4. docker-compose up
 
-This will start the main camera-traps application container and two external plugin containers.  Once the images that ship with the application are read, one of the external containers exits and the other two containers wait ready for more input.  The stop and remove all containers, issue this command from camera-traps/resources in another terminal:
+This will start the main camera-traps application container and two external plugin containers.  Once the images that ship with the application are read, one of the external containers exits and the other two containers wait ready for more input.  To stop and remove all containers, issue this command from the camera-traps/resources directory in another terminal:
 
     docker-compose down
 
