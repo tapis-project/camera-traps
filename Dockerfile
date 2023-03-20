@@ -33,7 +33,7 @@ RUN cargo build --release
 
 
 # --------------------
-# Second build phase: Final base image. This is image will only include the minimum binary and confgis
+# Second build phase: Final base image. This is image will only include the minimum binary and configs
 # --------------------
 FROM debian:buster-slim
 
