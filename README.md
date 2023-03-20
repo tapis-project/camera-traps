@@ -10,19 +10,20 @@ The event-engine supports *internal* and *external* plugins.  Internal plugins a
 
 ## Application Configuation 
 
-The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or using the default file path.  In addition, internal plugins and test programs may also require configuration files.  The *resources* directory contains examples of these files. 
+The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or using the default file path.  In addition, plugins and test programs may also require their own configuration files.  The [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory contains examples of these files. 
 
 
-| **Target**                | **Environment  Variable**     | **Default  File**        | **Notes**                             |
-|---------------------------|-------------------------------|--------------------------|---------------------------------------|
-| camera-traps application  | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter     |
-| image_store_plugin        | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                       |
-| integration tests         | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                       |
-| logger                    | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application             |
+| **Target**                | **Environment  Variable**     | **Default  File**             | **Notes**                             |
+|---------------------------|-------------------------------|-------------------------------|---------------------------------------|
+| camera-traps application  | TRAPS_CONFIG_FILE             | ~/traps.toml                  | Can be 1st command line parameter     |
+| external plugins          |                               | resources/traps-external.toml | Python plugins configuration          |
+| image_store_plugin        | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml      |                                       |
+| integration tests         | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml      |                                       |
+| logger                    | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml          | Packaged with application             |
 
-The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/) as its log manager.  The log settings in resources/log4rs.yml source code will be used unless overridden by assigning a log4rs.yml configuration filepath to the TRAPS_LOG4RS_CONFIG_FILE environment variable.
+The external python plugins run in their own processes and do not currently use environment variables.
 
-To maximize logging, set root level to *trace* in the effective log4rs.yml file.  Also, include the *observer_plugin* in the internal plugins list in the effective traps.toml file.  
+The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/) as its log manager.  The log settings in resources/log4rs.yml source code will be used unless overridden by assigning a log4rs.yml configuration filepath to the TRAPS_LOG4RS_CONFIG_FILE environment variable.  To maximize logging, set root level to *trace* in the effective log4rs.yml file.  Also, include the *observer_plugin* in the internal plugins list in the effective traps.toml file.  
 
 ## Plugin Configuration
 
@@ -111,6 +112,36 @@ When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses th
 
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
+## Building and Running the Rust Code
+
+Issue *cargo build* from the top-level camera-traps directory to build the Rust code or *cargo run* to build and run it.  External plugins are not started using this approach.  The internal plugins and their actions are configured using a *traps.toml* file, an example of which is shown above.
+
+## Building and Running under Docker
+
+The instructions in this section assume [Docker](https://docs.docker.com/get-docker/) (and docker-compose) are installed on your build and execution machines.
+
+From the top-level camera-traps directory, issue the following command to build the application's Docker images:
+
+    make build
+
+See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.    
+
+From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to run the application, including the external plugins for which it's configured:
+
+    docker-compose up
+
+See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/resources/docker-compose.yml) for details.    
+
+From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to stop the application:    
+
+    docker-compose down
+
+## Integration Testing
+
+The camera-traps/tests directory contains [integration_tests.rs](https://github.com/tapis-project/camera-traps/blob/main/tests/integration_tests.rs) program.  The integration test program runs as an external plugin configured via a *traps.toml* file as shown above.  See the top-level comments in the source code for details.
+
+
+# Developer Information
 
 ## Using Flatbuffers
 
