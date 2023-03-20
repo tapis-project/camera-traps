@@ -8,6 +8,19 @@ This application uses the [event-engine](https://github.com/tapis-project/event-
 
 The event-engine supports *internal* and *external* plugins.  Internal plugins are Rust plugins delivered with camera-traps and run in the camera-traps process.  External plugins are configured by camera-traps to run outside the camera-traps process and use a TCP port to send and receive events.  By using TCP, external plugins can be written in any language that supports the [flatbuffers](https://google.github.io/flatbuffers/) wire protocol.
 
+## Quick Start
+
+To quickly start the application under [Docker](https://docs.docker.com/get-docker/) using docker-compose, follow these steps:
+
+1. cd some-directory-of-your-choice
+2. git clone https://github.com/tapis-project/camera-traps.git
+3. cd camera-traps/resources
+4. docker-compose up
+
+This will start the main camera-traps application container and two external plugin containers.  Once the images that ship with the application are read, one of the external containers exits and the other two containers wait ready for more input.  The stop and remove all containers, issue this command from camera-traps/resources in another terminal:
+
+    docker-compose down
+
 ## Application Configuation 
 
 The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or using the default file path.  In addition, plugins and test programs may also require their own configuration files.  The [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory contains examples of these files. 
@@ -112,34 +125,6 @@ When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses th
 
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
-## Building and Running the Rust Code
-
-Issue *cargo build* from the top-level camera-traps directory to build the Rust code or *cargo run* to build and run it.  External plugins are not started using this approach.  The internal plugins and their actions are configured using a *traps.toml* file, an example of which is shown above.
-
-## Building and Running under Docker
-
-The instructions in this section assume [Docker](https://docs.docker.com/get-docker/) (and docker-compose) are installed on your build and execution machines.
-
-From the top-level camera-traps directory, issue the following command to build the application's Docker images:
-
-    make build
-
-See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.    
-
-From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to run the application, including the external plugins for which it's configured:
-
-    docker-compose up
-
-See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/resources/docker-compose.yml) for details.    
-
-From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to stop the application:    
-
-    docker-compose down
-
-## Integration Testing
-
-The camera-traps/tests directory contains [integration_tests.rs](https://github.com/tapis-project/camera-traps/blob/main/tests/integration_tests.rs) program.  The integration test program runs as an external plugin configured via a *traps.toml* file as shown above.  See the top-level comments in the source code for details.
-
 
 # Developer Information
 
@@ -178,3 +163,32 @@ $ flatc --rust -o src resources/events.fbs
 // this line added to keep clippy happy
 #![allow(clippy::all)]
 ```
+
+## Building and Running under Docker
+
+The instructions in this section assume [Docker](https://docs.docker.com/get-docker/) (and docker-compose) are installed, as well as [Rust](https://www.rust-lang.org/tools/install), [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and make.
+
+From the top-level camera-traps directory, issue the following command to build the application's Docker images:
+
+    make build
+
+See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.    
+
+From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to run the application, including the external plugins for which it's configured:
+
+    docker-compose up
+
+See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/resources/docker-compose.yml) for details.    
+
+From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to stop the application:    
+
+    docker-compose down
+
+## Building and Running the Rust Code
+
+If you're just interested in building the Rust, issue *cargo build* from the top-level camera-traps directory.  Alternatively, issue *cargo run* to build and run it.  External plugins are not started using this approach.  The internal plugins and their actions are configured using a *traps.toml* file, as discussed above.
+
+## Integration Testing
+
+The camera-traps/tests directory contains [integration_tests.rs](https://github.com/tapis-project/camera-traps/blob/main/tests/integration_tests.rs) program.  The integration test program runs as an external plugin configured via a *traps.toml* file as shown above.  See the top-level comments in the source code for details.
+
