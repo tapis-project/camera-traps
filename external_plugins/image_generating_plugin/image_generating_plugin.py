@@ -14,19 +14,19 @@ PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
 
 
 def get_socket():
+    """
+    This function creates the zmq socket object and generates the event-engine plugin socket
+    for the port configured for this plugin.
+    """
     # create the zmq context object
     context = zmq.Context()
     return get_plugin_socket(context, PORT)
 
-print("Image Generating Plugin starting up...")
-with open('input.json') as f:
-    data = json.load(f)
-user_input = data['path']
-print(f"user_input: {user_input}")
-start = int(data['timestamp'])
-
 
 def get_binary(value):
+    """
+    TODO -- Sowbaranika to add
+    """
     uuid_image = str(uuid.uuid5(uuid.NAMESPACE_URL, value))
     with open(value, "rb") as f:
         binary_img = f.read()
@@ -38,26 +38,26 @@ def get_binary(value):
 
 
 def simpleNext(i, value_index):
+    """
+    TODO -- Sowbaranika to add
+    """
     if i >= len(img_dict):
         print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}")
         exit()
-    value = list(img_dict.values())[i]
-    val_Length = len(value)
-    if (val_Length == 1):
-        value = value[0]
-        # value = str(value)[1:-1]
-        # UUID5 - SHA-1 hash [namestring is URL: https://docs.python.org/3/library/uuid.html]
-        get_binary(value)
-        return i + 1, value_index
-    else:
-        value = list(img_dict.values())[i][value_index]
-        get_binary(value)
-        if (value_index == val_Length - 1):
-            return i + 1, 0
-        return i, value_index + 1
+    value = list(img_dict.values())[i][value_index]
+    get_binary(value)
+    # if we hit the end of the current list, move to the next time stamp
+    if value_index == len(list(img_dict.values())[i]) - 1:
+        return i+1, 0
+    return i, value_index + 1
 
 
 def burstNext(index):
+    """
+    TODO -- Sowbaranika to add
+    """
+    # TODO -- burstNext currently produces the same behavior as simpleNext. We 
+    #         should think through how to achieve burst behavior in a simulation.
     burst_Quantity = int(data['burstQuantity'])
     for i in range(index, index+burst_Quantity):
         if (i >= len(img_dict)):
@@ -69,6 +69,9 @@ def burstNext(index):
 
 
 def identicalTimestamp(timestamp_min):
+    """
+    TODO -- Sowbaranika to add
+    """
     if timestamp_min not in img_dict.keys():
         print(f"Hit exit condition...timestamp_min not in img_dict.keys()")
         exit()
@@ -80,6 +83,11 @@ def identicalTimestamp(timestamp_min):
 
 
 def nextImage(timestamp_min, index):
+    """
+    TODO -- Sowbaranika to add
+    """
+    # TODO -- currently, the nextImage function depends on OS timestamps on the input images, 
+    #         and therefore may not function/may give unexpected results. 
     if index >= len(img_dict):
         print(f"Hitting exit condition; index: {index}; len(image_dict): {len(img_dict)}")
         exit()
@@ -105,6 +113,9 @@ def nextImage(timestamp_min, index):
 
 
 def randomImage(timestamp_min, index):
+    """
+    TODO -- Sowbaranika to add
+    """
     if index >= len(img_dict) or timestamp_min > timestamp_max:
         exit()
     start1 = index
@@ -124,6 +135,14 @@ def randomImage(timestamp_min, index):
     value = str(value)[1:-1]
     get_binary(value)
     return timestamp_min, index
+
+
+print("Image Generating Plugin starting up...")
+with open('input.json') as f:
+    data = json.load(f)
+user_input = data['path']
+print(f"user_input: {user_input}")
+start = int(data['timestamp'])
 
 
 list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
