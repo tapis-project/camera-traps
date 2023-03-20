@@ -28,9 +28,9 @@ start = int(data['timestamp'])
 
 def get_binary(value):
     uuid_image = str(uuid.uuid5(uuid.NAMESPACE_URL, value))
-    with open(str(value)[1:-1], "rb") as f:
+    with open(value, "rb") as f:
         binary_img = f.read()
-    img = Image.open(str(value)[1:-1])
+    img = Image.open(value)
     img_format = img.format
     print(f"sending new image with the following data; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     ctevents.send_new_image_fb_event(
@@ -44,7 +44,8 @@ def simpleNext(i, value_index):
     value = list(img_dict.values())[i]
     val_Length = len(value)
     if (val_Length == 1):
-        value = str(value)[1:-1]
+        value = value[0]
+        # value = str(value)[1:-1]
         # UUID5 - SHA-1 hash [namestring is URL: https://docs.python.org/3/library/uuid.html]
         get_binary(value)
         return i + 1, value_index
