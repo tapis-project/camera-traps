@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# docker run -it --entrypoint=bash -v $(pwd)/example_images:/example_images --rm tapis/image_scoring_plugin_py:3.8
+# docker run -it --entrypoint=bash -v $(pwd)/example_images:/example_images --rm tapis/image_scoring_plugin_py_3.8
 #
 # python 
 # from camera_traps_MD.run_detector import load_and_run_detector

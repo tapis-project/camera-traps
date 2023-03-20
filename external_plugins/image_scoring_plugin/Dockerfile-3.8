@@ -1,4 +1,4 @@
-# Image: tapis/image_scoring_plugin_py:3.8
+# Image: tapis/image_scoring_plugin_py_3.8
 #
 # Initial version of the Camera Traps Image Scoring Plugin, in Python.
 # To run this program, you must mount a directory of image files at the mount point 
@@ -15,7 +15,7 @@
 #    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
 # 3) For a specific image directory
 #    docker run -e IMAGE_PATH = /images
-FROM tapis/camera_traps_py:3.8
+FROM tapis/camera_traps_py_3.8
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 
