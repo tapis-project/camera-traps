@@ -8,6 +8,7 @@ src/python/__pycache__
 src/python/gen_events/__pycache__
 src/python/ctevents/__pycache__
 src/python/ctevents/gen_events/__pycache__
+src/python/ctevents/dist
 
 # Remove Cargo.lock from gitignore if creating an executable, leave it for libraries
 # More information here https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
