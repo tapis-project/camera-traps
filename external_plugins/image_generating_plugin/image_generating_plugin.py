@@ -44,7 +44,8 @@ def simpleNext(i, value_index):
     and invokes get binary function.
     """
     if i >= len(img_dict):
-        print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}")
+        done = True
+        print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
         exit()
     value = list(img_dict.values())[i][value_index]
     get_binary(value)
@@ -95,7 +96,7 @@ def nextImage(timestamp_min, index):
     #         and therefore may not function/may give unexpected results. 
     if index >= len(img_dict):
         print(f"Hitting exit condition; index: {index}; len(image_dict): {len(img_dict)}")
-        done = True
+        
         exit()
     if timestamp_min > timestamp_max:
         print(f"Hitting exit condition; timestamp_min: {timestamp_min}; timestamp_max: {timestamp_max}")
