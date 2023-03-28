@@ -5,7 +5,7 @@ import uuid
 from collections import OrderedDict
 import zmq
 from PIL import Image
-import ctevents
+from ctevents import ctevents
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
 

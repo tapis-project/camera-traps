@@ -1,6 +1,6 @@
 import json
 import os
-from ctevents import socket_message_to_typed_event, send_image_scored_fb_event
+from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 import zmq
 

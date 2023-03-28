@@ -3,9 +3,9 @@ import datetime
 import uuid
 from tokenize import String
 import flatbuffers
-from gen_events import NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent
-from gen_events import Event
-from gen_events.EventType import EventType
+from ctevents.gen_events import NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent
+from ctevents.gen_events import Event
+from ctevents.gen_events.EventType import EventType
 
 # zmq and socket helper lib
 import zmq
