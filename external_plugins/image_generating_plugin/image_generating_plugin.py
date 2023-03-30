@@ -5,7 +5,9 @@ import uuid
 from collections import OrderedDict
 import zmq
 from PIL import Image
-from ctevents import ctevents
+import threading
+import concurrent.futures
+import ctevents
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
 
@@ -171,15 +173,7 @@ timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
 socket = get_socket()
 done = False
 
-def main():
-    timestamp_min = list(img_dict.keys())[0]
-    initial_index = 0
-    index = 0
-    indexvalue = 0
-
-    
-    while not done:
-    #for i in range(0, 100):
+def send_new_image():
         if data['callingFunction'] == "nextImage":
             print("Timed Next")
             timestamp_min, initial_index = nextImage(
@@ -199,6 +193,26 @@ def main():
         else:
             print(f"Simple Next; index: {index}; indexvalue: {indexvalue} ")
             index, indexvalue = simpleNext(index, indexvalue)
+
+
+def main():
+    timestamp_min = list(img_dict.keys())[0]
+    initial_index = 0
+    index = 0
+    indexvalue = 0
+
+    while not done:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # run send_new_image and get_next_msg concurrently
+            thread1 = executor.submit(send_new_image)
+            thread2 = executor.submit(get_next_msg, socket)
+	
+        # check new message for terminate event
+        message = thread2.result()
+        if message == 'PluginTerminateEvent':
+            break
+
+    send_quit_command(socket)
 
 
 if __name__ == '__main__':

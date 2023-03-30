@@ -8,7 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 pillow = "^9.4.0"
-zmq = "^0.0.0"
+pyzmq = "^25.0.0"
+tapis-ctevents = "^0.3.1"
 
 
 [build-system]

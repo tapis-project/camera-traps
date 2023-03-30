@@ -60,4 +60,4 @@ services:
       - ./traps-external.toml:/traps.toml:ro
       # mount the shared images directory from the host to the container directory specified in the
       # IMAGE_PATH environment variable, above.
-      - ./images_dir:/input_images:ro
+      - ./images_dir:/input_images
