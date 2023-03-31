@@ -173,7 +173,8 @@ timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
 socket = get_socket()
 done = False
 
-def send_new_image():
+def send_new_image(data, index, indexvalue):
+        print(f"top of send_new_image; data: {data}")
         if data['callingFunction'] == "nextImage":
             print("Timed Next")
             timestamp_min, initial_index = nextImage(
@@ -182,16 +183,18 @@ def send_new_image():
             print("Burst Next")
             index = burstNext(index)
         elif data['callingFunction'] == "identicalTimestamp":
+            print("Identical Timestamp")
             timestamp_min = identicalTimestamp(timestamp_min)
             print(timestamp_min)
         elif data['callingFunction'] == "randomImage":
+            print("Random Image")
             random_timestamp = int(
                 input("Enter the random timestamp in seconds: "))
             timestamp_min += random_timestamp
             timestamp_min, initial_index = randomImage(
                 timestamp_min, initial_index)
         else:
-            print(f"Simple Next; index: {index}; indexvalue: {indexvalue} ")
+            print(f"Simple Next")
             index, indexvalue = simpleNext(index, indexvalue)
 
 
@@ -201,16 +204,23 @@ def main():
     index = 0
     indexvalue = 0
 
-    while not done:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            # run send_new_image and get_next_msg concurrently
-            thread1 = executor.submit(send_new_image)
-            thread2 = executor.submit(get_next_msg, socket)
-	
-        # check new message for terminate event
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # run send_new_image and get_next_msg concurrently
+        thread1 = executor.submit(send_new_image, data, index, indexvalue)
+        thread2 = executor.submit(get_next_msg, socket)
         message = thread2.result()
-        if message == 'PluginTerminateEvent':
-            break
+    send_quit_command(socket)
+
+    # while not done:
+    #     with concurrent.futures.ThreadPoolExecutor() as executor:
+    #         # run send_new_image and get_next_msg concurrently
+    #         thread1 = executor.submit(send_new_image, data)
+    #         thread2 = executor.submit(get_next_msg, socket)
+	
+    #     # check new message for terminate event
+    #     message = thread2.result()
+    #     if message == 'PluginTerminateEvent':
+    #         break
 
     send_quit_command(socket)
 
