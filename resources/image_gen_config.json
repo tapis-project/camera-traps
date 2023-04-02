@@ -1,5 +1,5 @@
 {
-    "path": "/example_images",
+    "path": "/data/CDB_S1",
     "timestamp": "600",
     "callingFunction": "simpleNext",
     "burstQuantity": "5"
