@@ -13,6 +13,10 @@ from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
 # get the port assigned to the Image Generating plugin
 PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+# get the configuration file location
+config_dir = os.environ.get("CAMERA_TRAPS_DIR", '')
+config_file = os.path.join(config_dir, 'input.json')
+
 
 
 def get_socket():
@@ -148,7 +152,7 @@ def randomImage(timestamp_min, index):
 
 
 print("Image Generating Plugin starting up...")
-with open('input.json') as f:
+with open(config_file, 'r') as f:
     data = json.load(f)
 user_input = data['path']
 print(f"user_input: {user_input}")
