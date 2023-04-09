@@ -86,6 +86,7 @@
         ptModelDir = pkgs.stdenv.mkDerivation {
           name = "ptModelDir";
           src = self;
+          dontBuild = true;
           installPhase = ''
            mkdir -p $out;
            cp ${mdPtModel} $out/md_v5a.0.0.pt
@@ -111,6 +112,7 @@
             name = "newMyApp";
             buildInputs = [ myApp pkgs.makeWrapper ptModelDir ];
             src = self;
+            dontBuild = true;
             installPhase = ''
               makeWrapper ${myApp}/bin/image_scoring_plugin $out/bin/image_scoring_plugin \
               --chdir ${ptModelDir} \
