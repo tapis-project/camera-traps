@@ -23,3 +23,8 @@ src/python/dist
 
 # Eclipse files.
 .project
+
+# Nix
+result
+external_plugins/image_generating_plugin/result
+external_plugins/image_scoring_plugin/result
