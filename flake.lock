@@ -182,11 +182,11 @@
       },
       "locked": {
         "dir": "external_plugins/image_generating_plugin",
-        "lastModified": 1680976123,
-        "narHash": "sha256-DHe4JfplC4DTEtW0Mufu+JexR/pHLfzHua4I2rVqYOA=",
+        "lastModified": 1681066323,
+        "narHash": "sha256-jyI5KC2GM2t7ykpTS3mSVZNJnoba2HQCkh32juzdR1k=",
         "owner": "tapis-project",
         "repo": "camera-traps",
-        "rev": "b181a043073709a688f7b4d013f80b8b8a9d53b7",
+        "rev": "2f913b823ff027d550cd15473b4b59613f775cf2",
         "type": "github"
       },
       "original": {
@@ -206,11 +206,11 @@
       },
       "locked": {
         "dir": "external_plugins/image_scoring_plugin",
-        "lastModified": 1680976123,
-        "narHash": "sha256-DHe4JfplC4DTEtW0Mufu+JexR/pHLfzHua4I2rVqYOA=",
+        "lastModified": 1681066323,
+        "narHash": "sha256-jyI5KC2GM2t7ykpTS3mSVZNJnoba2HQCkh32juzdR1k=",
         "owner": "tapis-project",
         "repo": "camera-traps",
-        "rev": "b181a043073709a688f7b4d013f80b8b8a9d53b7",
+        "rev": "2f913b823ff027d550cd15473b4b59613f775cf2",
         "type": "github"
       },
       "original": {
