@@ -164,6 +164,16 @@ $ flatc --rust -o src resources/events.fbs
 #![allow(clippy::all)]
 ```
 
+## Plugin Start and Stop Protocol
+
+Each plugin is required to conform to the following conventions:
+
+1. Register for the *PluginTerminateEvent*.
+2. Send a *PluginStartedEvent* when it begins executing.
+3. Send a *PluginTerminatingEvent* when it shuts down.
+
+The *PluginStartedEvent* advertises a plugin's name and uuid when it starts.  When a plugin receives a *PluginTerminateEvent*, it checks if the event's *target_plugin_name* matches its name or the wildcard name (*).  If either is true, then the plugin is expected to gracefully terminate.  The plugin is also expected to gracefully terminate if the event's *target_plugin_uuid* matches the plugin's uuid.  Part of plugin termination is for it to send a *PluginTerminatingEvent* to advertise that it's shutting down. 
+
 ## Building and Running under Docker
 
 The instructions in this section assume [Docker](https://docs.docker.com/get-docker/) (and docker-compose) are installed, as well as [Rust](https://www.rust-lang.org/tools/install), [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and make.

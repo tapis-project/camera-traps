@@ -19,13 +19,15 @@ use crate::traps_utils::timestamp_str;
 // Each event is assigned a binary prefix that zqm uses to route incoming
 // binary streams to all of the event's subscribers.
 pub const NEW_IMAGE_PREFIX: [u8; 2] = [0x01, 0x00];
-pub const IMAGE_RECEIVED_PREFIX: [u8; 2] = [0x02, 0x00];
-pub const IMAGE_SCORED_PREFIX: [u8; 2] = [0x03, 0x00];
-pub const IMAGE_STORED_PREFIX: [u8; 2] = [0x04, 0x00];
-pub const IMAGE_DELETED_PREFIX: [u8; 2] = [0x05, 0x00];
-pub const PLUGIN_STARTED_PREFIX: [u8; 2] = [0x10, 0x00];
-pub const PLUGIN_TERMINATING_PREFIX: [u8; 2] = [0x11, 0x00];
-pub const PLUGIN_TERMINATE_PREFIX: [u8; 2] = [0x12, 0x00];
+pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];
+pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];
+pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];
+pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];
+pub const PLUGIN_STARTED_PREFIX:      [u8; 2] = [0x10, 0x00];
+pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];
+pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];
+pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];
+pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];
 pub const EVENT_PREFIX_LEN: usize = NEW_IMAGE_PREFIX.len();
 
 // ***************************************************************************

@@ -8,7 +8,8 @@ namespace gen_events;
 //
 // cf., https://google.github.io/flatbuffers/md__schemas.html
 union EventType {NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent,
-                 PluginStartedEvent, PluginTerminatingEvent, PluginTerminateEvent}
+                 PluginStartedEvent, PluginTerminatingEvent, PluginTerminateEvent,
+                 MonitorPowerStartEvent, MonitorPowerStopEvent}
 
 // Event with embedded new image.  This is how images enter the system.
 // In simulation environments, the simulator generates images and posts
@@ -80,6 +81,31 @@ table PluginTerminateEvent {
   event_create_ts:string;
   target_plugin_name:string;
   target_plugin_uuid:string;
+}
+
+// Used to target specific components for monitoring.
+enum MonitorType: byte { cpu = 1, gpu }                
+
+// Event that requests power monitoring to begin.  The pids array contains the process ids
+// to be monitored.  The measure_type indicates which components to measure.  The start time
+// (in UTC) indicates the point in time when measurement should begin.  Times in the past 
+// cause measurement to begin immediately.  This assumes synchronized clocks.  The 
+// monitor_seconds value indicates the number of seconds to monitor; zero means monitor
+// indefinitely (i.e., until receiving MonitorPowerStopEvent or PluginTerminateEvent).
+table MonitorPowerStartEvent {
+  event_create_ts:string;
+  pids:[int32];
+  monitor_type:[MonitorType];
+  monitor_start_ts:string;
+  monitor_seconds:uint32;
+}
+
+// Event that immediately causes the monitoring to stop for the process ids in listed
+// in the pids array.  It is a no-op if a process id is listed but not currently being
+// monitored. 
+table MonitorPowerStopEvent {
+  event_create_ts:string;
+  pids:[int32];
 }
 
 // The root_type needs to be a table, not a union, so we wrap it up like this
