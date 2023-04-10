@@ -3,6 +3,7 @@
 #![allow(dead_code, unused_imports, clippy::all)]
 
 
+
 use core::mem;
 use core::cmp::Ordering;
 
@@ -409,9 +410,8 @@ impl<'a> flatbuffers::Follow<'a> for ImageLabelScore<'a> {
 }
 
 impl<'a> ImageLabelScore<'a> {
-  pub const VT_IMAGE_UUID: flatbuffers::VOffsetT = 4;
-  pub const VT_LABEL: flatbuffers::VOffsetT = 6;
-  pub const VT_PROBABILITY: flatbuffers::VOffsetT = 8;
+  pub const VT_LABEL: flatbuffers::VOffsetT = 4;
+  pub const VT_PROBABILITY: flatbuffers::VOffsetT = 6;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -425,15 +425,10 @@ impl<'a> ImageLabelScore<'a> {
     let mut builder = ImageLabelScoreBuilder::new(_fbb);
     builder.add_probability(args.probability);
     if let Some(x) = args.label { builder.add_label(x); }
-    if let Some(x) = args.image_uuid { builder.add_image_uuid(x); }
     builder.finish()
   }
 
 
-  #[inline]
-  pub fn image_uuid(&self) -> Option<&'a str> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageLabelScore::VT_IMAGE_UUID, None)
-  }
   #[inline]
   pub fn label(&self) -> Option<&'a str> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageLabelScore::VT_LABEL, None)
@@ -451,7 +446,6 @@ impl flatbuffers::Verifiable for ImageLabelScore<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_uuid", Self::VT_IMAGE_UUID, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("label", Self::VT_LABEL, false)?
      .visit_field::<f32>("probability", Self::VT_PROBABILITY, false)?
      .finish();
@@ -459,7 +453,6 @@ impl flatbuffers::Verifiable for ImageLabelScore<'_> {
   }
 }
 pub struct ImageLabelScoreArgs<'a> {
-    pub image_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
     pub label: Option<flatbuffers::WIPOffset<&'a str>>,
     pub probability: f32,
 }
@@ -467,7 +460,6 @@ impl<'a> Default for ImageLabelScoreArgs<'a> {
   #[inline]
   fn default() -> Self {
     ImageLabelScoreArgs {
-      image_uuid: None,
       label: None,
       probability: 0.0,
     }
@@ -479,10 +471,6 @@ pub struct ImageLabelScoreBuilder<'a: 'b, 'b> {
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
 impl<'a: 'b, 'b> ImageLabelScoreBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_image_uuid(&mut self, image_uuid: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageLabelScore::VT_IMAGE_UUID, image_uuid);
-  }
   #[inline]
   pub fn add_label(&mut self, label: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageLabelScore::VT_LABEL, label);
@@ -509,7 +497,6 @@ impl<'a: 'b, 'b> ImageLabelScoreBuilder<'a, 'b> {
 impl core::fmt::Debug for ImageLabelScore<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     let mut ds = f.debug_struct("ImageLabelScore");
-      ds.field("image_uuid", &self.image_uuid());
       ds.field("label", &self.label());
       ds.field("probability", &self.probability());
       ds.finish()
@@ -1619,3 +1606,4 @@ pub fn finish_size_prefixed_event_buffer<'a, 'b>(fbb: &'b mut flatbuffers::FlatB
   fbb.finish_size_prefixed(root, None);
 }
 }  // pub mod gen_events
+

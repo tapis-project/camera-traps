@@ -33,7 +33,6 @@ table ImageReceivedEvent {
 
 // Represents the probability that an image has a specific label.
 table ImageLabelScore {
-  image_uuid:string;
   label:string;
   probability:float;
 }

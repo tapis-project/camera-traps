@@ -382,7 +382,6 @@ impl ImageReceivedEvent {
 // ------------------------------
 #[derive(Serialize)]
 pub struct ImageLabelScore {
-    image_uuid: Uuid,
     label: String,
     probability: f32,
 }
@@ -391,28 +390,12 @@ impl ImageLabelScore {
     #![allow(unused)]
     pub fn new(image_uuid: Uuid, label: String, probability: f32) -> Self {
         ImageLabelScore {
-            image_uuid,
             label,
             probability,
         }
     }
 
     pub fn new_from_gen(ev: gen_events::ImageLabelScore) -> Result<Self, Errors> {
-        // Get the uuid.
-        let u = match ev.image_uuid() {
-            Some(s) => s,
-            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
-        };
-        let uuid = match Uuid::parse_str(u) {
-            Ok(u) => u,
-            Err(e) => {
-                return Result::Err(Errors::UUIDParseError(
-                    String::from("image_uuid"),
-                    e.to_string(),
-                ))
-            }
-        };
-
         // Get the image label string.
         let label = match ev.label() {
             Some(s) => s,
@@ -424,7 +407,6 @@ impl ImageLabelScore {
 
         // Return the object.
         Result::Ok(ImageLabelScore {
-            image_uuid: uuid,
             label: String::from(label),
             probability,
         })
@@ -473,14 +455,12 @@ impl Event for ImageScoredEvent {
             Vec::<flatbuffers::WIPOffset<gen_events::ImageLabelScore>>::new();
         for score in &self.scores {
             // Assign the string fields.
-            let image_uuid = Some(fbuf.create_string(&score.image_uuid.hyphenated().to_string()));
             let label = Some(fbuf.create_string(&score.label));
 
             // Create each generated score object
             let im_score = gen_events::ImageLabelScore::create(
                 &mut fbuf,
                 &gen_events::ImageLabelScoreArgs {
-                    image_uuid,
                     label,
                     probability: score.probability,
                 },
@@ -617,25 +597,6 @@ impl ImageScoredEvent {
         // Iterate through each generated score and add to list of event scores.
         let mut scores: Vec<ImageLabelScore> = Vec::new();
         for gen_score in gen_scores {
-            // Extract the imaget uuid.
-            let u = match gen_score.image_uuid() {
-                Some(u) => u,
-                None => {
-                    return Result::Err(Errors::EventReadFlatbuffer(String::from(
-                        "ImageLabelScore.image_uuid",
-                    )))
-                }
-            };
-            let image_uuid = match Uuid::parse_str(u) {
-                Ok(u) => u,
-                Err(e) => {
-                    return Result::Err(Errors::UUIDParseError(
-                        String::from("ImageLabelScore.image_uuid"),
-                        e.to_string(),
-                    ))
-                }
-            };
-
             // Extract the label.
             let label = match gen_score.label() {
                 Some(s) => s,
@@ -651,7 +612,6 @@ impl ImageScoredEvent {
 
             // Create the event imagelabelscore and add it to the vector.
             let new_score = ImageLabelScore {
-                image_uuid,
                 label: label.to_string(),
                 probability,
             };
