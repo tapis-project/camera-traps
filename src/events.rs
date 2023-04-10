@@ -65,6 +65,12 @@ pub fn check_event_prefix(prefix: [u8; 2], event_name: &str) -> bool {
         PLUGIN_TERMINATE_PREFIX => {
             event_name == "PluginTerminateEvent" 
         }
+        MONITOR_POWER_START_PREFIX => {
+            event_name == "MonitorPowerStartEvent" 
+        }
+        MONITOR_POWER_STOP_PREFIX => {
+            event_name == "MonitorPowerStopEvent" 
+        }
         _ => false,
     }
 }
@@ -1376,6 +1382,28 @@ impl PluginTerminateEvent {
             target_plugin_uuid: uuid,
         })
     }
+}
+
+
+// ===========================================================================
+// MonitorPowerStartEvent:
+// ===========================================================================
+enum  MonitorType { ALL, CPU, GPU, DRAM, }
+
+pub struct MonitorPowerStartEvent {
+    created: String,
+    pids: Vec<i32>,
+    monitor_types: Vec<MonitorType>,
+    monitor_start: String,
+    monitor_seconds: u32,
+}
+
+// ===========================================================================
+// MonitorPowerStopEvent:
+// ===========================================================================
+pub struct MonitorPowerStopEvent {
+    created: String,
+    pids: Vec<i32>,
 }
 
 // ***************************************************************************
