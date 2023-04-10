@@ -172,7 +172,7 @@ Each plugin is required to conform to the following conventions:
 2. Send a *PluginStartedEvent* when it begins executing.
 3. Send a *PluginTerminatingEvent* when it shuts down.
 
-The *PluginStartedEvent* advertises a plugin's name and uuid when it starts.  When a plugin receives a *PluginTerminateEvent*, it checks if the event's *target_plugin_name* matches its name or the wildcard name (*).  If either is true, then the plugin is expected to gracefully terminate.  The plugin is also expected to gracefully terminate if the event's *target_plugin_uuid* matches the plugin's uuid.  Part of plugin termination is for it to send a *PluginTerminatingEvent* to advertise that it's shutting down. 
+The *PluginStartedEvent* advertises a plugin's name and uuid when it starts.  When a plugin receives a *PluginTerminateEvent*, it checks if the event's *target_plugin_name* matches its name or the wildcard name (*).  If either is true, then the plugin is expected to gracefully terminate.  The plugin is also expected to gracefully terminate if the event's *target_plugin_uuid* matches the plugin's uuid.  Part of plugin termination is for it to send a *PluginTerminatingEvent* to advertise that it's shutting down, whether in response to a *PluginTerminateEvent* or for any other reason.  
 
 ## Building and Running under Docker
 

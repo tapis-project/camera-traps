@@ -84,7 +84,7 @@ table PluginTerminateEvent {
 }
 
 // Used to target specific components for monitoring.
-enum MonitorType: byte { cpu = 1, gpu }                
+enum MonitorType: byte { cpu = 1, gpu, dram }                
 
 // Event that requests power monitoring to begin.  The pids array contains the process ids
 // to be monitored.  The measure_type indicates which components to measure.  The start time
