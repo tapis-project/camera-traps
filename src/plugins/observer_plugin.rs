@@ -9,7 +9,8 @@ use crate::{traps_utils, RuntimeCtx};
 use crate::Config;
 use crate::events::{NEW_IMAGE_PREFIX, IMAGE_RECEIVED_PREFIX, IMAGE_SCORED_PREFIX, 
                     IMAGE_STORED_PREFIX, IMAGE_DELETED_PREFIX, PLUGIN_STARTED_PREFIX,
-                    PLUGIN_TERMINATING_PREFIX, PLUGIN_TERMINATE_PREFIX};
+                    PLUGIN_TERMINATING_PREFIX, PLUGIN_TERMINATE_PREFIX, 
+                    MONITOR_POWER_START_PREFIX, MONITOR_POWER_STOP_PREFIX};
 use crate::plugins::actions::observer_actions::select_action;                    
 
 use log::{info, error};
@@ -106,6 +107,14 @@ impl Plugin for ObserverPlugin {
                     self.record_event("PluginTerminateEvent");
                     traps_utils::process_plugin_terminate_event(ev_in.gen_event, &self.id, &self.name)
                 },
+                MONITOR_POWER_START_PREFIX => {
+                    self.record_event("MonitorPowerStartEvent");
+                    false
+                },
+                MONITOR_POWER_STOP_PREFIX => {
+                    self.record_event("MonitorPowerStopEvent");
+                    false
+                },
                 unexpected => {
                     // This should only happen for valid events to which we are not subscribed.
                     // Completely invalid event prefixes are detected above in check_event_prefix().
@@ -139,6 +148,8 @@ impl Plugin for ObserverPlugin {
             Box::new(events::PluginTerminateEvent::new(Uuid::new_v4(), String::from("*"))),
             Box::new(events::PluginTerminatingEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))), 
             Box::new(events::PluginStartedEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))),
+            Box::new(events::MonitorPowerStartEvent::new(vec![1], vec![events::MonitorType::ALL], "fake".to_string(), 1)),
+            Box::new(events::MonitorPowerStopEvent::new(vec![1])),
         ])
     }
 

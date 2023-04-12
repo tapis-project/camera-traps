@@ -63,6 +63,9 @@ pub enum Errors {
     #[error("Unable to read event type from raw event, expected type is: {}", .0)]
     EventReadTypeError(String),
 
+    #[error("Event {0} was received with an empty {1} list.)")]
+    EventReceivedEmptyList(String, String),
+
     #[error("Plugin {} is unable to send a {} event: {}", .0, .1, .2)]
     EventSendError(String, String, String),
 
@@ -137,6 +140,9 @@ pub enum Errors {
 
     #[error("Plugin {} is unable to send a {} event: {}", .0, .1, .2)]
     SocketSendError(String, String, String),
+
+    #[error("Unable to parse string '{}' into a Date: {}", .0, .1)]
+    DateParseError(String, String),
 
     #[error("Unable to parse TOML file: {}", .0)]
     TOMLParseError(String),

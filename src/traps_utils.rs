@@ -16,7 +16,8 @@ use crate::events_generated::gen_events;
 use crate::events;
 use crate::config::{errors::Errors, config::Config};
 use crate::events::{NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent,
-                    ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent};
+                    ImageDeletedEvent, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent,
+                    MonitorPowerStartEvent, MonitorPowerStopEvent};
 use log::{error};
 
 // ***************************************************************************
@@ -24,6 +25,10 @@ use log::{error};
 // ***************************************************************************
 // Used in termination processing.
 const PLUGIN_NAME_WILDCARD: &str = "*";
+
+// An rfc3339 compliant datetime from the past.
+#[allow(dead_code)]
+pub const PAST_DATETIME: &str = "2000-01-01T00:00:00+00:00";
 
 // ***************************************************************************
 // GENERAL PUBLIC FUNCTIONS
@@ -530,7 +535,7 @@ pub fn gen_to_image_deleted_event(gen_event: gen_events::Event) -> Result<ImageS
 // gen_to_pluging_started_event:
 // ---------------------------------------------------------------------------
 #[allow(dead_code)]
-pub fn gen_to_pluging_started_event(gen_event: gen_events::Event) -> Result<PluginStartedEvent, Errors> {
+pub fn gen_to_plugin_started_event(gen_event: gen_events::Event) -> Result<PluginStartedEvent, Errors> {
     // Create the generated event from the raw flatbuffer.
     let flatbuf_event = match gen_event.event_as_plugin_started_event() {
         Some(ev) => ev,
@@ -579,6 +584,41 @@ pub fn gen_to_plugin_terminating_event(gen_event: gen_events::Event) -> Result<P
     }
 }
 
+// ---------------------------------------------------------------------------
+// gen_to_monitor_power_start_event:
+// ---------------------------------------------------------------------------
+#[allow(dead_code)]
+pub fn gen_to_monitor_power_start_event(gen_event: gen_events::Event) -> Result<MonitorPowerStartEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_monitor_power_start_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("MonitorPowerStartEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match MonitorPowerStartEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// gen_to_monitor_power_stop_event:
+// ---------------------------------------------------------------------------
+#[allow(dead_code)]
+pub fn gen_to_monitor_power_stop_event(gen_event: gen_events::Event) -> Result<MonitorPowerStopEvent, Errors> {
+    // Create the generated event from the raw flatbuffer.
+    let flatbuf_event = match gen_event.event_as_monitor_power_stop_event() {
+        Some(ev) => ev,
+        None =>  return Result::Err(Errors::EventCreateFromFlatbuffer("MonitorPowerStoptEvent".to_string())), 
+    };
+
+    // Return a camera-trap event given the flatbuffer generated event.
+    match MonitorPowerStopEvent::new_from_gen(flatbuf_event) {
+        Ok(ev) => Result::Ok(ev),
+        Err(e) => Result::Err(e),
+    }
+}
 
 
 mod tests {
