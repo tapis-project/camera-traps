@@ -35,7 +35,8 @@ services:
       # where the plugin looks for images. This can be changed by providing a different
       # configuration file. 
       # NOTE: this is NOT the shared images directory!!
-      - /data/CDB_S1:/data/CDB_S1:ro
+      # - /data/CDB_S1:/example_images:rw
+      - ../external_plugins/image_generating_plugin/example_images:/example_images:rw
       # The following is optional but can be used to mount a different configuration file
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.

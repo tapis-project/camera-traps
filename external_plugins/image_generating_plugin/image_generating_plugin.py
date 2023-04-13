@@ -4,15 +4,13 @@ import glob
 import uuid
 from collections import OrderedDict
 import zmq
+import time
 from PIL import Image
 import threading
 import concurrent.futures
-import ctevents
+from ctevents import ctevents
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
-
-# get the port assigned to the Image Generating plugin
-PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
 
 
 def get_socket():
@@ -20,12 +18,18 @@ def get_socket():
     This function creates the zmq socket object and generates the event-engine plugin socket
     for the port configured for this plugin.
     """
+    
+    # get the port assigned to the Image Generating plugin
+    PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+
     # create the zmq context object
     context = zmq.Context()
-    return get_plugin_socket(context, PORT)
+    socket = get_plugin_socket(context, PORT)
+    socket.RCVTIMEO = 100 # in milliseconds
 
+    return socket
 
-def get_binary(value):
+def get_binary(value, socket):
     """
     This function is used to generate the uuid, image format and binary image and invokes the  
     new image event.
@@ -36,25 +40,28 @@ def get_binary(value):
     img = Image.open(value)
     img_format = img.format
     print(f"sending new image with the following data; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
-    ctevents.send_new_image_fb_event(
-        socket, uuid_image, img_format, binary_img)
+    try: 
+        ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
+    except Exception as e:
+        print(f"got exception {e}")
 
 
-def simpleNext(i, value_index):
+def simpleNext(img_dict, i, value_index, socket):
     """
     This function is used to retrieve the next image specified in the directory based on the timestamp
     and invokes get binary function.
     """
+    done = False
     if i >= len(img_dict):
         done = True
         print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
-        exit()
     value = list(img_dict.values())[i][value_index]
-    get_binary(value)
+    get_binary(value, socket)
     # if we hit the end of the current list, move to the next time stamp
     if value_index == len(list(img_dict.values())[i]) - 1:
-        return i+1, 0
-    return i, value_index + 1
+        return done, i+1, 0
+    print("returning simpleNext")
+    return done, i, value_index + 1
 
 
 def burstNext(index):
@@ -74,11 +81,12 @@ def burstNext(index):
     return (index+burst_Quantity)
 
 
-def identicalTimestamp(timestamp_min):
+def identicalTimestamp(img_dict, timestamp_min):
     """
     Incase of multiple images with same timestamp, this function gets single image
     and invokes get binary function.
     """
+    # NEEDS IMG_DICT AND START
     if timestamp_min not in img_dict.keys():
         print(f"Hit exit condition...timestamp_min not in img_dict.keys()")
         exit()
@@ -96,6 +104,7 @@ def nextImage(timestamp_min, index):
     """
     # TODO -- currently, the nextImage function depends on OS timestamps on the input images, 
     #         and therefore may not function/may give unexpected results. 
+    # NEEDS IMG_DICT AND START AND  TIMESTAMP_MAX
     if index >= len(img_dict):
         print(f"Hitting exit condition; index: {index}; len(image_dict): {len(img_dict)}")
         
@@ -146,83 +155,103 @@ def randomImage(timestamp_min, index):
     get_binary(value)
     return timestamp_min, index
 
+def get_config():
+    # TODO - return start
+    print("Image Generating Plugin starting up...")
+    with open('input.json') as f:
+        data = json.load(f)
+    user_input = data['path']
+    print(f"user_input: {user_input}")
+    start = int(data['timestamp']) # used for nextImage and identicalTimestamp
+    return data
 
-print("Image Generating Plugin starting up...")
-with open('input.json') as f:
-    data = json.load(f)
-user_input = data['path']
-print(f"user_input: {user_input}")
-start = int(data['timestamp'])
-"""
-Creates an ordered dictionary with the image files in the directory.
-Future: Think of a way to minimize the memory usage
-"""
-
-list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
-list_of_files = sorted(list_of_files, key=os.path.getmtime)
-print(f"list_of_files: {list_of_files}")
-img_dict = OrderedDict()
-for file_name_full in list_of_files:
-    if ('.DS_Store' not in file_name_full):
-        timestamp = int(os.path.getmtime(file_name_full))
-        if timestamp in img_dict.keys():
-            img_dict[timestamp] += [file_name_full]
-        else:
-            img_dict[timestamp] = [file_name_full]
-timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
-socket = get_socket()
-done = False
-
-def send_new_image(data, index, indexvalue):
-        print(f"top of send_new_image; data: {data}")
-        if data['callingFunction'] == "nextImage":
-            print("Timed Next")
-            timestamp_min, initial_index = nextImage(
-                timestamp_min, initial_index)
-        elif data['callingFunction'] == "burstNext":
-            print("Burst Next")
-            index = burstNext(index)
-        elif data['callingFunction'] == "identicalTimestamp":
-            print("Identical Timestamp")
-            timestamp_min = identicalTimestamp(timestamp_min)
-            print(timestamp_min)
-        elif data['callingFunction'] == "randomImage":
-            print("Random Image")
-            random_timestamp = int(
-                input("Enter the random timestamp in seconds: "))
-            timestamp_min += random_timestamp
-            timestamp_min, initial_index = randomImage(
-                timestamp_min, initial_index)
-        else:
-            print(f"Simple Next")
-            index, indexvalue = simpleNext(index, indexvalue)
-
-
-def main():
+def create_dict(data):
+    """
+    Creates an ordered dictionary with the image files in the directory.
+    Future: Think of a way to minimize the memory usage
+    """
+    user_input = data['path']
+    list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
+    list_of_files = sorted(list_of_files, key=os.path.getmtime)
+    print(f"list_of_files: {list_of_files}")
+    img_dict = OrderedDict()
+    for file_name_full in list_of_files:
+        if ('.DS_Store' not in file_name_full):
+            timestamp = int(os.path.getmtime(file_name_full))
+            if timestamp in img_dict.keys():
+                img_dict[timestamp] += [file_name_full]
+            else:
+                img_dict[timestamp] = [file_name_full]
+    timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
     timestamp_min = list(img_dict.keys())[0]
-    initial_index = 0
+
+    return img_dict, timestamp_min, timestamp_max
+
+def send_images(data, socket):
+    """
+    send a new image until out of images
+    """
+    done = False
     index = 0
     indexvalue = 0
+    initial_index = 0
+
+    while not done:
+        done, index, indexvalues = send_new_image(data, index, indexvalue, initial_index, socket)
+
+
+def send_new_image(data, index, indexvalue, inital_index, socket):
+    img_dict, timestamp_min, timestamp_max = create_dict(data)
+
+    # print(timestamp_min)
+    
+    if data['callingFunction'] == "nextImage":
+        print("Timed Next")
+        timestamp_min, initial_index = nextImage(
+            timestamp_min, initial_index)
+    elif data['callingFunction'] == "burstNext":
+        print("Burst Next")
+        index = burstNext(index)
+    elif data['callingFunction'] == "identicalTimestamp":
+        print("Identical Timestamp")
+        timestamp_min = identicalTimestamp(img_dict, timestamp_min)
+        print(timestamp_min)
+    elif data['callingFunction'] == "randomImage":
+        print("Random Image")
+        random_timestamp = int(
+            input("Enter the random timestamp in seconds: "))
+        timestamp_min += random_timestamp
+        timestamp_min, initial_index = randomImage(
+            timestamp_min, initial_index)
+    else:
+        print(f"Simple Next")
+        return simpleNext(img_dict, index, indexvalue, socket)
+        
+def check_quit(socket):
+    done = False
+    while not done:
+        try:
+            get_next_msg(socket)
+        except:
+            print("check quit exception")
+            time.sleep(5)
+
+def main():
+
+    # global socket
+    socket = get_socket()
+    data = get_config()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # run send_new_image and get_next_msg concurrently
-        thread1 = executor.submit(send_new_image, data, index, indexvalue)
-        thread2 = executor.submit(get_next_msg, socket)
+        thread1 = executor.submit(send_images, data, socket)
+        thread2 = executor.submit(check_quit, socket)  
+        
         message = thread2.result()
-    send_quit_command(socket)
 
-    # while not done:
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         # run send_new_image and get_next_msg concurrently
-    #         thread1 = executor.submit(send_new_image, data)
-    #         thread2 = executor.submit(get_next_msg, socket)
-	
-    #     # check new message for terminate event
-    #     message = thread2.result()
-    #     if message == 'PluginTerminateEvent':
-    #         break
+        if message == "PluginTerminateEvent":
+            send_quit_command(socket)
 
-    send_quit_command(socket)
 
 
 if __name__ == '__main__':
