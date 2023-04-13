@@ -308,9 +308,9 @@ def test_image_scored_event_fb():
     """
     # create test data
     scores = [
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95},
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "golden_retriever", "probability": 0.05},
-        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "pug", "probability": 0.012}
+        {"label": "lab", "probability": 0.95},
+        {"label": "golden_retriever", "probability": 0.05},
+        {"label": "pug", "probability": 0.012}
     ]
     image_uuid = "8f5f3962-d301-4e96-9994-3bd63c472ce8"
     image_format = 'jpg'
@@ -334,7 +334,6 @@ def test_image_scored_event_fb():
 
     for i in range(image_scored_event.ScoresLength()):
         # check each field..
-        assert image_scored_event.Scores(i).ImageUuid().decode('utf-8') == scores[i]['image_uuid']
         # TODO -- also check label and probability...
         assert image_scored_event.Scores(i).Label().decode('utf-8') == scores[i]['label']
         # print("from fb: " + image_scored_event.Scores(i).Label().decode('utf-8'))
