@@ -13,6 +13,7 @@ from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
 
 
+
 def get_socket():
     """
     This function creates the zmq socket object and generates the event-engine plugin socket
@@ -157,8 +158,12 @@ def randomImage(timestamp_min, index):
 
 def get_config():
     # TODO - return start
+    # get the configuration file location
+    config_dir = os.environ.get("CAMERA_TRAPS_DIR", '')
+    config_file = os.path.join(config_dir, 'input.json')
+
     print("Image Generating Plugin starting up...")
-    with open('input.json') as f:
+    with open(config_file) as f:
         data = json.load(f)
     user_input = data['path']
     print(f"user_input: {user_input}")
