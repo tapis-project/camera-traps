@@ -1,5 +1,12 @@
 # Camera Traps Release Notes
 
+## Version 0.3.1
+
+Interum release with Rust support for 2 new power monitoring events.
+
+1. Removal of image_uuid field from ImageLabelScore type used in ImageScoredEvent.
+2. MonitorPowerStartEvent and MonitorPowerStopEvent implemented in Rust (Python support in progress).
+
 ## Version 0.3.0
 
 Initial release of camera-traps images with the following features:
