@@ -124,7 +124,7 @@ pub fn image_recv_write_file_action(plugin: &ImageReceivePlugin, event: &NewImag
 
     // Create absolute file path for the image.
     let filepath = create_image_filepath(plugin, uuid_str, &suffix);
-
+info!("{}", "Writing image to file:  ".to_string() + filepath.as_str());
     // Open the image output file.
     let mut file = match OpenOptions::new()
                         .write(true)
