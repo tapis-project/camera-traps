@@ -44,7 +44,7 @@ services:
 
   imageScoringPlugin:
     container_name: image_scoring
-    image: tapis/image_scoring_plugin_py
+    image: tapis/image_scoring_plugin_py_3.8
     networks:
       - cameratraps
     environment:
