@@ -12,8 +12,6 @@ from ctevents import ctevents
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
 
-
-
 def get_socket():
     """
     This function creates the zmq socket object and generates the event-engine plugin socket
@@ -194,7 +192,7 @@ def create_dict(data):
 
 def send_images(data, socket):
     """
-    send a new image until out of images
+    send a new image until out of images, checks for quit message
     """
     done = False
     index = 0
@@ -203,13 +201,16 @@ def send_images(data, socket):
 
     while not done:
         done, index, indexvalues = send_new_image(data, index, indexvalue, initial_index, socket)
-
+        try:
+            msg = get_next_msg(timeout=10)
+            if msg == "PluginTerminateEvent":
+                send_quit_command(socket)
+        except zmq.error.Again:
+            continue
 
 def send_new_image(data, index, indexvalue, inital_index, socket):
     img_dict, timestamp_min, timestamp_max = create_dict(data)
 
-    # print(timestamp_min)
-    
     if data['callingFunction'] == "nextImage":
         print("Timed Next")
         timestamp_min, initial_index = nextImage(
@@ -242,20 +243,20 @@ def check_quit(socket):
             time.sleep(5)
 
 def main():
-
-    # global socket
     socket = get_socket()
     data = get_config()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # run send_new_image and get_next_msg concurrently
-        thread1 = executor.submit(send_images, data, socket)
-        thread2 = executor.submit(check_quit, socket)  
-        
-        message = thread2.result()
+    send_images(data, socket)
 
-        if message == "PluginTerminateEvent":
-            send_quit_command(socket)
+    # with concurrent.futures.ThreadPoolExecutor() as executor:
+    #     # run send_new_image and get_next_msg concurrently
+    #     thread1 = executor.submit(send_images, data, socket)
+    #     thread2 = executor.submit(check_quit, socket)  
+        
+    #     message = thread2.result()
+
+    #     if message == "PluginTerminateEvent":
+    #         send_quit_command(socket)
 
 
 
