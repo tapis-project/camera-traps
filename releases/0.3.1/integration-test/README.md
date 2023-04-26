@@ -1,11 +1,13 @@
 # Building and Running the Integration Test
 
-The integration test described here simply injects images into an instance of the camera-traps application configured for testing.  The application runs in a docker container whereas the integration test is invoked by cargo.  To allow the test to communicate with the application, the latter runs on the host network rather than a private docker network.  Though unlikely, failures are possible if the configured ports are already in use.
+The integration test described here simply injects images into an instance of the camera-traps application configured for testing with internal plugins (only one process is started).  The application runs in a docker container whereas the integration test is invoked by cargo.  To allow the test to communicate with the application, the latter runs on the host network rather than a private docker network.  Though unlikely, failures are possible if the configured ports are already in use.
+
+The integration test executable must exist in order for cargo to invoke it, which requires that the Rust compiler is installed.
 
 
 ## Commands
 
-The integration test requires the camera-traps application to be running before it is manually invoked.  All command should be issued from the directory in which this file resides.  
+The integration test requires the camera-traps application to be running before it is manually invoked.  All commands should be issued from the directory in which this file resides.     
 
 To run an instance of camera-traps configured for the integration test, issue this command in a command-line terminal:
 
@@ -21,7 +23,7 @@ To shutdown the camera-traps application, issue:
 
 ## Output
 
-When started in a terminal, the application will log to standard output that these four internal plugins have been loaded:
+When started in a terminal, the application will log to standard output an indication that these four internal plugins have been loaded:
 
 - image_recv_plugin
 - image_score_plugin
@@ -32,7 +34,7 @@ The application will also indicate that an external plugin port was opened:
 
 - ext_image_gen_test_plugin
 
-Other log records will also be written before the test is run.  When *runtest.sh* executes, it will read the traps-integration.toml file to configure itself. That file includes the following information.
+Other informational records are also written when the application starts.  When *runtest.sh* executes, it will read the traps-integration.toml file to configure itself. That file includes the following information.
 
 - The number of total number of times an image is injected into camera-traps (*iterations*).
 - The directory where at least one image file can be found (*image_input_dir*).

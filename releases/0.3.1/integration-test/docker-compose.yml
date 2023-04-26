@@ -10,6 +10,10 @@ services:
     environment:
       - TRAPS_CONFIG_FILE=./traps.toml
     volumes:
-      # mount the traps.toml in the current working directory.
+      # mount the traps.toml in the root directory.
       - ./traps.toml:/traps.toml:ro
-
+      # mount the image output directory from the host to the directory specified in traps.toml
+      # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+      # exist it will be created with root ownership.
+      - /home/${USER}/traps/output:/images-received
+      

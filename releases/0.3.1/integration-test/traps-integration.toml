@@ -1,6 +1,8 @@
 # This is the camera-traps integration test configuration file.
+# It assumes the current directory is the top-level camera-traps 
+# directory.  See runtest.sh for details.
 
-iterations = 2
+iterations = 5
 image_input_dir = "releases/common/example_images"
 
 [external_plugin_config] 

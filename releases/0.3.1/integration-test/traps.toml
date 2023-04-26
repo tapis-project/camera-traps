@@ -9,7 +9,7 @@ subscribe_port = 5560
 # An absolute path to the image directory is required but a file name prefix is optional.  
 # If present the prefix is preprended to generated image file names.
 #images_dir = "~/camera-traps/images"
-images_dir = "releases/common/example-images"
+images_dir = "/images-received"
 # image_file_prefix = ""
 
 # The container for both internal and external plugins.  Internal plugins are written in rust 
@@ -22,7 +22,7 @@ internal = [
 #    "image_gen_plugin",
     "image_recv_plugin",
     "image_score_plugin",
-#    "image_store_plugin",
+    "image_store_plugin",
     "observer_plugin"
 ]
 
