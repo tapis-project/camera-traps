@@ -2,7 +2,7 @@
 
 The integration test described here simply injects images into an instance of the camera-traps application configured for testing with internal plugins (only one process is started).  The application runs in a docker container whereas the integration test is invoked by cargo.  To allow the test to communicate with the application, the latter runs on the host network rather than a private docker network.  Though unlikely, failures are possible if the configured ports are already in use.
 
-The integration test executable must exist in order for cargo to invoke it, which requires that the Rust compiler is installed.
+*The integration test executable must exist in order for cargo to invoke it. This typically requires a Rust development environment to run and, if necessary, build the test program.*
 
 
 ## Commands
@@ -47,3 +47,4 @@ Test execution will cause four events to be logged by the observer plugin for ea
 - ImageScoredEvent
 - ImageStoredEvent
 
+The level of logging detail can be controlled by modifying the log4rs.yml file in this directory.
