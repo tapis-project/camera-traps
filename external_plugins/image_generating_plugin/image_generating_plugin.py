@@ -202,7 +202,7 @@ def send_images(data, socket):
     while not done:
         done, index, indexvalues = send_new_image(data, index, indexvalue, initial_index, socket)
         try:
-            msg = get_next_msg(timeout=10)
+            msg = get_next_msg(socket, timeout=10)
             if msg == "PluginTerminateEvent":
                 send_quit_command(socket)
         except zmq.error.Again:
