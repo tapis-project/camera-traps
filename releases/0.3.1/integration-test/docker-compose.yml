@@ -18,5 +18,5 @@ services:
       # mount the image output directory from the host to the directory specified in traps.toml
       # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
       # exist it will be created with root ownership.
-      - /home/${USER}/traps/output:/images-received
+      - /home/${USER}/camera-traps/output:/root/camera-traps/images
       

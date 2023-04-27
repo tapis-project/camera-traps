@@ -3,22 +3,22 @@ use thiserror::Error;
 /// Error enumerates the errors returned by this application.
 #[derive(Error, Debug)]
 pub enum Errors {
-    #[error("Internal plugin {0} is configured with action {1}.)")]
+    #[error("Internal plugin {0} is configured with action {1}.")]
     ActionConfigured(String, String),
 
-    #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
+    #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.")]
     ActionImageFormatTypeError(String, String),
 
-    #[error("Action {1} in plugin {0} received a {2} event but could not access the image data.)")]
+    #[error("Action {1} in plugin {0} received a {2} event but could not access the image data.")]
     ActionNoImageError(String, String, String),
 
-    #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.)")]
+    #[error("Internal plugin {0} initialization failed because invalid action {1} was configured.")]
     ActionNotFound(String, String),
 
-    #[error("Action {1} in plugin {0} failed to open file {2}: {3})")]
+    #[error("Action {1} in plugin {0} failed to open file {2}: {3}")]
     ActionOpenFileError(String, String, String, String),
 
-    #[error("Action {1} in plugin {0} failed to write file {2}: {3})")]
+    #[error("Action {1} in plugin {0} failed to write file {2}: {3}")]
     ActionWriteFileError(String, String, String, String),
 
     #[error("Unable to create directory {0}: {1}")]
@@ -48,7 +48,7 @@ pub enum Errors {
     #[error("Plugin {0} received event type {1} which it does not handle.")]
     EventNotHandledError(String, String),
 
-    #[error("Plugin {0} received event with mismatched prefix ({1} and type ({2}).)")]
+    #[error("Plugin {0} received event with mismatched prefix ({1} and type ({2}.")]
     EventPrefixMismatch(String, String, String),
 
     #[error("Plugin {0} is processing event type {1}.")]
@@ -63,7 +63,7 @@ pub enum Errors {
     #[error("Unable to read event type from raw event, expected type is: {}", .0)]
     EventReadTypeError(String),
 
-    #[error("Event {0} was received with an empty {1} list.)")]
+    #[error("Event {0} was received with an empty {1} list.")]
     EventReceivedEmptyList(String, String),
 
     #[error("Plugin {} is unable to send a {} event: {}", .0, .1, .2)]
