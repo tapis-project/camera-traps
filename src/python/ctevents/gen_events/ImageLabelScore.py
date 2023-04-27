@@ -25,36 +25,26 @@ class ImageLabelScore(object):
         self._tab = flatbuffers.table.Table(buf, pos)
 
     # ImageLabelScore
-    def ImageUuid(self):
+    def Label(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
         return None
 
     # ImageLabelScore
-    def Label(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
-        if o != 0:
-            return self._tab.String(o + self._tab.Pos)
-        return None
-
-    # ImageLabelScore
     def Probability(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Float32Flags, o + self._tab.Pos)
         return 0.0
 
-def ImageLabelScoreStart(builder): builder.StartObject(3)
+def ImageLabelScoreStart(builder): builder.StartObject(2)
 def Start(builder):
     return ImageLabelScoreStart(builder)
-def ImageLabelScoreAddImageUuid(builder, imageUuid): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(imageUuid), 0)
-def AddImageUuid(builder, imageUuid):
-    return ImageLabelScoreAddImageUuid(builder, imageUuid)
-def ImageLabelScoreAddLabel(builder, label): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(label), 0)
+def ImageLabelScoreAddLabel(builder, label): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(label), 0)
 def AddLabel(builder, label):
     return ImageLabelScoreAddLabel(builder, label)
-def ImageLabelScoreAddProbability(builder, probability): builder.PrependFloat32Slot(2, probability, 0.0)
+def ImageLabelScoreAddProbability(builder, probability): builder.PrependFloat32Slot(1, probability, 0.0)
 def AddProbability(builder, probability):
     return ImageLabelScoreAddProbability(builder, probability)
 def ImageLabelScoreEnd(builder): return builder.EndObject()

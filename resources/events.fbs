@@ -8,7 +8,8 @@ namespace gen_events;
 //
 // cf., https://google.github.io/flatbuffers/md__schemas.html
 union EventType {NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent,
-                 PluginStartedEvent, PluginTerminatingEvent, PluginTerminateEvent}
+                 PluginStartedEvent, PluginTerminatingEvent, PluginTerminateEvent,
+                 MonitorPowerStartEvent, MonitorPowerStopEvent}
 
 // Event with embedded new image.  This is how images enter the system.
 // In simulation environments, the simulator generates images and posts
@@ -33,7 +34,6 @@ table ImageReceivedEvent {
 
 // Represents the probability that an image has a specific label.
 table ImageLabelScore {
-  image_uuid:string;
   label:string;
   probability:float;
 }
@@ -81,6 +81,33 @@ table PluginTerminateEvent {
   event_create_ts:string;
   target_plugin_name:string;
   target_plugin_uuid:string;
+}
+
+// Used to target specific components for monitoring.
+enum MonitorType: byte { ALL = 1, CPU, GPU, DRAM }                
+
+// Event that requests power monitoring to begin.  The pids array contains the process ids
+// to be monitored.  The monitor_types array indicates which hardware components to measure.  
+// Both arrays must be specified and non-empty.  The start time (in UTC) indicates the point 
+// in time when measurement should begin.  If the start time is specified as the empty string 
+// (not null) or a time in the past, then the measurement begins immediately.  This assumes 
+// synchronized clocks.  The monitor_seconds value indicates the number of seconds to monitor; 
+// zero means monitor indefinitely (i.e., until receiving MonitorPowerStopEvent or 
+// PluginTerminateEvent).
+table MonitorPowerStartEvent {
+  event_create_ts:string;
+  pids:[int32];
+  monitor_types:[MonitorType];
+  monitor_start_ts:string;
+  monitor_seconds:uint32;
+}
+
+// Event that immediately causes the monitoring to stop for the process ids listed in the pids 
+// array, which must be non-empty  It is a no-op if a process id is listed but not currently 
+// being monitored. 
+table MonitorPowerStopEvent {
+  event_create_ts:string;
+  pids:[int32];
 }
 
 // The root_type needs to be a table, not a union, so we wrap it up like this

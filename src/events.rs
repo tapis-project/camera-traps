@@ -11,7 +11,7 @@ use anyhow::Result;
 // Application errors.
 use crate::config::errors::Errors;
 use crate::events_generated::gen_events;
-use crate::traps_utils::timestamp_str;
+use crate::traps_utils::{timestamp_str, timestamp_str_to_datetime};
 
 // ***************************************************************************
 // CONSTANTS
@@ -19,13 +19,15 @@ use crate::traps_utils::timestamp_str;
 // Each event is assigned a binary prefix that zqm uses to route incoming
 // binary streams to all of the event's subscribers.
 pub const NEW_IMAGE_PREFIX: [u8; 2] = [0x01, 0x00];
-pub const IMAGE_RECEIVED_PREFIX: [u8; 2] = [0x02, 0x00];
-pub const IMAGE_SCORED_PREFIX: [u8; 2] = [0x03, 0x00];
-pub const IMAGE_STORED_PREFIX: [u8; 2] = [0x04, 0x00];
-pub const IMAGE_DELETED_PREFIX: [u8; 2] = [0x05, 0x00];
-pub const PLUGIN_STARTED_PREFIX: [u8; 2] = [0x10, 0x00];
-pub const PLUGIN_TERMINATING_PREFIX: [u8; 2] = [0x11, 0x00];
-pub const PLUGIN_TERMINATE_PREFIX: [u8; 2] = [0x12, 0x00];
+pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];
+pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];
+pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];
+pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];
+pub const PLUGIN_STARTED_PREFIX:      [u8; 2] = [0x10, 0x00];
+pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];
+pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];
+pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];
+pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];
 pub const EVENT_PREFIX_LEN: usize = NEW_IMAGE_PREFIX.len();
 
 // ***************************************************************************
@@ -62,6 +64,12 @@ pub fn check_event_prefix(prefix: [u8; 2], event_name: &str) -> bool {
         }
         PLUGIN_TERMINATE_PREFIX => {
             event_name == "PluginTerminateEvent" 
+        }
+        MONITOR_POWER_START_PREFIX => {
+            event_name == "MonitorPowerStartEvent" 
+        }
+        MONITOR_POWER_STOP_PREFIX => {
+            event_name == "MonitorPowerStopEvent" 
         }
         _ => false,
     }
@@ -382,7 +390,6 @@ impl ImageReceivedEvent {
 // ------------------------------
 #[derive(Serialize)]
 pub struct ImageLabelScore {
-    image_uuid: Uuid,
     label: String,
     probability: f32,
 }
@@ -391,28 +398,12 @@ impl ImageLabelScore {
     #![allow(unused)]
     pub fn new(image_uuid: Uuid, label: String, probability: f32) -> Self {
         ImageLabelScore {
-            image_uuid,
             label,
             probability,
         }
     }
 
     pub fn new_from_gen(ev: gen_events::ImageLabelScore) -> Result<Self, Errors> {
-        // Get the uuid.
-        let u = match ev.image_uuid() {
-            Some(s) => s,
-            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("uuid"))),
-        };
-        let uuid = match Uuid::parse_str(u) {
-            Ok(u) => u,
-            Err(e) => {
-                return Result::Err(Errors::UUIDParseError(
-                    String::from("image_uuid"),
-                    e.to_string(),
-                ))
-            }
-        };
-
         // Get the image label string.
         let label = match ev.label() {
             Some(s) => s,
@@ -424,7 +415,6 @@ impl ImageLabelScore {
 
         // Return the object.
         Result::Ok(ImageLabelScore {
-            image_uuid: uuid,
             label: String::from(label),
             probability,
         })
@@ -473,14 +463,12 @@ impl Event for ImageScoredEvent {
             Vec::<flatbuffers::WIPOffset<gen_events::ImageLabelScore>>::new();
         for score in &self.scores {
             // Assign the string fields.
-            let image_uuid = Some(fbuf.create_string(&score.image_uuid.hyphenated().to_string()));
             let label = Some(fbuf.create_string(&score.label));
 
             // Create each generated score object
             let im_score = gen_events::ImageLabelScore::create(
                 &mut fbuf,
                 &gen_events::ImageLabelScoreArgs {
-                    image_uuid,
                     label,
                     probability: score.probability,
                 },
@@ -617,25 +605,6 @@ impl ImageScoredEvent {
         // Iterate through each generated score and add to list of event scores.
         let mut scores: Vec<ImageLabelScore> = Vec::new();
         for gen_score in gen_scores {
-            // Extract the imaget uuid.
-            let u = match gen_score.image_uuid() {
-                Some(u) => u,
-                None => {
-                    return Result::Err(Errors::EventReadFlatbuffer(String::from(
-                        "ImageLabelScore.image_uuid",
-                    )))
-                }
-            };
-            let image_uuid = match Uuid::parse_str(u) {
-                Ok(u) => u,
-                Err(e) => {
-                    return Result::Err(Errors::UUIDParseError(
-                        String::from("ImageLabelScore.image_uuid"),
-                        e.to_string(),
-                    ))
-                }
-            };
-
             // Extract the label.
             let label = match gen_score.label() {
                 Some(s) => s,
@@ -651,7 +620,6 @@ impl ImageScoredEvent {
 
             // Create the event imagelabelscore and add it to the vector.
             let new_score = ImageLabelScore {
-                image_uuid,
                 label: label.to_string(),
                 probability,
             };
@@ -1412,6 +1380,377 @@ impl PluginTerminateEvent {
             created: String::from(created),
             target_plugin_name: String::from(target_plugin_name),
             target_plugin_uuid: uuid,
+        })
+    }
+}
+
+// ===========================================================================
+// MonitorPowerStartEvent:
+// ===========================================================================
+// All possible poew monitoring options.
+#[allow(clippy::upper_case_acronyms)]
+pub enum  MonitorType { ALL = 1, CPU, GPU, DRAM, }
+
+pub struct MonitorPowerStartEvent {
+    created: String,
+    pids: Vec<i32>,
+    monitor_types: Vec<MonitorType>,
+    monitor_start: String,
+    monitor_seconds: u32,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for MonitorPowerStartEvent {
+    fn get_name(&self) -> String {
+        String::from("MonitorPowerStartEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(MONITOR_POWER_START_PREFIX.to_vec())
+    }
+}
+
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for MonitorPowerStartEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Populate a list of gen_events monitor types.
+        let mut gen_types: Vec<gen_events::MonitorType> = Vec::new();
+        for mtype in &self.monitor_types {
+            match *mtype {
+                MonitorType::ALL  => gen_types.push(gen_events::MonitorType::ALL),
+                MonitorType::CPU  => gen_types.push(gen_events::MonitorType::CPU),
+                MonitorType::GPU  => gen_types.push(gen_events::MonitorType::GPU),
+                MonitorType::DRAM => gen_types.push(gen_events::MonitorType::DRAM),
+            }
+        }
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::MonitorPowerStartEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            pids: Some(fbuf.create_vector(&self.pids)),
+            monitor_types: Some(fbuf.create_vector(&gen_types)),
+            monitor_start_ts: Some(fbuf.create_string(&self.monitor_start)),
+            monitor_seconds: self.monitor_seconds,
+         };
+        let event_offset = gen_events::MonitorPowerStartEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::MonitorPowerStartEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(
+            MONITOR_POWER_START_PREFIX,
+            fbuf,
+            union_args,
+        ))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a MonitorPowerStartEvent from raw event bytes that do NOT include the zqm prefix. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<MonitorPowerStartEvent, Box<dyn Error>>
+    where
+        Self: Sized,
+    {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "MonitorPowerStartEvent";
+        check_event_type(event_type, &event)?;
+
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_monitor_power_start_event() {
+            Some(ev) => ev,
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match MonitorPowerStartEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl MonitorPowerStartEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(pids: Vec<i32>, monitor_types: Vec<MonitorType>, 
+                monitor_start: String, monitor_seconds: u32) -> Self {
+        MonitorPowerStartEvent {
+            created: timestamp_str(),
+            pids, 
+            monitor_types,
+            monitor_start,
+            monitor_seconds,
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. 
+     * This function enforces the constraints that the pids and monitor_types
+     * lists must contain at least one element each.
+    */
+    pub fn new_from_gen(ev: gen_events::MonitorPowerStartEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
+        };
+
+        // Get pids array.
+        let gen_pids = match ev.pids() {
+            Some(v) => v,
+            None => {
+                return Result::Err(Errors::EventReadFlatbuffer(String::from("pids")))
+            }
+        };
+        // Validate there's something to do.
+        if gen_pids.is_empty() {
+            return Result::Err(Errors::EventReceivedEmptyList(
+                "MonitorPowerStartEvent".to_string(), "pids".to_string()))
+        }
+        // Extract the pids into a standard vector.
+        let mut pids: Vec<i32> = Vec::new(); 
+        for pid in gen_pids {
+            pids.push(pid);
+        }
+
+        // Get monitor types array.
+        let gen_monitor_types = match ev.monitor_types() {
+            Some(v) => v,
+            None => {
+                return Result::Err(Errors::EventReadFlatbuffer(String::from("montitor_types")))
+            }
+        };
+        // Validate there's something to do.
+        if gen_monitor_types.is_empty() {
+            return Result::Err(Errors::EventReceivedEmptyList(
+                "MonitorPowerStartEvent".to_string(), "monitor_types".to_string()))
+        }
+        
+        // Extract the monitor types into a standard vector.
+        let mut monitor_types: Vec<MonitorType> = Vec::new();
+        for gen_type in gen_monitor_types {
+            let gen_type_str = match gen_type.variant_name() {
+                Some(s) => s,
+                None => {
+                    return Result::Err(Errors::EventReadFlatbuffer(String::from("montitor_type")))
+                }
+            };
+            // Update this list whenever the there's a change to monitor types.
+            match gen_type_str {
+                "ALL"  => monitor_types.push(MonitorType::ALL),
+                "CPU"  => monitor_types.push(MonitorType::CPU),
+                "GPU"  => monitor_types.push(MonitorType::GPU),
+                "DRAM" => monitor_types.push(MonitorType::DRAM),
+                _ => {
+                    return Result::Err(Errors::EventReadFlatbuffer(
+                        "montitor_type".to_string() + " Unknown -> " + gen_type_str))
+                }
+            };
+        }
+
+        // Get the monitor start timestamp.  It should always be a valid
+        // UTC datetime, but it has no effec if it's in the past.
+        let monitor_start = match ev.monitor_start_ts() {
+            Some(s) => s,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("monitor_start"))),
+        };
+        // Validate that we have a well-formed datetime or the empty string.
+        // The empty string means monitoring should start immediately.
+        if !monitor_start.is_empty() {
+            let dt = match timestamp_str_to_datetime(monitor_start) {
+                Ok(d) => d,
+                Err(e) => {
+                    return Result::Err(Errors::DateParseError(monitor_start.to_string(), e.to_string()))
+                },
+            };
+        }
+
+        // Get the monitoring duration in seconds.
+        let monitor_seconds = ev.monitor_seconds();
+
+        // Finally...
+        Result::Ok(MonitorPowerStartEvent {
+            created: String::from(created),
+            pids,
+            monitor_types,
+            monitor_start: monitor_start.to_string(),
+            monitor_seconds,
+        })
+    }
+}
+
+// ===========================================================================
+// MonitorPowerStopEvent:
+// ===========================================================================
+pub struct MonitorPowerStopEvent {
+    created: String,
+    pids: Vec<i32>,
+}
+
+// ------------------------------
+// ------ Trait EventType
+// ------------------------------
+impl EventType for MonitorPowerStopEvent {
+    fn get_name(&self) -> String {
+        String::from("MonitorPowerStopEvent")
+    }
+
+    fn get_filter(&self) -> Result<Vec<u8>, EngineError> {
+        Result::Ok(MONITOR_POWER_STOP_PREFIX.to_vec())
+    }
+}
+
+// ------------------------------
+// ------ Trait Event
+// ------------------------------
+impl Event for MonitorPowerStopEvent {
+    // ----------------------------------------------------------------------
+    // to_bytes:
+    // ----------------------------------------------------------------------
+    /** Convert the event to a raw byte array (prefix + flatbuffer). */
+    fn to_bytes(&self) -> Result<Vec<u8>, EngineError> {
+        // Create a new flatbuffer.
+        let mut fbuf = FlatBufferBuilder::new();
+
+        // Assign the generated arguments object from our application object.
+        // Create the generated event offset object using the generated arguments.
+        let args = gen_events::MonitorPowerStopEventArgs {
+            event_create_ts: Some(fbuf.create_string(&self.created)),
+            pids: Some(fbuf.create_vector(&self.pids)),
+         };
+        let event_offset = gen_events::MonitorPowerStopEvent::create(&mut fbuf, &args);
+
+        // Create generated event arguments which are a union for all possible events.
+        // Create the generated event union offset object using the union arguments.
+        let union_args = gen_events::EventArgs {
+            event_type: gen_events::EventType::MonitorPowerStopEvent,
+            event: Some(event_offset.as_union_value()),
+        };
+
+        // All event serializations are completed in the same way.
+        Ok(serialize_flatbuffer(
+            MONITOR_POWER_STOP_PREFIX,
+            fbuf,
+            union_args,
+        ))
+    }
+
+    // ----------------------------------------------------------------------
+    // from_bytes:
+    // ----------------------------------------------------------------------
+    /** Get a MonitorPowerStopEvent from raw event bytes that do NOT include the zqm prefix. */
+    fn from_bytes(bytes: Vec<u8>) -> Result<MonitorPowerStopEvent, Box<dyn Error>>
+    where
+        Self: Sized,
+    {
+        // Get the union of all possible generated events.
+        let event = bytes_to_gen_event(&bytes)?;
+
+        // Validate that we recieved the expected type of event.
+        let event_type = "MonitorPowerStopEvent";
+        check_event_type(event_type, &event)?;
+
+        // Create the generated event from the raw flatbuffer.
+        let flatbuf_event = match event.event_as_monitor_power_stop_event() {
+            Some(ev) => ev,
+            None => {
+                return Err(Box::new(Errors::EventCreateFromFlatbuffer(
+                    event_type.to_string(),
+                )))
+            }
+        };
+
+        // Return a camera-trap event given the flatbuffer generated event.
+        match MonitorPowerStopEvent::new_from_gen(flatbuf_event) {
+            Ok(ev) => Result::Ok(ev),
+            Err(e) => Result::Err(Box::new(e)),
+        }
+    }
+}
+
+// ------------------------------
+// ------ Associated Functions
+// ------------------------------
+impl MonitorPowerStopEvent {
+    // ----------------------------------------------------------------------
+    // new:
+    // ----------------------------------------------------------------------
+    #![allow(unused)]
+    pub fn new(pids: Vec<i32>) -> Self {
+        MonitorPowerStopEvent {
+            created: timestamp_str(),
+            pids, 
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // new_from_gen:
+    // ----------------------------------------------------------------------
+    /** Construct a new event object from a generated flatbuffer object. 
+     * This function enforces the constraints that the pids list must contain
+     * at least one element.
+    */
+    pub fn new_from_gen(ev: gen_events::MonitorPowerStopEvent) -> Result<Self, Errors> {
+        // Get the timestamp.
+        let created = match ev.event_create_ts() {
+            Some(s) => s,
+            None => return Result::Err(Errors::EventReadFlatbuffer(String::from("created"))),
+        };
+
+        // Get pids array.
+        let gen_pids = match ev.pids() {
+            Some(v) => v,
+            None => {
+                return Result::Err(Errors::EventReadFlatbuffer(String::from("pids")))
+            }
+        };
+        // Validate there's something to do.
+        if gen_pids.is_empty() {
+            return Result::Err(Errors::EventReceivedEmptyList(
+                "MonitorPowerStopEvent".to_string(), "pids".to_string()))
+        }
+        // Extract the pids into a standard vector.
+        let mut pids: Vec<i32> = Vec::new(); 
+        for pid in gen_pids {
+            pids.push(pid);
+        }
+
+        // Finally...
+        Result::Ok(MonitorPowerStopEvent {
+            created: String::from(created),
+            pids,
         })
     }
 }

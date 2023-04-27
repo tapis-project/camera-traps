@@ -21,10 +21,10 @@ pub mod gen_events {
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_EVENT_TYPE: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_EVENT_TYPE: u8 = 8;
+pub const ENUM_MAX_EVENT_TYPE: u8 = 10;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_EVENT_TYPE: [EventType; 9] = [
+pub const ENUM_VALUES_EVENT_TYPE: [EventType; 11] = [
   EventType::NONE,
   EventType::NewImageEvent,
   EventType::ImageReceivedEvent,
@@ -34,6 +34,8 @@ pub const ENUM_VALUES_EVENT_TYPE: [EventType; 9] = [
   EventType::PluginStartedEvent,
   EventType::PluginTerminatingEvent,
   EventType::PluginTerminateEvent,
+  EventType::MonitorPowerStartEvent,
+  EventType::MonitorPowerStopEvent,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -50,9 +52,11 @@ impl EventType {
   pub const PluginStartedEvent: Self = Self(6);
   pub const PluginTerminatingEvent: Self = Self(7);
   pub const PluginTerminateEvent: Self = Self(8);
+  pub const MonitorPowerStartEvent: Self = Self(9);
+  pub const MonitorPowerStopEvent: Self = Self(10);
 
   pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 8;
+  pub const ENUM_MAX: u8 = 10;
   pub const ENUM_VALUES: &'static [Self] = &[
     Self::NONE,
     Self::NewImageEvent,
@@ -63,6 +67,8 @@ impl EventType {
     Self::PluginStartedEvent,
     Self::PluginTerminatingEvent,
     Self::PluginTerminateEvent,
+    Self::MonitorPowerStartEvent,
+    Self::MonitorPowerStopEvent,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
@@ -76,6 +82,8 @@ impl EventType {
       Self::PluginStartedEvent => Some("PluginStartedEvent"),
       Self::PluginTerminatingEvent => Some("PluginTerminatingEvent"),
       Self::PluginTerminateEvent => Some("PluginTerminateEvent"),
+      Self::MonitorPowerStartEvent => Some("MonitorPowerStartEvent"),
+      Self::MonitorPowerStopEvent => Some("MonitorPowerStopEvent"),
       _ => None,
     }
   }
@@ -135,6 +143,101 @@ impl<'a> flatbuffers::Verifiable for EventType {
 impl flatbuffers::SimpleToVerifyInSlice for EventType {}
 pub struct EventTypeUnionTableOffset {}
 
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MIN_MONITOR_TYPE: i8 = 1;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MAX_MONITOR_TYPE: i8 = 4;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_MONITOR_TYPE: [MonitorType; 4] = [
+  MonitorType::ALL,
+  MonitorType::CPU,
+  MonitorType::GPU,
+  MonitorType::DRAM,
+];
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct MonitorType(pub i8);
+#[allow(non_upper_case_globals)]
+impl MonitorType {
+  pub const ALL: Self = Self(1);
+  pub const CPU: Self = Self(2);
+  pub const GPU: Self = Self(3);
+  pub const DRAM: Self = Self(4);
+
+  pub const ENUM_MIN: i8 = 1;
+  pub const ENUM_MAX: i8 = 4;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::ALL,
+    Self::CPU,
+    Self::GPU,
+    Self::DRAM,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::ALL => Some("ALL"),
+      Self::CPU => Some("CPU"),
+      Self::GPU => Some("GPU"),
+      Self::DRAM => Some("DRAM"),
+      _ => None,
+    }
+  }
+}
+impl core::fmt::Debug for MonitorType {
+  fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for MonitorType {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<i8>(buf, loc)
+    };
+    Self(b)
+  }
+}
+
+impl flatbuffers::Push for MonitorType {
+    type Output = MonitorType;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        unsafe { flatbuffers::emplace_scalar::<i8>(dst, self.0); }
+    }
+}
+
+impl flatbuffers::EndianScalar for MonitorType {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = i8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = i8::from_le(self.0);
+    Self(b)
+  }
+}
+
+impl<'a> flatbuffers::Verifiable for MonitorType {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    i8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for MonitorType {}
 pub enum NewImageEventOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -409,9 +512,8 @@ impl<'a> flatbuffers::Follow<'a> for ImageLabelScore<'a> {
 }
 
 impl<'a> ImageLabelScore<'a> {
-  pub const VT_IMAGE_UUID: flatbuffers::VOffsetT = 4;
-  pub const VT_LABEL: flatbuffers::VOffsetT = 6;
-  pub const VT_PROBABILITY: flatbuffers::VOffsetT = 8;
+  pub const VT_LABEL: flatbuffers::VOffsetT = 4;
+  pub const VT_PROBABILITY: flatbuffers::VOffsetT = 6;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -425,15 +527,10 @@ impl<'a> ImageLabelScore<'a> {
     let mut builder = ImageLabelScoreBuilder::new(_fbb);
     builder.add_probability(args.probability);
     if let Some(x) = args.label { builder.add_label(x); }
-    if let Some(x) = args.image_uuid { builder.add_image_uuid(x); }
     builder.finish()
   }
 
 
-  #[inline]
-  pub fn image_uuid(&self) -> Option<&'a str> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageLabelScore::VT_IMAGE_UUID, None)
-  }
   #[inline]
   pub fn label(&self) -> Option<&'a str> {
     self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(ImageLabelScore::VT_LABEL, None)
@@ -451,7 +548,6 @@ impl flatbuffers::Verifiable for ImageLabelScore<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("image_uuid", Self::VT_IMAGE_UUID, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("label", Self::VT_LABEL, false)?
      .visit_field::<f32>("probability", Self::VT_PROBABILITY, false)?
      .finish();
@@ -459,7 +555,6 @@ impl flatbuffers::Verifiable for ImageLabelScore<'_> {
   }
 }
 pub struct ImageLabelScoreArgs<'a> {
-    pub image_uuid: Option<flatbuffers::WIPOffset<&'a str>>,
     pub label: Option<flatbuffers::WIPOffset<&'a str>>,
     pub probability: f32,
 }
@@ -467,7 +562,6 @@ impl<'a> Default for ImageLabelScoreArgs<'a> {
   #[inline]
   fn default() -> Self {
     ImageLabelScoreArgs {
-      image_uuid: None,
       label: None,
       probability: 0.0,
     }
@@ -479,10 +573,6 @@ pub struct ImageLabelScoreBuilder<'a: 'b, 'b> {
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
 impl<'a: 'b, 'b> ImageLabelScoreBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_image_uuid(&mut self, image_uuid: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageLabelScore::VT_IMAGE_UUID, image_uuid);
-  }
   #[inline]
   pub fn add_label(&mut self, label: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ImageLabelScore::VT_LABEL, label);
@@ -509,7 +599,6 @@ impl<'a: 'b, 'b> ImageLabelScoreBuilder<'a, 'b> {
 impl core::fmt::Debug for ImageLabelScore<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     let mut ds = f.debug_struct("ImageLabelScore");
-      ds.field("image_uuid", &self.image_uuid());
       ds.field("label", &self.label());
       ds.field("probability", &self.probability());
       ds.finish()
@@ -1275,6 +1364,264 @@ impl core::fmt::Debug for PluginTerminateEvent<'_> {
       ds.finish()
   }
 }
+pub enum MonitorPowerStartEventOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct MonitorPowerStartEvent<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for MonitorPowerStartEvent<'a> {
+  type Inner = MonitorPowerStartEvent<'a>;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table { buf, loc } }
+  }
+}
+
+impl<'a> MonitorPowerStartEvent<'a> {
+  pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
+  pub const VT_PIDS: flatbuffers::VOffsetT = 6;
+  pub const VT_MONITOR_TYPES: flatbuffers::VOffsetT = 8;
+  pub const VT_MONITOR_START_TS: flatbuffers::VOffsetT = 10;
+  pub const VT_MONITOR_SECONDS: flatbuffers::VOffsetT = 12;
+
+  #[inline]
+  pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    MonitorPowerStartEvent { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args MonitorPowerStartEventArgs<'args>
+  ) -> flatbuffers::WIPOffset<MonitorPowerStartEvent<'bldr>> {
+    let mut builder = MonitorPowerStartEventBuilder::new(_fbb);
+    builder.add_monitor_seconds(args.monitor_seconds);
+    if let Some(x) = args.monitor_start_ts { builder.add_monitor_start_ts(x); }
+    if let Some(x) = args.monitor_types { builder.add_monitor_types(x); }
+    if let Some(x) = args.pids { builder.add_pids(x); }
+    if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn event_create_ts(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(MonitorPowerStartEvent::VT_EVENT_CREATE_TS, None)
+  }
+  #[inline]
+  pub fn pids(&self) -> Option<flatbuffers::Vector<'a, i32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i32>>>(MonitorPowerStartEvent::VT_PIDS, None)
+  }
+  #[inline]
+  pub fn monitor_types(&self) -> Option<flatbuffers::Vector<'a, MonitorType>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, MonitorType>>>(MonitorPowerStartEvent::VT_MONITOR_TYPES, None)
+  }
+  #[inline]
+  pub fn monitor_start_ts(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(MonitorPowerStartEvent::VT_MONITOR_START_TS, None)
+  }
+  #[inline]
+  pub fn monitor_seconds(&self) -> u32 {
+    self._tab.get::<u32>(MonitorPowerStartEvent::VT_MONITOR_SECONDS, Some(0)).unwrap()
+  }
+}
+
+impl flatbuffers::Verifiable for MonitorPowerStartEvent<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, i32>>>("pids", Self::VT_PIDS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, MonitorType>>>("monitor_types", Self::VT_MONITOR_TYPES, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("monitor_start_ts", Self::VT_MONITOR_START_TS, false)?
+     .visit_field::<u32>("monitor_seconds", Self::VT_MONITOR_SECONDS, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct MonitorPowerStartEventArgs<'a> {
+    pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub pids: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
+    pub monitor_types: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, MonitorType>>>,
+    pub monitor_start_ts: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub monitor_seconds: u32,
+}
+impl<'a> Default for MonitorPowerStartEventArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    MonitorPowerStartEventArgs {
+      event_create_ts: None,
+      pids: None,
+      monitor_types: None,
+      monitor_start_ts: None,
+      monitor_seconds: 0,
+    }
+  }
+}
+
+pub struct MonitorPowerStartEventBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> MonitorPowerStartEventBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_event_create_ts(&mut self, event_create_ts: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MonitorPowerStartEvent::VT_EVENT_CREATE_TS, event_create_ts);
+  }
+  #[inline]
+  pub fn add_pids(&mut self, pids: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MonitorPowerStartEvent::VT_PIDS, pids);
+  }
+  #[inline]
+  pub fn add_monitor_types(&mut self, monitor_types: flatbuffers::WIPOffset<flatbuffers::Vector<'b , MonitorType>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MonitorPowerStartEvent::VT_MONITOR_TYPES, monitor_types);
+  }
+  #[inline]
+  pub fn add_monitor_start_ts(&mut self, monitor_start_ts: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MonitorPowerStartEvent::VT_MONITOR_START_TS, monitor_start_ts);
+  }
+  #[inline]
+  pub fn add_monitor_seconds(&mut self, monitor_seconds: u32) {
+    self.fbb_.push_slot::<u32>(MonitorPowerStartEvent::VT_MONITOR_SECONDS, monitor_seconds, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> MonitorPowerStartEventBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    MonitorPowerStartEventBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<MonitorPowerStartEvent<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for MonitorPowerStartEvent<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("MonitorPowerStartEvent");
+      ds.field("event_create_ts", &self.event_create_ts());
+      ds.field("pids", &self.pids());
+      ds.field("monitor_types", &self.monitor_types());
+      ds.field("monitor_start_ts", &self.monitor_start_ts());
+      ds.field("monitor_seconds", &self.monitor_seconds());
+      ds.finish()
+  }
+}
+pub enum MonitorPowerStopEventOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct MonitorPowerStopEvent<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for MonitorPowerStopEvent<'a> {
+  type Inner = MonitorPowerStopEvent<'a>;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table { buf, loc } }
+  }
+}
+
+impl<'a> MonitorPowerStopEvent<'a> {
+  pub const VT_EVENT_CREATE_TS: flatbuffers::VOffsetT = 4;
+  pub const VT_PIDS: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    MonitorPowerStopEvent { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args MonitorPowerStopEventArgs<'args>
+  ) -> flatbuffers::WIPOffset<MonitorPowerStopEvent<'bldr>> {
+    let mut builder = MonitorPowerStopEventBuilder::new(_fbb);
+    if let Some(x) = args.pids { builder.add_pids(x); }
+    if let Some(x) = args.event_create_ts { builder.add_event_create_ts(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn event_create_ts(&self) -> Option<&'a str> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(MonitorPowerStopEvent::VT_EVENT_CREATE_TS, None)
+  }
+  #[inline]
+  pub fn pids(&self) -> Option<flatbuffers::Vector<'a, i32>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, i32>>>(MonitorPowerStopEvent::VT_PIDS, None)
+  }
+}
+
+impl flatbuffers::Verifiable for MonitorPowerStopEvent<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("event_create_ts", Self::VT_EVENT_CREATE_TS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, i32>>>("pids", Self::VT_PIDS, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct MonitorPowerStopEventArgs<'a> {
+    pub event_create_ts: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub pids: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i32>>>,
+}
+impl<'a> Default for MonitorPowerStopEventArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    MonitorPowerStopEventArgs {
+      event_create_ts: None,
+      pids: None,
+    }
+  }
+}
+
+pub struct MonitorPowerStopEventBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> MonitorPowerStopEventBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_event_create_ts(&mut self, event_create_ts: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MonitorPowerStopEvent::VT_EVENT_CREATE_TS, event_create_ts);
+  }
+  #[inline]
+  pub fn add_pids(&mut self, pids: flatbuffers::WIPOffset<flatbuffers::Vector<'b , i32>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MonitorPowerStopEvent::VT_PIDS, pids);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> MonitorPowerStopEventBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    MonitorPowerStopEventBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<MonitorPowerStopEvent<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for MonitorPowerStopEvent<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("MonitorPowerStopEvent");
+      ds.field("event_create_ts", &self.event_create_ts());
+      ds.field("pids", &self.pids());
+      ds.finish()
+  }
+}
 pub enum EventOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -1398,6 +1745,26 @@ impl<'a> Event<'a> {
     }
   }
 
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn event_as_monitor_power_start_event(&self) -> Option<MonitorPowerStartEvent<'a>> {
+    if self.event_type() == EventType::MonitorPowerStartEvent {
+      self.event().map(MonitorPowerStartEvent::init_from_table)
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn event_as_monitor_power_stop_event(&self) -> Option<MonitorPowerStopEvent<'a>> {
+    if self.event_type() == EventType::MonitorPowerStopEvent {
+      self.event().map(MonitorPowerStopEvent::init_from_table)
+    } else {
+      None
+    }
+  }
+
 }
 
 impl flatbuffers::Verifiable for Event<'_> {
@@ -1417,6 +1784,8 @@ impl flatbuffers::Verifiable for Event<'_> {
           EventType::PluginStartedEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<PluginStartedEvent>>("EventType::PluginStartedEvent", pos),
           EventType::PluginTerminatingEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<PluginTerminatingEvent>>("EventType::PluginTerminatingEvent", pos),
           EventType::PluginTerminateEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<PluginTerminateEvent>>("EventType::PluginTerminateEvent", pos),
+          EventType::MonitorPowerStartEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<MonitorPowerStartEvent>>("EventType::MonitorPowerStartEvent", pos),
+          EventType::MonitorPowerStopEvent => v.verify_union_variant::<flatbuffers::ForwardsUOffset<MonitorPowerStopEvent>>("EventType::MonitorPowerStopEvent", pos),
           _ => Ok(()),
         }
      })?
@@ -1527,6 +1896,20 @@ impl core::fmt::Debug for Event<'_> {
             ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
           }
         },
+        EventType::MonitorPowerStartEvent => {
+          if let Some(x) = self.event_as_monitor_power_start_event() {
+            ds.field("event", &x)
+          } else {
+            ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        EventType::MonitorPowerStopEvent => {
+          if let Some(x) = self.event_as_monitor_power_stop_event() {
+            ds.field("event", &x)
+          } else {
+            ds.field("event", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
         _ => {
           let x: Option<()> = None;
           ds.field("event", &x)
@@ -1619,3 +2002,4 @@ pub fn finish_size_prefixed_event_buffer<'a, 'b>(fbb: &'b mut flatbuffers::FlatB
   fbb.finish_size_prefixed(root, None);
 }
 }  // pub mod gen_events
+

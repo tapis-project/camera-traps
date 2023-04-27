@@ -12,3 +12,5 @@ class EventType(object):
     PluginStartedEvent = 6
     PluginTerminatingEvent = 7
     PluginTerminateEvent = 8
+    MonitorPowerStartEvent = 9
+    MonitorPowerStopEvent = 10

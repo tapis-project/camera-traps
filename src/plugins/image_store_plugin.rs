@@ -332,7 +332,7 @@ impl ImageStorePlugin {
                 // it's a noop, which we ignore.
                 if act != StoreAction::Noop {
                     let prob = *entry.1;
-                    if prob < 0.0 || prob > 1.0 {
+                    if !(0.0..=1.0).contains(&prob) {
                         return Result::Err(anyhow!("Invalid store threshold: {}. Thesholds must be between 0.0 and 1.0, inclusive.", prob));
                     }
                     list.push((prob, act));
@@ -362,7 +362,7 @@ impl ImageStorePlugin {
         // with the same numeric value, which we tolerate on input but is 
         // sloppy on the part of users (only the first one has an effect).
         // For some reason, clippy says (&b.0) is an unnecessary borrow.
-        list.sort_by(|a, b| (&b.0).partial_cmp(&a.0).expect("failed f32 compare!"));
+        list.sort_by(|a, b| (b.0).partial_cmp(&a.0).expect("failed f32 compare!"));
 
         // Convert the u8 element to f32 to match the scoring type.
         let mut listf32: Vec<(f32, StoreAction)> = Vec::new();
