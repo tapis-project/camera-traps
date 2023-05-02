@@ -54,12 +54,13 @@ def simpleNext(img_dict, i, value_index, socket):
     if i >= len(img_dict):
         done = True
         print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
+        return done, i, len(img_dict)
     value = list(img_dict.values())[i][value_index]
     get_binary(value, socket)
     # if we hit the end of the current list, move to the next time stamp
     if value_index == len(list(img_dict.values())[i]) - 1:
         return done, i+1, 0
-    print("returning simpleNext")
+    print(f"returning simpleNext: {done}, {i}, {value_index + 1}")
     return done, i, value_index + 1
 
 
@@ -196,17 +197,23 @@ def send_images(data, socket):
     """
     done = False
     index = 0
-    indexvalue = 0
+    index_value = 0
     initial_index = 0
 
     while not done:
-        done, index, indexvalues = send_new_image(data, index, indexvalue, initial_index, socket)
+        print("\n* * * * * * * * * * ")
+        print(f"Top of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
+        done, index, index_value = send_new_image(data, index, index_value, initial_index, socket)
+        print(f"Bottom of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
+        print("* * * * * * * * * * \n")
         # try:
         #     msg = get_next_msg(socket, timeout=10)
         #     if msg == "PluginTerminateEvent":
         #         send_quit_command(socket)
         # except zmq.error.Again:
         #     continue
+    print("Bottom of send_images; exiting...")
+
 
 def send_new_image(data, index, indexvalue, inital_index, socket):
     img_dict, timestamp_min, timestamp_max = create_dict(data)
@@ -230,7 +237,7 @@ def send_new_image(data, index, indexvalue, inital_index, socket):
         timestamp_min, initial_index = randomImage(
             timestamp_min, initial_index)
     else:
-        print(f"Simple Next")
+        print(f"Calling simpleNext with: {index}, {indexvalue}")
         return simpleNext(img_dict, index, indexvalue, socket)
         
 def check_quit(socket):
