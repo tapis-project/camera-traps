@@ -5,5 +5,4 @@ ADD requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
 
 ADD labrador-pup.jpg /labrador-pup.jpg
-ADD gen_events /gen_events
-ADD ctevents.py /ctevents.py
+ADD ctevents /ctevents

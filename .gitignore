@@ -6,7 +6,9 @@ target/
 test.log
 src/python/__pycache__
 src/python/gen_events/__pycache__
-**/__pycache__
+src/python/ctevents/__pycache__
+src/python/ctevents/gen_events/__pycache__
+src/python/dist
 
 # Remove Cargo.lock from gitignore if creating an executable, leave it for libraries
 # More information here https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
@@ -21,3 +23,8 @@ src/python/gen_events/__pycache__
 
 # Eclipse files.
 .project
+
+# Nix
+result
+external_plugins/image_generating_plugin/result
+external_plugins/image_scoring_plugin/result

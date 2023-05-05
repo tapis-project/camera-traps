@@ -14,26 +14,29 @@
       let
         # see https://github.com/nix-community/poetry2nix/tree/master#api for more functions and examples.
         inherit (poetry2nix.legacyPackages.${system}) mkPoetryApplication mkPoetryEnv;
+
+        # Standard nix packages
         pkgs = nixpkgs.legacyPackages.${system};
+        # Shell utilities used for creating the dev shell
         shell = shell-utils.myShell.${system};
+
+        # Initial Python 3.10 instance that will be used for the Image Generating plugin.
+        myPython = pkgs.python310;
+
+        # Make a Python package with the Image Generating Plugin source code and third-party dependencies 
+        # defined in the pyproject.toml file using the mkPoetryApplication function
+        myApp = mkPoetryApplication { 
+            python = myPython;
+            projectDir = ./.; 
+            preferWheels = true;
+          };
+
       in
       rec {
         packages = {
-          myapp = mkPoetryApplication { 
-            projectDir = ./.; 
-            overrides = poetry2nix.defaultPoetryOverrides.extend
-              (self: super: {
-                # opencv-contrib-python-headless = super.opencv-contrib-python-headless.overridePythonAttrs
-                znq = super.zmq.overridePythonAttrs
-                (
-                  old: {
-                    buildInputs = (old.buildInputs or [ ]) ++ [ super.setuptools ];
-                  }
-                );
-              });
-          };
-          myenv = mkPoetryEnv { projectDir = ./.; };
-          default = self.packages.${system}.myapp;
+          app_package = myApp;
+          # set the app package to the default package
+          default = packages.app_package;
         };
 
         devShells.default = shell {

@@ -35,7 +35,8 @@ services:
       # where the plugin looks for images. This can be changed by providing a different
       # configuration file. 
       # NOTE: this is NOT the shared images directory!!
-      - ../external_plugins/image_generating_plugin/example_images:/example_images:ro
+      # - /data/CDB_S1:/example_images:rw
+      - ../external_plugins/image_generating_plugin/example_images:/example_images:rw
       # The following is optional but can be used to mount a different configuration file
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.
@@ -60,4 +61,4 @@ services:
       - ./traps-external.toml:/traps.toml:ro
       # mount the shared images directory from the host to the container directory specified in the
       # IMAGE_PATH environment variable, above.
-      - ./images_dir:/input_images:ro
+      - ./images_dir:/input_images

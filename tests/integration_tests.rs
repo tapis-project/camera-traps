@@ -60,6 +60,7 @@ mod common;
  * Logging in the camera-traps application terminal will indicate progress.
  */
 #[test]
+#[ignore]
 fn inject_new_image() {
     // Write to stdout.  To make this appear when running cargo,
     // issue:  cargo test -- --nocapture
