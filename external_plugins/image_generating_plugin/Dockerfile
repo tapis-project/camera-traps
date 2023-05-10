@@ -1,6 +1,10 @@
 # Image: tapis/image_generating_plugin_py
 #
 # Initial version of the Camera Traps Image Generating Plugin, in Python.
+# This image is usually built by executing the top-level Makefile.  See
+# that file to understand how the --build-arg parameter is used to set the 
+# REL argument, which in turn specifies the generated image's tag.
+#
 # To run this program, you must mount a directory of image files at the mount point 
 # specified in the input.json file. An example input.json file is provided which points to 
 # `/example_images` in the container for the image directory, so if not changing the input file, mount the 
