@@ -29,5 +29,8 @@ build-py-plugins: build-camerapy build-scoring build-generating
 
 build: build-engine build-py-plugins
 
-push: build
-	docker push tapis/camera_traps_py:${TRAPS_REL} & docker push tapis/camera_traps_py_3.8:${TRAPS_REL} & docker push tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} & docker push tapis/image_generating_plugin_py:${TRAPS_REL} & docker push tapis/camera_traps_engine:${TRAPS_REL}
+tag: build
+	docker tag tapis/camera_traps_py:${TRAPS_REL} tapis/camera_traps_py & docker tag tapis/camera_traps_py_3.8:${TRAPS_REL} tapis/camera_traps_py_3.8 & docker tag tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} tapis/image_scoring_plugin_py_3.8 & docker tag tapis/image_generating_plugin_py:${TRAPS_REL} tapis/image_generating_plugin_py & docker tag tapis/camera_traps_engine:${TRAPS_REL} tapis/camera_traps_engine 
+
+push: tag
+	docker push tapis/camera_traps_py & docker push tapis/camera_traps_py:${TRAPS_REL} & docker push tapis/camera_traps_py_3.8 & docker push tapis/camera_traps_py_3.8:${TRAPS_REL} & docker push tapis/image_scoring_plugin_py_3.8 & docker push tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} & docker push tapis/image_generating_plugin_py & docker push tapis/image_generating_plugin_py:${TRAPS_REL} & docker push tapis/camera_traps_engine & docker push tapis/camera_traps_engine:${TRAPS_REL}
