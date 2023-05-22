@@ -12,14 +12,8 @@ The event-engine supports *internal* and *external* plugins.  Internal plugins a
 
 To quickly start the application under [Docker](https://docs.docker.com/get-docker/) using docker-compose, follow these steps:
 
-1. cd some-directory-of-your-choice
-2. git clone https://github.com/tapis-project/camera-traps.git
-3. cd camera-traps/resources
-4. docker-compose up
-
-This will start the main camera-traps application container and two external plugin containers.  Once the images that ship with the application are read, one of the external containers exits and the other two containers wait ready for more input.  To stop and remove all containers, issue this command from the camera-traps/resources directory in another terminal:
-
-    docker-compose down
+1. cd releases
+2. Follow the directions in the README.md file 
 
 ## Application Configuation 
 
