@@ -78,10 +78,13 @@ pub enum Errors {
     #[error("Expected event type {}, but received event {} instead.", .0, .1)]
     EventUnexpectedError(String, String),
 
+    #[error("Deleted file {0}")]
+    FileDeleted(String),
+
     #[error("Failed to delete file {0}: {1}")]
     FileDeleteError(String, String),
 
-    #[error("File IO error: {}", .0)]
+     #[error("File IO error: {}", .0)]
     FileIOError(String),
 
     /// Input parameter logging.

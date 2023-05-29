@@ -105,6 +105,40 @@ pub fn create_image_filepath(abs_dir: &str, image_file_prefix: &Option<String>,
     filepath
 }
 
+// ---------------------------------------------------------------------------
+// create_image_wildcard_path:
+// ---------------------------------------------------------------------------
+/** Create a file path using the glob wildcard characters that would that 
+ * capture all files related to an image.  The result is string that can be 
+ * used to search for all files in a directory that are related to or stem from
+ * an image file, including the image file itself.  The format of the result
+ * string is:
+ * 
+ *    <image_directory_path>/<image_file_prefix><image_uuid>*
+ *  
+ * Using above constructed strings with the glob search crate allows all 
+ * imaged related files to be discovered.
+ *
+ */
+#[allow(dead_code)]
+pub fn create_image_wildcard_path(abs_dir: &str, image_file_prefix: &Option<String>, 
+                             uuid_str: &str) -> String {
+    // Get absolute path of the image directory with a trailing slash.
+    let slash = if abs_dir.ends_with('/') {""} else {"/"};
+    let mut filepath = abs_dir.to_owned();
+    filepath.push_str(slash);
+
+    // Prepend the file prefix if one is specified.
+    match image_file_prefix {
+        Some(s) => filepath.push_str(s),
+        None => {}
+    }
+
+    // Append the image uuid as the file name and the wildcare.
+    filepath.push_str(uuid_str);
+    filepath.push('*');
+    filepath
+}
 
 // ---------------------------------------------------------------------------
 // validate_image_dir:

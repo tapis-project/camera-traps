@@ -9,8 +9,9 @@ use event_engine::{plugins::Plugin};
 use anyhow::{Result, anyhow};
 use std::fs;
 use serde_json;
+use glob::glob;
 
-use log::{info, error};
+use log::{info, error, warn, debug};
 
 // The search string prefix for this plugin.
 const PREFIX: &str  = "image_store_";
@@ -170,6 +171,7 @@ fn get_action_for_score(store_parms_ref: &StoreParms, score: f32) -> StoreAction
  * the empty string.  Both of these values are part of the application configuration.
  * The image uuid and format are returned in the NewImageEvent. 
  */
+#[allow(dead_code)]
 fn make_image_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> Option<String> {
     // Get the uuid string for use in the file name.
     let uuid_str = match event.image_uuid() {
@@ -240,28 +242,71 @@ fn make_score_filepath(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> O
 // ---------------------------------------------------------------------------
 // action_delete:
 // ---------------------------------------------------------------------------
-/** Delete the image file and don't save the scores.
+/** Delete all image related files and don't save the scores.  Image related
+ * files are all file that match this format:
+ * 
+ *      <image_directory_path>/<image_file_prefix><image_uuid>*
+ * 
  */
 fn action_delete(plugin: &ImageStorePlugin, event: &ImageScoredEvent) -> StoreAction{
-    // Create absolute file path for the image.  Errors have alread been logged.
-    let filepath = match make_image_filepath(plugin, event) {
-        Some(p) => p,
-        None => return StoreAction::ErrorOut,
-    };
-
-    // Delete the file.
-    match fs::remove_file(filepath.clone()){
-        Ok(_) => {},
-        Err(e) => {
-            // Log error.
-            let msg = format!("{}", Errors::FileDeleteError(
-                                      filepath, e.to_string()));
+        // Get the uuid string for use in the file name.
+    let uuid_str = match event.image_uuid() {
+        Some(s) => s,
+        None => {
+            // Log the error and just return.
+            let msg = format!("{}", Errors::PluginEventAccessUuidError(
+                                      plugin.get_name(), "NewImageEvent".to_string()));
             error!("{}", msg);
             return StoreAction::ErrorOut
         }
     };
 
-    // Success.
+    // Get the path iterator that matches the wildcard path.
+    let wildcard_path = 
+        traps_utils::create_image_wildcard_path(&plugin.get_runctx().abs_image_dir, 
+                                                &plugin.get_runctx().parms.config.image_file_prefix, 
+                                                uuid_str);
+
+    // Get path iterator and process its entries.
+    match glob(&wildcard_path) {
+        // Get an iterator to paths that match the filter.
+        Err(e) => {
+            // Log error.
+            let msg = format!("{}", Errors::FileDeleteError(
+                                      wildcard_path.clone(), e.to_string()));
+            error!("{}", msg);
+            return StoreAction::ErrorOut
+        },
+        Ok(path_iter) => {
+            // Process each matching filepath.
+            for entry in path_iter {
+                match entry {
+                    // Record the error and continue.
+                    Err(e) => {
+                        let msg = format!("{}", Errors::FileDeleteError(
+                            wildcard_path.clone(), e.to_string()));
+                        warn!("{}", msg);
+                    },
+                    Ok(path) => {
+                        let filepath = path.as_os_str().to_str().unwrap();
+                        match fs::remove_file(filepath){
+                            Ok(_) => {
+                                debug!("{}", format!("{}", Errors::FileDeleted(filepath.to_string())));
+                            },
+                            Err(e) => {
+                                // Log error.
+                                let msg = format!("{}", Errors::FileDeleteError(
+                                                          filepath.to_string(), e.to_string()));
+                                warn!("{}", msg);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Success though warnings may have been logged.
     StoreAction::Delete
 }
 
