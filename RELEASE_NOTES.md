@@ -6,6 +6,7 @@ Interum release with Rust support for 2 new power monitoring events.
 
 1. Removal of image_uuid field from ImageLabelScore type used in ImageScoredEvent.
 2. MonitorPowerStartEvent and MonitorPowerStopEvent implemented in Rust (Python support in progress).
+3. The image_store_plugin deletes files of all types associated with an image when that image is deleted.  
 
 ## Version 0.3.0
 
