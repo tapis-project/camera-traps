@@ -10,7 +10,8 @@ import threading
 import concurrent.futures
 from ctevents import ctevents
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
-
+import logging
+logging.basicConfig(level=logging.INFO)
 
 def get_socket():
     """
@@ -38,7 +39,7 @@ def get_binary(value, socket):
         binary_img = f.read()
     img = Image.open(value)
     img_format = img.format
-    print(f"sending new image with the following data; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
+    logging.info(f"sending new image with the following data: image:{value}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     try: 
         ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
     except Exception as e:
@@ -52,6 +53,7 @@ def simpleNext(img_dict, i, value_index, socket):
     """
     done = False
     if i >= len(img_dict):
+   # if i >= 15:
         done = True
         print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
         return done, i, len(img_dict)
@@ -177,7 +179,8 @@ def create_dict(data):
     user_input = data['path']
     list_of_files = filter(os.path.isfile, glob.glob(user_input + '/*'))
     list_of_files = sorted(list_of_files, key=os.path.getmtime)
-    print(f"list_of_files: {list_of_files}")
+    length_of_files = len(list_of_files)
+    #logging.trace(f"list_of_files: {list_of_files}")
     img_dict = OrderedDict()
     for file_name_full in list_of_files:
         if ('.DS_Store' not in file_name_full):
@@ -189,7 +192,7 @@ def create_dict(data):
     timestamp_max = list(img_dict.keys())[len(img_dict) - 1]
     timestamp_min = list(img_dict.keys())[0]
 
-    return img_dict, timestamp_min, timestamp_max
+    return img_dict, timestamp_min, timestamp_max, list_of_files
 
 def send_images(data, socket):
     """
@@ -199,12 +202,16 @@ def send_images(data, socket):
     index = 0
     index_value = 0
     initial_index = 0
+    track_image_count = 1
+    img_dict, timestamp_min, timestamp_max,list_of_files = create_dict(data)
+    length_of_files = len(list_of_files)
 
     while not done:
         print("\n* * * * * * * * * * ")
-        print(f"Top of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
+        logging.info(f"Processing file {track_image_count} of {length_of_files}")
+        logging.debug(f"Top of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
         done, index, index_value = send_new_image(data, index, index_value, initial_index, socket)
-        print(f"Bottom of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
+        logging.debug(f"Bottom of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
         print("* * * * * * * * * * \n")
         # try:
         #     msg = get_next_msg(socket, timeout=10)
@@ -212,11 +219,13 @@ def send_images(data, socket):
         #         send_quit_command(socket)
         # except zmq.error.Again:
         #     continue
+        track_image_count+=1
     print("Bottom of send_images; exiting...")
+    logging.debug(f"list_of_files: {list_of_files}")
 
 
 def send_new_image(data, index, indexvalue, inital_index, socket):
-    img_dict, timestamp_min, timestamp_max = create_dict(data)
+    img_dict, timestamp_min, timestamp_max, list_of_files = create_dict(data)
 
     if data['callingFunction'] == "nextImage":
         print("Timed Next")
