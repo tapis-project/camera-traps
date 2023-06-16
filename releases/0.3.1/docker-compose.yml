@@ -30,6 +30,8 @@ services:
     image: tapis/image_generating_plugin_py:0.3.1
     networks:
       - cameratraps
+    depends_on:
+      - engine
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
     volumes:
@@ -51,6 +53,9 @@ services:
     image: tapis/image_scoring_plugin_py_3.8:0.3.1
     networks:
       - cameratraps
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
     environment:
       - IMAGE_SCORING_PLUGIN_PORT=6001
       # The IMAGE_PATH variable needs to match what is specified in the vouume mount below for the
