@@ -1,3 +1,19 @@
+"""
+Load test program for the Image Scoring plugin.
+
+You can manually run this program inside the image scoring plugin docker container:
+
+1) Run with examples images included in the repo 
+docker run -it --rm --entrypoint=bash tapis/image_scoring_plugin_py_3.8
+$ python load_test_image_scoring.py
+
+2) Mount a separate directory of images and set additional args
+docker run -it -v /home/jstubbs/traps/input/images_100/images_100:/example_images --rm --entrypoint=bash tapis/image_scoring_plugin_py_3.8
+
+$ export MAX_IMAGES_TO_SCORE=25
+$ python load_test_image_scoring.py
+"""
+
 import os
 import time
 
@@ -21,7 +37,7 @@ def get_images():
     """
     Returns the paths of all images to use in the load test as a Python list of strings.
     """
-    return [f for f in os.listdir(IMAGES_DIR_PATH)] #if os.isfile(os.join(IMAGES_DIR_PATH, f))]
+    return [os.path.join(IMAGES_DIR_PATH, f) for f in os.listdir(IMAGES_DIR_PATH)] #if os.isfile(os.join(IMAGES_DIR_PATH, f))]
 
 def main():
     """
@@ -50,6 +66,7 @@ def main():
 
         # score one image ---
         # for default mode, we use the cached detector object
+        print(f"Scoring image: {image_file_path}")
         if MODE == DEFAULT_MODE:
             results= run_detector(detector=detector,
                                 image_file_names=[image_file_path],
