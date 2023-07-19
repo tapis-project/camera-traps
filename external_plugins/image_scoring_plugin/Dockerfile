@@ -22,15 +22,21 @@ ARG REL=use-build-arg
 FROM tapis/camera_traps_py:$REL
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
+ADD fix_ptfile.py /fix_ptfile.py
 
 RUN git clone https://github.com/microsoft/CameraTraps \
     && git clone https://github.com/microsoft/ai4eutils \
     && git clone https://github.com/ultralytics/yolov5/ \
-    && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+    && git clone https://github.com/sowbaranika1302/camera_traps_MD.git \
+    && cd "/yolov5"
 
+RUN pip install --upgrade pip
+ADD requirements.txt /requirements.txt
 RUN pip install -r requirements.txt
+RUN cd "/yolov5" && pip install -r requirements.txt
 
-ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/CameraTraps:/yolov5
+RUN apt-get update && apt-get install libgl1 -y
+ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/camera_traps_MD:/yolov5
 
 ENV images_dir='/example_images/' 
 ENV output_file_path='/example_images/detections.json'
@@ -38,6 +44,9 @@ ENV output_file_path='/example_images/detections.json'
 ADD example_images /example_images
 ADD entrypoint.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
+ADD load_test_image_scoring.py /load_test_image_scoring.py
+ADD run_detector_multi.py /run_detector_multi.py
+RUN python /fix_ptfile.py && mv /md_v5a.0.1.pt /md_v5a.0.0.pt
 
 RUN chmod +x /entrypoint.sh
 

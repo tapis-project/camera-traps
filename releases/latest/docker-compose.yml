@@ -50,7 +50,7 @@ services:
 
   imageScoringPlugin:
     container_name: image_scoring
-    image: tapis/image_scoring_plugin_py_3.8
+    image: tapis/image_scoring_plugin_py
     networks:
       - cameratraps
     depends_on:
