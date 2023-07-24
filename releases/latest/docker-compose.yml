@@ -32,7 +32,6 @@ services:
       - cameratraps
     depends_on:
       - engine
-      - imageGeneratingPlugin
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
     volumes:
