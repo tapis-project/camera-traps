@@ -1,6 +1,6 @@
 use uuid::Uuid;
 use crate::config::config::ExtPluginConfig;
-use crate::{events, config::errors::Errors};
+use crate::{events, events::MonitorType, config::errors::Errors};
 use event_engine::{plugins::ExternalPlugin};
 use event_engine::errors::EngineError;
 use event_engine::events::EventType;
@@ -57,6 +57,12 @@ impl ExternalPlugin for ExternalAppPlugin {
                 },
                 "PluginTerminatingEvent" => {
                     event_types.push(Box::new(events::PluginTerminatingEvent::new(Uuid::new_v4(), String::from("ObserverPlugin"))));
+                },
+                "MonitorPowerStartEvent" => {
+                    event_types.push(Box::new(events::MonitorPowerStartEvent::new(vec!(1), vec!(MonitorType::ALL), String::from("2023-01-01T00:00:01.000000001+00:00"), 100)));
+                },
+                "MonitorPowerStopEvent" => {
+                    event_types.push(Box::new(events::MonitorPowerStopEvent::new(vec!(1))));
                 },
                 other => {
                     let msg = format!("{}", Errors::EventNotHandledError(self.plugin_name.clone(), String::from(other)));
