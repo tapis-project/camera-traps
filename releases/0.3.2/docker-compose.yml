@@ -16,11 +16,11 @@ services:
       - TRAPS_CONFIG_FILE=/traps.toml
     volumes:
       # mount the traps.toml in the current working directory.
-      - ./traps.toml:/traps.toml:ro
+      - ./config/traps.toml:/traps.toml:ro
       # mount the image output directory from the host to the directory specified in traps.toml
       # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
       # exist it will be created with root ownership.
-      - ./images_dir:/root/camera-traps/images
+      - ./images_output_dir:/root/camera-traps/images
       # mount the log4rs configuration file over the baked into the image.  Comment out
       # this mount if you want to use the image's default logging configuration.
       - ../../resources/log4rs.yml:/resources/log4rs.yml
@@ -36,7 +36,7 @@ services:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
     volumes:
       # mount the traps.toml in the current working directory.
-      - ./traps.toml:/traps.toml:ro
+      - ./config/traps.toml:/traps.toml:ro
       # mount the example images directory; this is the source of the images used for
       # generating NewImage events. The path `/example_images` is the default path
       # where the plugin looks for images. This can be changed by providing a different
@@ -67,10 +67,10 @@ services:
     volumes:
       # mount the traps.toml in the current working directory.
       # NOTE -- not currently used (TODO)
-      - ./traps.toml:/traps.toml:ro
+      - ./config/traps.toml:/traps.toml:ro
       # mount the shared images directory from the host to the container directory specified in the
       # IMAGE_PATH environment variable, above.
-      - ./images_dir:/input_images
+      - ./images_output_dir:/input_images
 
   # powerMonitorPlugin:
   #   container_name: power_monitor
@@ -85,9 +85,9 @@ services:
   #     - IMAGE_GENERATING_PLUGIN_PORT=6010
   #   volumes:
   #     # mount the traps.toml in the current working directory.
-  #     - ./traps.toml:/traps.toml:ro
+  #     - ./config/traps.toml:/traps.toml:ro
   #     # mount the image output directory from the host to the directory specified in traps.toml
   #     # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
   #     # exist it will be created with root ownership.
-  #     - ./images_dir:/root/camera-traps/images
+  #     - ./images_output_dir:/root/camera-traps/images
 

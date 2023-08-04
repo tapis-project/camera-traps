@@ -14,7 +14,7 @@
 #    Example: 'make build' builds all targets.
 
 build-engine:
-	docker build -t tapis/camera_traps_engine:${TRAPS_REL} .
+	docker build -t tapis/camera_traps_engine:${TRAPS_REL} --build-arg TRAPS_REL=${TRAPS_REL} .
 
 build-camerapy:
 	cd src/python && docker pull tapis/pyevents; docker pull tapis/pyevents:3.8; docker build -t tapis/camera_traps_py:${TRAPS_REL} . && docker build -t tapis/camera_traps_py_3.8:${TRAPS_REL} -f Dockerfile-3.8 .; cd ../../

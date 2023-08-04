@@ -1,4 +1,6 @@
 # Image: tapis/camera_traps_engine
+# Requires "--build-arg TRAPS_REL=<release num>" to specify the release
+#   See Makefile for example that uses an env variable 
 
 # -------------------
 # First build phase: In this phase we do the build for release with an intermedidate layer that caches the dependencies
@@ -43,9 +45,13 @@ RUN USER=root apt-get update && apt-get install -y libzmq3-dev
 # copy the build artifact from the build stage
 RUN mkdir /resources
 COPY --from=builder /camera-traps/target/release/camera-traps .
+
 # copy default configs
+# --build-arg used to pass in the release number
+ARG TRAPS_REL
+COPY releases/$TRAPS_REL/config/traps.toml /root/traps.toml 
+COPY releases/$TRAPS_REL/config/traps-image-store.toml /root/traps-image-store.toml
 COPY resources/log4rs.yml /resources/log4rs.yml
-COPY resources/traps.toml /root/traps.toml 
-COPY resources/traps-image-store.toml /root/traps-image-store.toml
+
 # set the startup command to run camera-traps binary
 CMD ["./camera-traps"]

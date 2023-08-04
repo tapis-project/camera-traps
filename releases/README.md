@@ -19,7 +19,8 @@ Each release can have its own customized configuration files.  Here is a list of
 1. cd latest
 2. docker-compose up
 
-There should be no errors as the application processes each sample image.  The *image_generating_plugin* container will exit when all images are read from the configured input directory.  The output images and scores will be in the release's *images_dir*.  
+There should be no errors as the application processes each sample image.  The *image_generating_plugin* container will exit when all images are read from the configured input directory.  The output images and scores will be in the release's *images_dir* (pre 0.3.2)
+*images_output_dir* (0.3.2 onward).  
 
 To shutdown the application, issue this command from another terminal:
 

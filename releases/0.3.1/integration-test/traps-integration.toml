@@ -2,9 +2,16 @@
 # It assumes the current directory is the top-level camera-traps 
 # directory.  See runtest.sh for details.
 
+# The number of times an image is injecting into the application.
 iterations = 5
+
+# The directory that must contain at least one image.
 image_input_dir = "releases/common/example_images"
 
+# The external plugin configuration for the integration test
+# program.  The program acts like typical external plugins except
+# that it only writes events to its TCP socket, it does not read
+# any events.
 [external_plugin_config] 
     plugin_name = "ext_image_gen_test_plugin"
     id = "d3266646-41ec-11ed-a96f-5391348bab46"
