@@ -11,8 +11,8 @@ Typically, the external *image_generating_plugin* reads a small set of sample im
 Each release can have its own customized configuration files.  Here is a list of files you may encounter:
 
 1. **docker-compose.yml** - the file that configures all containers.  It is used to bring up and tear down the application and its external plugins.
-2. **traps.toml** - the camera-traps application configuration file that specfies the internal and external plugins that will run.
-3. **image_gen_config.json** - configuration setting for the *image_generating_plugin*.
+2. **config/traps.toml** - the camera-traps application configuration file that specfies the internal and external plugins that will run.
+3. **config/image_gen_config.json** - configuration setting for the *image_generating_plugin*.
 
 ## Example:  Running the Latest Release
 
