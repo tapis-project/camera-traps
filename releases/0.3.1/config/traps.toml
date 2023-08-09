@@ -1,0 +1,59 @@
+# This is the camera-traps application configuration file for versions 0.1.x of the application.
+# It assumes the use of containers and docker-compose as the deployment mechanism.
+
+title = "Camera-Traps Application Configuration v0.1"
+
+# The event engine's publish and subscribe port used to create the event_engine::App instance.
+publish_port = 5559
+subscribe_port = 5560
+
+# An absolute path to the image directory is required but a file name prefix is optional.  
+# If present the prefix is preprended to generated image file names.  This is the directory
+# into which the image_recv_plugin writes incoming images and the image_store_plugin may
+# delete images or output the scores for images.
+images_dir = "/root/camera-traps/images"
+# image_file_prefix = ""
+
+# The container for both internal and external plugins.  Internal plugins are written in rust 
+# and compiled into the camera-traps application.  External plugins are usually written in 
+# python but can be written in any language.  External plugins run in their own processes
+# and communicate via tcp or ipc.
+[plugins]
+# Uncomment the internal plugins loaded when the camera-traps application starts.
+internal = [
+#    "image_gen_plugin",
+    "image_recv_plugin",
+#    "image_score_plugin",
+    "image_store_plugin",
+#    "observer_plugin"
+]
+
+# Configure each of the active internal plugins with the image processing action they should 
+# take when new work is received.  If no action is specified for a plugin, its no-op action 
+# is used by default. 
+internal_actions = [
+    "image_recv_write_file_action",
+    "image_store_file_action"
+]
+
+# External plugins require more configuration information than internal plugins.
+# Each plugin must subscribe to PluginTerminateEvent.  
+# 
+# Note that each plugin must specify the external port to use in TWO PLACES: here as well as
+# in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the
+# docker-compose.yml file. 
+[[plugins.external]]
+    plugin_name = "ext_image_gen_plugin"
+    id = "d3266646-41ec-11ed-a96f-5391348bab46"
+    external_port = 6000
+    subscriptions = [
+        "PluginTerminateEvent"
+    ]
+[[plugins.external]]
+   plugin_name = "ext_image_score_plugin"
+   id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
+   external_port = 6001
+   subscriptions = [
+       "ImageReceivedEvent",
+       "PluginTerminateEvent"
+   ]
