@@ -15,7 +15,7 @@ Each release can have its own customized configuration files.  A docker-compose.
 1. **docker-compose.yml** - the file that configures all containers.  It is used to bring up and tear down the application and its external plugins.
 2. **config/traps.toml** - the camera-traps application configuration file that specfies the internal and external plugins that will run.
 3. **config/image_gen_config.json** - configuration setting for the *image_generating_plugin*, including the designated input images directory.
-4. config/\<plugin-config-file> - each plugin can have it's own toml or json configuration file.
+4. **config/\<plugin-config-file>** - each plugin can have it's own toml or json configuration file.
 
 The *releases/common* directory contains data and configuration files available to all releases.  In addition, log configuration is managed using the *resources/log4rs.yml* file.
 
@@ -37,4 +37,4 @@ Some releases will include in integration test subdirectory.  These tests can be
 
 ## A Note on Compilation
 
-Even though one can run current and past releases from the *releases* directory, code compilation and image generation is tied to the code version currently checked out from the source code [repository](https://github.com/tapis-project/camera-trapshttps:/).  See the top-level README file for build instructions and our development process.
+Even though one can run current and past releases from the *releases* directory, code compilation and image generation is tied to the code version currently checked out from the source code [repository](https://github.com/tapis-project/camera-traps).  See the top-level README file for build instructions and our development process.
