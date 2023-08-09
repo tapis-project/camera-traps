@@ -24,8 +24,7 @@ The *releases/common* directory contains data and configuration files available 
 1. cd latest
 2. docker-compose up
 
-There should be no errors as the application processes each sample image.  The *image_generating_plugin* container will exit when all images are read from the configured input directory.  The output images and scores will be in the release's *images_dir* (pre 0.3.2)
-*images_output_dir* (0.3.2 onward).
+There should be no errors as the application processes each sample image.  The *image_generating_plugin* container will exit when all images are read from the configured input directory.  The output images and scores will be in the release's *images_output_dir* directory.
 
 To shutdown the application, issue this command from another terminal:
 
