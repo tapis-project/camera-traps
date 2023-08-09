@@ -120,8 +120,7 @@ Internal plugins for which no corresponding action is specified are assigned the
 
 When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses the *image_dir* and *image_file_prefix* parameters to manage files.  The image_dir is the directory into which image files are placed.  Image file names are constructed from the information received in a NewImageEvent and have this format:
 
-    <image_file_prefix><image_uuid>.<image_format>
-
+<image_file_prefix><image_uuid>.<image_format>
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
 # Developer Information
@@ -203,7 +202,7 @@ The camera-traps/tests directory contains [integration_tests.rs](https://github.
 
 When development on a new release begins a launch configuration is created in the new release's own [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) subdirectory.  When development completes and the final version of the release's images are pushed to docker hub, we tag those images with the release number and with the "latest" tag.
 
-To be able to rebuild a release at anytime, we also tag the release's source code in github.  The tag is the same as the release version number.
+To be able to rebuild a release at anytime, we also tag the release's source code in github.  The tag is the same as the release version number.  Once confident that the tagged code is stable, release tags can be protected using github [tag protection](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/configuring-tag-protection-rules).
 
 # Acknowledgements
 
