@@ -38,35 +38,35 @@ The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/
 
 Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  Here is the example resources/traps.toml file content:
 
-\# This is the camera-traps application configuration file for versions 0.x.y of the application.<br>
-\# It assumes the use of containers and docker-compose as the deployment mechanism.<br>
-title = "Camera-Traps Application Configuration v0.3.2"<br>
-
-\# The event engine's publish and subscribe port used to create the event_engine::App instance.<br>
-publish_port = 5559
-subscribe_port = 5560
-
-\# An absolute path to the image directory is required but a file name prefix is optional.<br>
-\# If present the prefix is preprended to generated image file names.  This is the directory<br>
-\# into which the image_recv_plugin writes incoming images and the image_store_plugin may<br>
-\# delete images or output the scores for images.<br>
-images_output_dir = "/root/camera-traps/images"<br>
-\# image_file_prefix = ""
-
-\# The container for both internal and external plugins.  Internal plugins are written in rust<br>
-\# and compiled into the camera-traps application.  External plugins are usually written in<br>
-\# python but can be written in any language.  External plugins run in their own processes<br>
-\# and communicate via tcp or ipc.<br>
-[plugins]
-\# Uncomment the internal plugins loaded when the camera-traps application starts.<br>
-internal = [<br>
-\#    "image_gen_plugin",<br>
-"image_recv_plugin",<br>
-\#    "image_score_plugin",<br>
-"image_store_plugin",<br>
-\#    "observer_plugin"<br>
-]
-
+> \# This is the camera-traps application configuration file for versions 0.x.y of the application.<br>
+> \# It assumes the use of containers and docker-compose as the deployment mechanism.<br>
+> title = "Camera-Traps Application Configuration v0.3.2"<br>
+> 
+> \# The event engine's publish and subscribe port used to create the event_engine::App instance.<br>
+> publish_port = 5559
+> subscribe_port = 5560
+> 
+> \# An absolute path to the image directory is required but a file name prefix is optional.<br>
+> \# If present the prefix is preprended to generated image file names.  This is the directory<br>
+> \# into which the image_recv_plugin writes incoming images and the image_store_plugin may<br>
+> \# delete images or output the scores for images.<br>
+> images_output_dir = "/root/camera-traps/images"<br>
+> \# image_file_prefix = ""
+> 
+> \# The container for both internal and external plugins.  Internal plugins are written in rust<br>
+> \# and compiled into the camera-traps application.  External plugins are usually written in<br>
+> \# python but can be written in any language.  External plugins run in their own processes<br>
+> \# and communicate via tcp or ipc.<br>
+> [plugins]
+> \# Uncomment the internal plugins loaded when the camera-traps application starts.<br>
+> internal = [<br>
+> \#    "image_gen_plugin",<br>
+> "image_recv_plugin",<br>
+> \#    "image_score_plugin",<br>
+> "image_store_plugin",<br>
+> \#    "observer_plugin"<br>
+> ]
+> 
 \# Configure each of the active internal plugins with the image processing action they should<br>
 \# take when new work is received.  If no action is specified for a plugin, its no-op action<br>
 \# is used by default.<br>
