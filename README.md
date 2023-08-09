@@ -119,7 +119,8 @@ Internal plugins for which no corresponding action is specified are assigned the
 
 When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses the *image_dir* and *image_file_prefix* parameters to manage files.  The image_dir is the directory into which image files are placed.  Image file names are constructed from the information received in a NewImageEvent and have this format:
 
-<image_file_prefix><image_uuid>.<image_format>
+    <image_file_prefix><image_uuid>.<image_format>
+
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
 # Developer Information
@@ -128,8 +129,7 @@ The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_
 
 In-memory representations of events are translated into flatbuffer binary streams plus a leading two byte sequence that identifies the event type.  These statically defined byte sequences are specified in the [events.rs](https://github.com/tapis-project/camera-traps/blob/main/src/events.rs) source file and repeated here for convenience.
 
-// Each event is assigned a binary prefix that zqm uses to route incoming
-// binary streams to all of the event's subscribers.<br>
+// Each event is assigned a binary prefix that zqm uses to route incoming binary streams to all of the event's subscribers.<br>
 pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];<br>
 pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];<br>
 pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];<br>
@@ -179,17 +179,15 @@ The instructions in this section assume [Docker](https://docs.docker.com/get-doc
 
 From the top-level camera-traps directory, issue the following command to build the application's Docker images:
 
-make build
-See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.
+    make build
 
-From the [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) directory, navigate to the subdirectory of the specific release you want to run.  Issue the following command to run the application, including the external plugins for which it's configured:
+See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.  From the [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) directory, navigate to the subdirectory of the specific release you want to run.  Issue the following command to run the application, including the external plugins for which it's configured:
 
-docker-compose up
-See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/releases/0.3.2/docker-compose.yml) for details.
+    docker-compose up
 
-From the same release directory, issue the following command to stop the application:
+See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/releases/0.3.2/docker-compose.yml) for details.  From the same release directory, issue the following command to stop the application:
 
-docker-compose down
+    docker-compose down
 
 ## Building and Running the Rust Code
 
