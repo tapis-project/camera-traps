@@ -67,35 +67,35 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > \#    "observer_plugin"<br>
 > ]
 > 
-\# Configure each of the active internal plugins with the image processing action they should<br>
-\# take when new work is received.  If no action is specified for a plugin, its no-op action<br>
-\# is used by default.<br>
-internal_actions = [<br>
-"image_recv_write_file_action",<br>
-"image_store_file_action"<br>
-]
-
-\# External plugins require more configuration information than internal plugins.<br>
-\# Each plugin must subscribe to PluginTerminateEvent.<br>
-\# <br>
-\# Note that each plugin must specify the external port to use in TWO PLACES: here as well as<br>
-\# in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the<br>
-\# docker-compose.yml file.<br>
-[[plugins.external]]<br>
-plugin_name = "ext_image_gen_plugin"<br>
-id = "d3266646-41ec-11ed-a96f-5391348bab46"<br>
-external_port = 6000<br>
-subscriptions = [<br>
-"PluginTerminateEvent"<br>
-]<br>
-[[plugins.external]]<br>
-plugin_name = "ext_image_score_plugin"<br>
-id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"<br>
-external_port = 6001<br>
-subscriptions = [<br>
-"ImageReceivedEvent",<br>
-"PluginTerminateEvent"<br>
-]
+> \# Configure each of the active internal plugins with the image processing action they should<br>
+> \# take when new work is received.  If no action is specified for a plugin, its no-op action<br>
+> \# is used by default.<br>
+> internal_actions = [<br>
+> "image_recv_write_file_action",<br>
+> "image_store_file_action"<br>
+> ]
+> 
+> \# External plugins require more configuration information than internal plugins.<br>
+> \# Each plugin must subscribe to PluginTerminateEvent.<br>
+> \# <br>
+> \# Note that each plugin must specify the external port to use in TWO PLACES: here as well as<br>
+> \# in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the<br>
+> \# docker-compose.yml file.<br>
+> [[plugins.external]]<br>
+> plugin_name = "ext_image_gen_plugin"<br>
+> id = "d3266646-41ec-11ed-a96f-5391348bab46"<br>
+> external_port = 6000<br>
+> subscriptions = [<br>
+> "PluginTerminateEvent"<br>
+> ]<br>
+> [[plugins.external]]<br>
+> plugin_name = "ext_image_score_plugin"<br>
+> id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"<br>
+> external_port = 6001<br>
+> subscriptions = [<br>
+> "ImageReceivedEvent",<br>
+> "PluginTerminateEvent"<br>
+> ]
 
 Every plugin must subscribe to the PluginTerminateEvent, which upon receipt causes the plugin to stop.  Subscriptions are statically defined in internal plugin code and explicitly configured for external plugins.  External plugins also provide their predetermined UUIDs and external TCP ports.
 
