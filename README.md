@@ -38,20 +38,20 @@ The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/
 
 Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  Here is the example resources/traps.toml file content:
 
-\# This is the camera-traps application configuration file for versions 0.x.y of the application.
-\# It assumes the use of containers and docker-compose as the deployment mechanism.
+\# This is the camera-traps application configuration file for versions 0.x.y of the application.<br>
+\# It assumes the use of containers and docker-compose as the deployment mechanism.<br>
 
-title = "Camera-Traps Application Configuration v0.3.2"
+title = "Camera-Traps Application Configuration v0.3.2"<br>
 
-\# The event engine's publish and subscribe port used to create the event_engine::App instance.
+\# The event engine's publish and subscribe port used to create the event_engine::App instance.<br>
 publish_port = 5559
 subscribe_port = 5560
 
-\# An absolute path to the image directory is required but a file name prefix is optional.
-\# If present the prefix is preprended to generated image file names.  This is the directory
-\# into which the image_recv_plugin writes incoming images and the image_store_plugin may
-\# delete images or output the scores for images.
-images_output_dir = "/root/camera-traps/images"
+\# An absolute path to the image directory is required but a file name prefix is optional.<br>
+\# If present the prefix is preprended to generated image file names.  This is the directory<br>
+\# into which the image_recv_plugin writes incoming images and the image_store_plugin may<br>
+\# delete images or output the scores for images.<br>
+images_output_dir = "/root/camera-traps/images"<br>
 \# image_file_prefix = ""
 
 \# The container for both internal and external plugins.  Internal plugins are written in rust
@@ -130,17 +130,17 @@ The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_
 In-memory representations of events are translated into flatbuffer binary streams plus a leading two byte sequence that identifies the event type.  These statically defined byte sequences are specified in the [events.rs](https://github.com/tapis-project/camera-traps/blob/main/src/events.rs) source file and repeated here for convenience.
 
 // Each event is assigned a binary prefix that zqm uses to route incoming
-// binary streams to all of the event's subscribers.
+// binary streams to all of the event's subscribers.<br>
 pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];<br>
 pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];<br>
-pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];
-pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];
-pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];
-pub const PLUGIN_STARTED_PREFIX:      [u8; 2] = [0x10, 0x00];
-pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];
-pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];
-pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];
-pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];
+pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];<br>
+pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];<br>
+pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];<br>
+pub const PLUGIN_STARTED_PREFIX:      [u8; 2] = [0x10, 0x00];<br>
+pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];<br>
+pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];<br>
+pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];<br>
+pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];<br>
 
 Each event sent or received begins with its two byte prefix followed by its serialized form as defined in the camera-traps flatbuffer definition file ([events.fbs](https://github.com/tapis-project/camera-traps/blob/main/resources/events.fbs)).  The following section describes how to generate Rust source code from this definition file, a similar process can be used for any language supported by flatbuffers.
 
