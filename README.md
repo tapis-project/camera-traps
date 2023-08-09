@@ -131,8 +131,8 @@ In-memory representations of events are translated into flatbuffer binary stream
 
 // Each event is assigned a binary prefix that zqm uses to route incoming
 // binary streams to all of the event's subscribers.
-pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];
-pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];
+pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];<br>
+pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];<br>
 pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];
 pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];
 pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];
@@ -156,12 +156,14 @@ The flatbuffers messages schema is defined in the `resources/events.fsb` file. T
 ```
 $ flatc --rust -o src resources/events.fbs
 ```
+
 3. (Optional) Add the following line to the top of the `src/events_generated.rs` file so that clippy warnings are suppressed:
 
 ```
 // this line added to keep clippy happy
 #![allow(clippy::all)]
 ```
+
 ## Plugin Start and Stop Protocol
 
 Each plugin is required to conform to the following conventions:
