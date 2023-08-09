@@ -4,7 +4,7 @@ The camera-traps application is both a simulator and an edge device application 
 
 ## Architectual Overview
 
-This application uses the [event-engine](https://github.com/tapis-project/event-engine) library to implement its plugin architecture and event-driven communication.  The engine uses [zmq](https://zeromq.org/) sockets to deliver events between senders and the subscribers interested in specific events.  
+This application uses the [event-engine](https://github.com/tapis-project/event-engine) library to implement its plugin architecture and event-driven communication.  The engine uses [zmq](https://zeromq.org/) sockets to deliver events between senders and the subscribers interested in specific events.
 
 The event-engine supports *internal* and *external* plugins.  Internal plugins are Rust plugins delivered with camera-traps and run in the camera-traps process.  External plugins are configured by camera-traps to run outside the camera-traps process and use a TCP port to send and receive events.  By using TCP, external plugins can be written in any language that supports the [flatbuffers](https://google.github.io/flatbuffers/) wire protocol.
 
@@ -13,85 +13,90 @@ The event-engine supports *internal* and *external* plugins.  Internal plugins a
 To quickly start the application under [Docker](https://docs.docker.com/get-docker/) using docker-compose, follow these steps:
 
 1. cd releases
-2. Follow the directions in the README.md file 
+2. Follow the directions in the README.md file
 
-## Application Configuation 
+## Application Configuation
 
-The camera-traps application requires that a configuration file be specified using an environment variable, command line parameter or using the default file path.  In addition, plugins and test programs may also require their own configuration files.  The [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory contains examples of these files. 
+The camera-traps application requires configuration through environment variables or configuration files.  When launching the application from a *releases* subdirectory, the specific release's *config* directory will contain the default configuration files for running a short simulation test.
+
+In general, plugins can also depend on their own environment variables and/or configuration files, and the same is true of test programs.  The [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) directory contains docker-compose files that use default configurations, which can serve as a template for production environment configuration.
 
 
-| **Target**                | **Environment  Variable**     | **Default  File**             | **Notes**                             |
-|---------------------------|-------------------------------|-------------------------------|---------------------------------------|
-| camera-traps application  | TRAPS_CONFIG_FILE             | ~/traps.toml                  | Can be 1st command line parameter     |
-| external plugins          |                               | resources/traps-external.toml | Python plugins configuration          |
-| image_store_plugin        | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml      |                                       |
-| integration tests         | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml      |                                       |
-| logger                    | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml          | Packaged with application             |
+| **Target**               | **Environment  Variable**     | **Default  File**        | **Notes**                         |
+| -------------------------- | ------------------------------- | -------------------------- | ----------------------------------- |
+| camera-traps application | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter |
+| image_gen_plugin         |                               | /input.json              |                                   |
+| image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
+| integration tests        | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                   |
+| logger                   | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application         |
 
 The external python plugins run in their own processes and do not currently use environment variables.
 
-The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/) as its log manager.  The log settings in resources/log4rs.yml source code will be used unless overridden by assigning a log4rs.yml configuration filepath to the TRAPS_LOG4RS_CONFIG_FILE environment variable.  To maximize logging, set root level to *trace* in the effective log4rs.yml file.  Also, include the *observer_plugin* in the internal plugins list in the effective traps.toml file.  
+The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/) as its log manager.  The log settings in [resources/log4rs.yml](https://github.com/tapis-project/camera-traps/blob/main/resources/log4rs.yml) source code will be used unless overridden by assigning a log4rs.yml configuration filepath to the TRAPS_LOG4RS_CONFIG_FILE environment variable.  To maximize logging, set root level to *trace* in the effective log4rs.yml file.  Also, include the *observer_plugin* in the internal plugins list in the effective traps.toml file.
 
 ## Plugin Configuration
 
 Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  Here is the example resources/traps.toml file content:
 
-    # This is the camera-traps application configuration file.
-    title = "Camera-Traps Application Configuration"
+\# This is the camera-traps application configuration file for versions 0.x.y of the application.
+\# It assumes the use of containers and docker-compose as the deployment mechanism.
 
-    # The event engine's publish and subscribe port used to create the event_engine::App instance.
-    publish_port = 5559
-    subscribe_port = 5560
+title = "Camera-Traps Application Configuration v0.3.2"
 
-    # An absolute path to the image directory is required but a file name prefix is optional.  
-    # If present the prefix is preprended to generated image file names.
-    images_dir = "~/camera-traps/images"
-    # image_file_prefix = ""
+\# The event engine's publish and subscribe port used to create the event_engine::App instance.
+publish_port = 5559
+subscribe_port = 5560
 
-    # The container for both internal and external plugins.  Internal plugins are written in rust 
-    # and compiled into the camera-traps application.  External plugins are usually written in 
-    # python but can be written in any language.  External plugins run in their own processes
-    # and communicate via tcp or ipc.
-    [plugins]
-    # Uncomment the internal plugins loaded when the camera-traps application starts.
-    internal = [
-    #   "image_gen_plugin",
-        "image_recv_plugin",
-    #   "image_score_plugin",
-        "image_store_plugin",
-    #   "observer_plugin"
-    ]
+\# An absolute path to the image directory is required but a file name prefix is optional.
+\# If present the prefix is preprended to generated image file names.  This is the directory
+\# into which the image_recv_plugin writes incoming images and the image_store_plugin may
+\# delete images or output the scores for images.
+images_output_dir = "/root/camera-traps/images"
+\# image_file_prefix = ""
 
-    # Configure each of the active internal plugins with the image processing action they should 
-    # take when new work is received.  If no action is specified for a plugin, its no-op action 
-    # is used by default. 
-    internal_actions = [
-        "image_recv_write_file_action",
-        "image_store_file_action"
-    ]
+\# The container for both internal and external plugins.  Internal plugins are written in rust
+\# and compiled into the camera-traps application.  External plugins are usually written in
+\# python but can be written in any language.  External plugins run in their own processes
+\# and communicate via tcp or ipc.
+[plugins]
+\# Uncomment the internal plugins loaded when the camera-traps application starts.
+internal = [
+\#    "image_gen_plugin",
+"image_recv_plugin",
+\#    "image_score_plugin",
+"image_store_plugin",
+\#    "observer_plugin"
+]
 
-    # External plugins require more configuration information than internal plugins.
-    # Each plugin must subscribe to PluginTerminateEvent.  
-    # 
-    # The ext_image_gen_test_plugin is configured to allow the Rust integration_tests.rs
-    # program to run.  The ext_image_score_plugin is an example of how an external scoring
-    # plugin could be configured. 
-    [[plugins.external]]
-        plugin_name = "ext_image_gen_test_plugin"
-        id = "d3266646-41ec-11ed-a96f-5391348bab46"
-        external_port = 6000
-        subscriptions = [
-            "PluginTerminateEvent"
-        ]
-    #[[plugins.external]]
-    #    plugin_name = "ext_image_score_plugin"
-    #    id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
-    #    external_port = 6001
-    #    subscriptions = [
-    #        "ImageReceivedEvent",
-    #        "PluginTerminateEvent"
-    #    ]
+\# Configure each of the active internal plugins with the image processing action they should
+\# take when new work is received.  If no action is specified for a plugin, its no-op action
+\# is used by default.
+internal_actions = [
+"image_recv_write_file_action",
+"image_store_file_action"
+]
 
+\# External plugins require more configuration information than internal plugins.
+\# Each plugin must subscribe to PluginTerminateEvent.
+\#
+\# Note that each plugin must specify the external port to use in TWO PLACES: here as well as
+\# in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the
+\# docker-compose.yml file.
+[[plugins.external]]
+plugin_name = "ext_image_gen_plugin"
+id = "d3266646-41ec-11ed-a96f-5391348bab46"
+external_port = 6000
+subscriptions = [
+"PluginTerminateEvent"
+]
+[[plugins.external]]
+plugin_name = "ext_image_score_plugin"
+id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
+external_port = 6001
+subscriptions = [
+"ImageReceivedEvent",
+"PluginTerminateEvent"
+]
 
 Every plugin must subscribe to the PluginTerminateEvent, which upon receipt causes the plugin to stop.  Subscriptions are statically defined in internal plugin code and explicitly configured for external plugins.  External plugins also provide their predetermined UUIDs and external TCP ports.
 
@@ -105,7 +110,7 @@ The first file it finds it uses.  If no configuration file is found the program 
 
 ### Internal Plugin Configuration
 
-The names listed in the *internal* list are the rust plugin file names.  These plugins run as separate threads in the camera-traps process.  The *internal_actions* list contains the file names that implement the different algorithms or actions associated with each internal plugin.  
+The names listed in the *internal* list are the rust plugin file names.  These plugins run as separate threads in the camera-traps process.  The *internal_actions* list contains the file names that implement the different algorithms or actions associated with each internal plugin.
 
 A naming convention is used to associate actions with their plugins:  An action name starts with its plugin name minus the trailing "plugin" part, followed by an action identifier part, and ends with "_action".  Each plugin has a no-op action that causes it to take no action other than, possibly, generating the next event in the pipeline.  For example, *image_gen_noop_action* is associated with the *image_gen_plugin*.
 
@@ -119,25 +124,26 @@ When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses th
 
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
-
 # Developer Information
 
 ## Using Flatbuffers
 
 In-memory representations of events are translated into flatbuffer binary streams plus a leading two byte sequence that identifies the event type.  These statically defined byte sequences are specified in the [events.rs](https://github.com/tapis-project/camera-traps/blob/main/src/events.rs) source file and repeated here for convenience.
 
-    // Each event is assigned a binary prefix that zqm uses to route incoming
-    // binary streams to all of the event's subscribers.
-    pub const NEW_IMAGE_PREFIX:          [u8; 2] = [0x01, 0x00];
-    pub const IMAGE_RECEIVED_PREFIX:     [u8; 2] = [0x02, 0x00];
-    pub const IMAGE_SCORED_PREFIX:       [u8; 2] = [0x03, 0x00];
-    pub const IMAGE_STORED_PREFIX:       [u8; 2] = [0x04, 0x00];
-    pub const IMAGE_DELETED_PREFIX:      [u8; 2] = [0x05, 0x00];
-    pub const PLUGIN_STARTED_PREFIX:     [u8; 2] = [0x10, 0x00];
-    pub const PLUGIN_TERMINATING_PREFIX: [u8; 2] = [0x11, 0x00];
-    pub const PLUGIN_TERMINATE_PREFIX:   [u8; 2] = [0x12, 0x00];
+// Each event is assigned a binary prefix that zqm uses to route incoming
+// binary streams to all of the event's subscribers.
+pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];
+pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];
+pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];
+pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];
+pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];
+pub const PLUGIN_STARTED_PREFIX:      [u8; 2] = [0x10, 0x00];
+pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];
+pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];
+pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];
+pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];
 
-Each event sent or received begins with its two byte prefix followed by its serialized form as defined in the camera-traps flatbuffer definition file ([events.fbs](https://github.com/tapis-project/camera-traps/blob/main/resources/events.fbs)).  The following section describes how to generate Rust source code from this definition file, a similar process can be used for any language supported by flatbuffers.   
+Each event sent or received begins with its two byte prefix followed by its serialized form as defined in the camera-traps flatbuffer definition file ([events.fbs](https://github.com/tapis-project/camera-traps/blob/main/resources/events.fbs)).  The following section describes how to generate Rust source code from this definition file, a similar process can be used for any language supported by flatbuffers.
 
 ## Updating the flatbuffers messages
 
@@ -157,7 +163,6 @@ $ flatc --rust -o src resources/events.fbs
 // this line added to keep clippy happy
 #![allow(clippy::all)]
 ```
-
 ## Plugin Start and Stop Protocol
 
 Each plugin is required to conform to the following conventions:
@@ -166,7 +171,7 @@ Each plugin is required to conform to the following conventions:
 2. Send a *PluginStartedEvent* when it begins executing.
 3. Send a *PluginTerminatingEvent* when it shuts down.
 
-The *PluginStartedEvent* advertises a plugin's name and uuid when it starts.  When a plugin receives a *PluginTerminateEvent*, it checks if the event's *target_plugin_name* matches its name or the wildcard name (*).  If either is true, then the plugin is expected to gracefully terminate.  The plugin is also expected to gracefully terminate if the event's *target_plugin_uuid* matches the plugin's uuid.  Part of plugin termination is for it to send a *PluginTerminatingEvent* to advertise that it's shutting down, whether in response to a *PluginTerminateEvent* or for any other reason.  
+The *PluginStartedEvent* advertises a plugin's name and uuid when it starts.  When a plugin receives a *PluginTerminateEvent*, it checks if the event's *target_plugin_name* matches its name or the wildcard name (*).  If either is true, then the plugin is expected to gracefully terminate.  The plugin is also expected to gracefully terminate if the event's *target_plugin_uuid* matches the plugin's uuid.  Part of plugin termination is for it to send a *PluginTerminatingEvent* to advertise that it's shutting down, whether in response to a *PluginTerminateEvent* or for any other reason.
 
 ## Building and Running under Docker
 
@@ -174,19 +179,17 @@ The instructions in this section assume [Docker](https://docs.docker.com/get-doc
 
 From the top-level camera-traps directory, issue the following command to build the application's Docker images:
 
-    make build
+make build
+See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.
 
-See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.    
+From the [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) directory, navigate to the subdirectory of the specific release you want to run.  Issue the following command to run the application, including the external plugins for which it's configured:
 
-From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to run the application, including the external plugins for which it's configured:
+docker-compose up
+See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/releases/0.3.2/docker-compose.yml) for details.
 
-    docker-compose up
+From the same release directory, issue the following command to stop the application:
 
-See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/resources/docker-compose.yml) for details.    
-
-From the [resources](https://github.com/tapis-project/camera-traps/tree/main/resources) directory, issue the following command to stop the application:    
-
-    docker-compose down
+docker-compose down
 
 ## Building and Running the Rust Code
 
@@ -195,6 +198,12 @@ If you're just interested in building the Rust, issue *cargo build* from the top
 ## Integration Testing
 
 The camera-traps/tests directory contains [integration_tests.rs](https://github.com/tapis-project/camera-traps/blob/main/tests/integration_tests.rs) program.  The integration test program runs as an external plugin configured via a *traps.toml* file as shown above.  See the top-level comments in the source code for details.
+
+## Release Procedures
+
+When development on a new release begins a launch configuration is created in the new release's own [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) subdirectory.  When development completes and the final version of the release's images are pushed to docker hub, we tag those images with the release number and with the "latest" tag.
+
+To be able to rebuild a release at anytime, we also tag the release's source code in github.  The tag is the same as the release version number.
 
 # Acknowledgements
 
