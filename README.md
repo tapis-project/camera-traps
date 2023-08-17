@@ -41,18 +41,18 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > \# This is the camera-traps application configuration file for versions 0.x.y of the application.<br>
 > \# It assumes the use of containers and docker-compose as the deployment mechanism.<br>
 > title = "Camera-Traps Application Configuration v0.3.2"<br>
-> 
+>
 > \# The event engine's publish and subscribe port used to create the event_engine::App instance.<br>
 > publish_port = 5559
 > subscribe_port = 5560
-> 
+>
 > \# An absolute path to the image directory is required but a file name prefix is optional.<br>
 > \# If present the prefix is preprended to generated image file names.  This is the directory<br>
 > \# into which the image_recv_plugin writes incoming images and the image_store_plugin may<br>
 > \# delete images or output the scores for images.<br>
 > images_output_dir = "/root/camera-traps/images"<br>
 > \# image_file_prefix = ""
-> 
+>
 > \# The container for both internal and external plugins.  Internal plugins are written in rust<br>
 > \# and compiled into the camera-traps application.  External plugins are usually written in<br>
 > \# python but can be written in any language.  External plugins run in their own processes<br>
@@ -66,7 +66,7 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > "image_store_plugin",<br>
 > \#    "observer_plugin"<br>
 > ]
-> 
+>
 > \# Configure each of the active internal plugins with the image processing action they should<br>
 > \# take when new work is received.  If no action is specified for a plugin, its no-op action<br>
 > \# is used by default.<br>
@@ -74,7 +74,7 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > "image_recv_write_file_action",<br>
 > "image_store_file_action"<br>
 > ]
-> 
+>
 > \# External plugins require more configuration information than internal plugins.<br>
 > \# Each plugin must subscribe to PluginTerminateEvent.<br>
 > \# <br>
@@ -119,8 +119,7 @@ Internal plugins for which no corresponding action is specified are assigned the
 
 When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses the *image_dir* and *image_file_prefix* parameters to manage files.  The image_dir is the directory into which image files are placed.  Image file names are constructed from the information received in a NewImageEvent and have this format:
 
-    <image_file_prefix><image_uuid>.<image_format>
-
+<image_file_prefix><image_uuid>.<image_format>
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
 # Developer Information
@@ -179,15 +178,13 @@ The instructions in this section assume [Docker](https://docs.docker.com/get-doc
 
 From the top-level camera-traps directory, issue the following command to build the application's Docker images:
 
-    make build
-
+make build
 See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.  From the [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) directory, navigate to the subdirectory of the specific release you want to run.  Issue the following command to run the application, including the external plugins for which it's configured:
 
-    docker-compose up
-
+docker-compose up
 See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/releases/0.3.2/docker-compose.yml) for details.  From the same release directory, issue the following command to stop the application:
 
-    docker-compose down
+docker-compose down
 
 ## Building and Running the Rust Code
 
@@ -196,6 +193,23 @@ If you're just interested in building the Rust, issue *cargo build* from the top
 ## Integration Testing
 
 The camera-traps/tests directory contains [integration_tests.rs](https://github.com/tapis-project/camera-traps/blob/main/tests/integration_tests.rs) program.  The integration test program runs as an external plugin configured via a *traps.toml* file as shown above.  See the top-level comments in the source code for details.
+
+## Plugin Development
+
+This section addresses two questions:
+
+- Why would I want to create a plugin?
+- What kind of plugin should I create?
+
+
+
+One would want to create their own plugin if they wanted to read or write events and perform some new action that isn't currently implemented.  If an existing plugin doesn't do what you want, you have the option of modifying that plugin or creating another plugin that acts on the same events and does what you need.
+
+For example, the *image_gen_plugin* injects new images into the event stream, the *image_recv_plugin* writes new images to file, etc.  The *observer_plugin* is one that subscribes to all events and logs them for debugging purposes.  Most of the time we don't run the *observer_plugin*, but if we want extended logging we just include it to run in the traps.toml file.  In this case, having a separate plugin from which we can customize the logging of all events is more convenient then adding that logging capability to each existing plugin.
+
+Another reason for introducing a new plugin would be to also service new events.  As the application evolves new capabilities might require new events.  This occurred as we develop support for power monitoring, which introduces 2 new events and a plugin to handle them.
+
+When implementing a plugin the choice between internal and external is often technology driven.  Do we want to write a plugin in Rust and compile it into the application (internal) or do we want to write it in some other language and start it up in its own container (external)?  Considerations as to which approach to take include performance, resource usage, and availability of domain-specific libraries.
 
 ## Release Procedures
 
