@@ -72,22 +72,43 @@ services:
       # IMAGE_PATH environment variable, above.
       - ./images_output_dir:/input_images
 
-  # powerMonitorPlugin:
-  #   container_name: power_monitor
-  #   image: tapis/power_monitor_plugin_py:0.3.3
-  #   networks:
-  #     - cameratraps
-  #   depends_on:
-  #     - engine
-  #     - imageGeneratingPlugin
-  #     - imageScoringPlugin
-  #   environment:
-  #     - IMAGE_GENERATING_PLUGIN_PORT=6010
-  #   volumes:
-  #     # mount the traps.toml in the current working directory.
-  #     - ./config/traps.toml:/traps.toml:ro
-  #     # mount the image output directory from the host to the directory specified in traps.toml
-  #     # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
-  #     # exist it will be created with root ownership.
-  #     - ./images_output_dir:/root/camera-traps/images
+  powerMonitorPlugin:
+    # USAGE Example:
+    # In your plugins, import the necessary:
+    # E.g. Image_scoring_plugin.py:
+    #
+    #   from ctevents.ctevents import send_power_measure_fb_event
+    #   import os
+    #
+    # When trying to measure power:
+    #     my_pids = [os.getpid()] # any pids you want to measure
+    #     monitor_type = [0] # 0 for CPU & GPU, 1 for CPU, 2 for GPU  (TODO: 3 for DRAM)
+    #     monitor_duration = 10 # seconds
+    #     send_power_measure_fb_event(socket, my_pids, monitor_type, monitor_duration)
+    #
+    container_name: power_monitor
+    image: murphiey/power_measure_plugin:1.0.0
+    networks:
+      - cameratraps
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Use 'all' or specify the number of GPUs you want to use
+              capabilities: [gpu]
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+      - imageScoringPlugin
+    pid: host
+    environment:
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      - LOG_PATH=/logs
+      - TEST_FUNCTION=1 
+      # 1 for debug; Set to 0 when actually use it to measure other plugin's power
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./config/traps.toml:/traps.toml:ro
+      - ./logs:/logs # Path for CPU and GPU power logs
 
