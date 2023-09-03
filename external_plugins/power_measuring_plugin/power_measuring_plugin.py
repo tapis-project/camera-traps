@@ -25,9 +25,9 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 PORT = os.environ.get('POWER_MEASURING_PLUGIN_PORT', 6010)
-LOG_DIR = "/logs/"
+LOG_DIR = os.environ.get('TRAPS_POWER_LOG_PATH', "/logs/")
 
-TEST_FUNCTION = int(os.environ.get('TEST_FUNCTION', '0'))
+TEST_FUNCTION = int(os.environ.get('TRAPS_TEST_POWER_FUNCTION', '0'))
 stop = False
 request_queue = queue.Queue()
 DEVICE_TYPES_METHODS = {"cpu": {"scaph": "scaphandre stdout -t "}, "gpu": {"nvsmi": "nvidia-smi --query-gpu=index,power.draw --format=csv"}}
