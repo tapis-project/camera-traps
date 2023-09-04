@@ -35,3 +35,17 @@ send_power_measure_fb_event(socket, pids, monitor_type, monitor_duration)
 Default log files will be saved under `~/logs`, and CPU and GPU logs will be separated. 
 
 We provide a test case in our plugin, set the environment `TRAPS_TEST_POWER_FUNCTION=1`, and the plugin will log its own power consumption for 10 seconds.
+
+----
+## Example of output
+`~/logs/CPU.json`:
+```
+{"2023-08-25 05:50:59": [8.369286, "337263", "python"], "2023-08-25 05:51:02": [8.153751, "337263", "python"], "2023-08-25 05:51:04": [7.726121, "337263", "python"], "2023-08-25 05:51:06": [8.300131, "337263", "python"]}
+```
+The dict keys are the time stamps, for every process, the first element is the power in Watts, the second is the PID, and the third is the process name.
+
+`~/logs/GPU.json`:
+```
+{"2023-08-25 05:50:57": 48.57, "2023-08-25 05:51:00": 47.49, "2023-08-25 05:51:02": 53.4, "2023-08-25 05:51:04": 47.5, "2023-08-25 05:51:06": 49.96}
+```
+The dict keys are the time stamps, since NVIDIA does not support process-level monitoring, we only record the overall on-chip power(in Watts).
