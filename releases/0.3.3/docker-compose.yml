@@ -87,16 +87,16 @@ services:
     #     send_power_measure_fb_event(socket, my_pids, monitor_type, monitor_duration)
     #
     container_name: power_monitor
-    image: murphiey/power_measure_plugin:1.0.0
+    image: tapis/power_measuring_plugin_py:0.3.3
     networks:
       - cameratraps
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all # Use 'all' or specify the number of GPUs you want to use
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all # Use 'all' or specify the number of GPUs you want to use
+    #           capabilities: [gpu]
     depends_on:
       - engine
       - imageGeneratingPlugin
