@@ -57,19 +57,19 @@ internal_actions = [
        "ImageReceivedEvent",
        "PluginTerminateEvent"
    ]
-# [[plugins.external]]
-#    plugin_name = "ext_power_monitor_plugin"
-#    id = "4a0fca25-1935-472a-8674-58f22c3a32b3"
-#    external_port = 6010
-#    subscriptions = [
-#        "MonitorPowerStartEvent",
-#        "MonitorPowerStopEvent",
-#        "PluginTerminateEvent"
-#    ]
-# [[plugins.external]]
-#    plugin_name = "ext_power_control_plugin"
-#    id = "a59621f2-4db6-4892-bda1-59ecb7ff24ae"
-#    external_port = 6011
-#    subscriptions = [
-#        "PluginTerminateEvent"
-#    ]
+[[plugins.external]]
+   plugin_name = "ext_power_monitor_plugin"
+   id = "4a0fca25-1935-472a-8674-58f22c3a32b3"
+   external_port = 6010
+   subscriptions = [
+       "MonitorPowerStartEvent",
+       "MonitorPowerStopEvent",
+       "PluginTerminateEvent"
+   ]
+[[plugins.external]]
+   plugin_name = "ext_power_control_plugin"
+   id = "a59621f2-4db6-4892-bda1-59ecb7ff24ae"
+   external_port = 6011
+   subscriptions = [
+       "PluginTerminateEvent"
+   ]

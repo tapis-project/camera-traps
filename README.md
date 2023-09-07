@@ -27,6 +27,7 @@ In general, plugins can also depend on their own environment variables and/or co
 | camera-traps application | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter |
 | image_gen_plugin         |                               | /input.json              |                                   |
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
+| power_measure_plugin     | TRAPS_POWER_LOG_PATH          | ~/logs                   |                                   |
 | integration tests        | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                   |
 | logger                   | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application         |
 
@@ -94,6 +95,22 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > external_port = 6001<br>
 > subscriptions = [<br>
 > "ImageReceivedEvent",<br>
+> "PluginTerminateEvent"<br>
+> ]<br>
+> [[plugins.external]]<br>
+> plugin_name = "ext_power_monitor_plugin"<br>
+> id = "4a0fca25-1935-472a-8674-58f22c3a32b3"<br>
+> external_port = 6010<br>
+> subscriptions = [<br>
+> "MonitorPowerStartEvent",<br>
+> "MonitorPowerStopEvent",<br>
+> "PluginTerminateEvent"<br>
+> ]<br>
+> [[plugins.external]]<br>
+> plugin_name = "ext_power_control_plugin"<br>
+> id = "a59621f2-4db6-4892-bda1-59ecb7ff24ae"<br>
+> external_port = 6011<br>
+> subscriptions = [<br>
 > "PluginTerminateEvent"<br>
 > ]
 
