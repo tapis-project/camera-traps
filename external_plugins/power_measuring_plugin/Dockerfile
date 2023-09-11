@@ -1,9 +1,6 @@
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py_3.8:$REL
 
-# not sure if the tapis/camera_traps_py_3.8 contains necessary updates of power measure plugin. If so, then the following ADD can be commented out
-ADD ctevents /ctevents
-
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN chmod +x $HOME/.cargo/env
 ENV PATH="/root/.cargo/bin:$PATH"
