@@ -30,10 +30,15 @@ services:
     image: tapis/image_generating_plugin_py:0.3.3
     networks:
       - cameratraps
+    pid: host
     depends_on:
       - engine
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      - TRAPS_POWER_LOG_PATH=/logs
+      - TRAPS_TEST_POWER_FUNCTION=0 
+      - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
@@ -50,9 +55,10 @@ services:
 
   imageScoringPlugin:
     container_name: image_scoring
-    image: tapis/image_scoring_plugin_py_3.8:0.3.3
+    image: tapis/image_scoring_plugin_py_3.8:latest
     networks:
       - cameratraps
+    pid: host
     depends_on:
       - engine
       - imageGeneratingPlugin
@@ -64,6 +70,10 @@ services:
       # The IMAGE_PATH_PREFIX is optional and needs to agree with the image_file_prefix
       # variable in the traps.toml file; when not being used, comment the line.
       # - IMAGE_FILE_PREFIX=
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      - TRAPS_POWER_LOG_PATH=/logs
+      - TRAPS_TEST_POWER_FUNCTION=0 
+      - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
       # NOTE -- not currently used (TODO)
@@ -90,6 +100,7 @@ services:
     image: tapis/power_measuring_plugin_py:0.3.3
     networks:
       - cameratraps
+    pid: host
     # deploy:
     #   resources:
     #     reservations:
@@ -101,7 +112,6 @@ services:
       - engine
       - imageGeneratingPlugin
       - imageScoringPlugin
-    pid: host
     environment:
       - POWER_MEASURING_PLUGIN_PORT=6010
       - TRAPS_POWER_LOG_PATH=/logs
