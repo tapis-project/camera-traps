@@ -1,8 +1,10 @@
 import json
 import os
-from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event
+from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 import zmq
+import logging
+logging.basicConfig(level=logging.INFO)
 
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
@@ -43,11 +45,21 @@ def get_image_file_path(image_uuid, image_format):
    image_format = image_format.lower()
    return f"{base_path}/{image_path_prefix}{image_uuid}.{image_format}"
 
+def monitor_scoring_power(socket):
+    monitor_flag = os.getenv('MONITOR_POWER')
+    pid = [os.getpid()]
+    monitor_type = [1]
+    monitor_seconds = 0
+    if monitor_flag:
+        send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
+        logging.info(f"monitoring image scoring power")
 
 def main():
     print("top of main.")
     socket = get_socket()
     print("got zmq socket.")
+    print("MY CHANGES ARE WORKING")
+    monitor_scoring_power(socket)
     done = False
     total_messages = 0
     if MODE == DEFAULT_MODE:

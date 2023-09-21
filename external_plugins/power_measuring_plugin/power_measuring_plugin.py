@@ -2,7 +2,7 @@
 # docker run -it test_power:latest
 # docker cp bold_herschel:/ /home/murphie/Project/cameraTrap/inspect_power
 # docker build -t power_measuring_plugin .
-from ctevents.ctevents import socket_message_to_typed_event, send_power_measure_fb_event
+from ctevents.ctevents import socket_message_to_typed_event, send_monitor_power_start_fb_event
 from ctevents import MonitorPowerStartEvent, MonitorPowerStopEvent
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 
@@ -161,7 +161,7 @@ def run():
         my_pids = [os.getpid()]
         monitor_type = [0]
         monitor_duration = 10
-        send_power_measure_fb_event(socket, my_pids, monitor_type, monitor_duration)
+        send_monitor_power_start_fb_event(socket, my_pids, monitor_type, monitor_duration)
 
     while not stop:
         message = get_next_msg(socket)

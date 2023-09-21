@@ -45,6 +45,14 @@ def get_binary(value, socket):
     except Exception as e:
         print(f"got exception {e}")
 
+def monitor_generating_power(socket):
+    monitor_flag = os.getenv('MONITOR_POWER')
+    pid = [os.getpid()]
+    monitor_type = [1]
+    monitor_seconds = 0
+    if monitor_flag:
+        ctevents.send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
+        logging.info(f"monitoring image generating power")
 
 def simpleNext(img_dict, i, value_index, socket):
     """
@@ -262,6 +270,7 @@ def main():
     socket = get_socket()
     data = get_config()
 
+    monitor_generating_power(socket)
     send_images(data, socket)
 
     # with concurrent.futures.ThreadPoolExecutor() as executor:

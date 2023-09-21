@@ -443,6 +443,9 @@ def send_terminate_plugin_fb_event(socket, target_plugin_name, target_plugin_uui
 
 
 def _generate_monitor_power_start_event(pids: list, monitor_types: list, monitor_seconds: int) -> bytearray:
+    """
+    Create a monitor power start event message
+    """
     builder = flatbuffers.Builder(1024)
     
     # generate a time stamp string formatted  via ISO 8601
@@ -481,15 +484,21 @@ def _generate_monitor_power_start_event(pids: list, monitor_types: list, monitor
     root_event = Event.EventEnd(builder)
 
     builder.Finish(root_event)
-    return _prepend_event_prefix("MONITOR_POWER_START", builder.Output())
+    return builder.Output()
 
-def send_power_measure_fb_event(socket, pids: list, monitor_types: list, monitor_seconds: int) -> str:
+def _generate_monitor_power_start_event_with_prefix(pids: list, monitor_types: list, monitor_seconds: int) -> bytearray:
     """
-    Send an image scored event over the zmq socket.
-    Returns a string which is the reply from the event-engine thread or raises an 
-    exception on error.
+    Create a monitor power start event message with prefix
     """
-    fb_data = _generate_monitor_power_start_event(pids, monitor_types, monitor_seconds)
+    fb = _generate_monitor_power_start_event(pids, monitor_types, monitor_seconds)
+    return _prepend_event_prefix("MONITOR_POWER_START", fb)
+
+def send_monitor_power_start_fb_event(socket, pids: list, monitor_types: list, monitor_seconds: int) -> str:
+    """
+    Send a monitor power event over the zmq socket
+    TODO: need way to handle multiple pids in future
+    """
+    fb_data = _generate_monitor_power_start_event_with_prefix(pids, monitor_types, monitor_seconds)
     a = publish_msg(socket, fb_data)
     return a
 
