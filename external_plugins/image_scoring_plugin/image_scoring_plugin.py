@@ -49,7 +49,7 @@ def monitor_scoring_power(socket):
     monitor_flag = os.getenv('MONITOR_POWER')
     pid = [os.getpid()]
     monitor_type = [1]
-    monitor_seconds = 0
+    monitor_seconds = 12
     if monitor_flag:
         send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
         logging.info(f"monitoring image scoring power")
@@ -58,7 +58,6 @@ def main():
     print("top of main.")
     socket = get_socket()
     print("got zmq socket.")
-    print("MY CHANGES ARE WORKING")
     monitor_scoring_power(socket)
     done = False
     total_messages = 0
