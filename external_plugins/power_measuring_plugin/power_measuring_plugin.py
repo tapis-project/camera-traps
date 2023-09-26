@@ -32,6 +32,14 @@ stop = False
 request_queue = queue.Queue()
 DEVICE_TYPES_METHODS = {"cpu": {"scaph": "scaphandre stdout -t "}, "gpu": {"nvsmi": "nvidia-smi --query-gpu=index,power.draw --format=csv"}}
 
+
+def get_log_file_location(file_name):
+    """
+    Return the absolute path to the log file location for a specific log file.
+    file_name (str) should be the name of the file; i.e., "cpu.json", "gpu.json". etc. 
+    """
+    return os.path.join(LOG_DIR, file_name)
+
 def run_cpu_measure(pids, duration, cpu_method):
     method = DEVICE_TYPES_METHODS["cpu"][cpu_method]
     cmd = method + str(duration)
@@ -64,7 +72,7 @@ def run_cpu_measure(pids, duration, cpu_method):
                         break
                     
         if len(meta_infos):
-            with open(LOG_DIR+'cpu.json', 'w') as json_file:
+            with open(get_log_file_location('cpu.json'), 'w') as json_file:
                 json.dump(meta_infos, json_file)
         
 
@@ -91,8 +99,7 @@ def run_gpu_measure(pids, duration, gpu_method):
                     current_time = datetime.datetime.now()
                     readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
                     meta_infos[readable_time] = float(line.split()[-2])
-
-            with open(LOG_DIR+'gpu.json', 'w') as json_file:
+            with open(get_log_file_location('gpu.json'), 'w') as json_file:
                 json.dump(meta_infos, json_file)
 
         process.wait()

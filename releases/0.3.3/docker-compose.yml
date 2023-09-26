@@ -114,11 +114,12 @@ services:
       - imageScoringPlugin
     environment:
       - POWER_MEASURING_PLUGIN_PORT=6010
+      # Note: this LOG_PATH is the path in the conatiner, so must matcht the RHS of the mount below.
       - TRAPS_POWER_LOG_PATH=/logs
       - TRAPS_TEST_POWER_FUNCTION=1 
       # 1 for debug; Set to 0 when actually use it to measure other plugin's power
     volumes:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
-      - ./logs:/logs # Path for CPU and GPU power logs
+      - ./power_output_dir:/logs # Path for CPU and GPU power logs
 
