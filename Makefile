@@ -2,10 +2,13 @@
 #
 # The environment variable TRAPS_REL must be set before calling make;
 # its value will be the tag assigned to all images that get built.
-# Here are examples:
+# For example:
 #
-#    export TRAPS_REL=latest
-#    export TRAPS_REL=0.3.1
+#    export TRAPS_REL=0.3.3
+#    export TRAPS_REL=0.3.
+#
+# NOTE: Right now, building with tag `latest` is not supported. Instead,
+#       build a semantic version and then tag the result as latest.
 #
 # To build all images follow these steps:
 #
