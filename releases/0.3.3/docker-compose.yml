@@ -37,7 +37,7 @@ services:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
       - POWER_MEASURING_PLUGIN_PORT=6010
       - TRAPS_POWER_LOG_PATH=/logs
-      - TRAPS_TEST_POWER_FUNCTION=0 
+      - TRAPS_TEST_POWER_FUNCTION=0
       - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
@@ -59,6 +59,19 @@ services:
     networks:
       - cameratraps
     pid: host
+    # Uncomment the following line to use GPUs with the Image Scoring pluging. Note that
+    # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
+    # Docker must be configured to use it. See the README for details.
+    #
+    # UNCOMMENT --------------
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all # Use 'all' or specify the number of GPUs you want to use
+    #           capabilities: [ gpu ]
+    # --------------------------
     depends_on:
       - engine
       - imageGeneratingPlugin
@@ -72,7 +85,7 @@ services:
       # - IMAGE_FILE_PREFIX=
       - POWER_MEASURING_PLUGIN_PORT=6010
       - TRAPS_POWER_LOG_PATH=/logs
-      - TRAPS_TEST_POWER_FUNCTION=0 
+      - TRAPS_TEST_POWER_FUNCTION=0
       - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
@@ -101,13 +114,18 @@ services:
     networks:
       - cameratraps
     pid: host
+    # Uncomment the following line to use GPUs with the Power Monitor pluging. Note that
+    # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
+    # Docker must be configured to use it. See the README for details.
+    # UNCOMMENT --------------    
     # deploy:
     #   resources:
     #     reservations:
     #       devices:
     #         - driver: nvidia
     #           count: all # Use 'all' or specify the number of GPUs you want to use
-    #           capabilities: [gpu]
+    #           capabilities: [ gpu ]
+    # ------------------------
     depends_on:
       - engine
       - imageGeneratingPlugin
@@ -116,10 +134,9 @@ services:
       - POWER_MEASURING_PLUGIN_PORT=6010
       # Note: this LOG_PATH is the path in the conatiner, so must matcht the RHS of the mount below.
       - TRAPS_POWER_LOG_PATH=/logs
-      - TRAPS_TEST_POWER_FUNCTION=1 
+      - TRAPS_TEST_POWER_FUNCTION=1
       # 1 for debug; Set to 0 when actually use it to measure other plugin's power
     volumes:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
       - ./power_output_dir:/logs # Path for CPU and GPU power logs
-
