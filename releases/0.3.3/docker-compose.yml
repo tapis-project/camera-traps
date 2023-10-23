@@ -35,9 +35,6 @@ services:
       - engine
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
-      - POWER_MEASURING_PLUGIN_PORT=6010
-      - TRAPS_POWER_LOG_PATH=/logs
-      - TRAPS_TEST_POWER_FUNCTION=0 
       - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
@@ -70,9 +67,6 @@ services:
       # The IMAGE_PATH_PREFIX is optional and needs to agree with the image_file_prefix
       # variable in the traps.toml file; when not being used, comment the line.
       # - IMAGE_FILE_PREFIX=
-      - POWER_MEASURING_PLUGIN_PORT=6010
-      - TRAPS_POWER_LOG_PATH=/logs
-      - TRAPS_TEST_POWER_FUNCTION=0 
       - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.

@@ -66,10 +66,4 @@ internal_actions = [
        "MonitorPowerStopEvent",
        "PluginTerminateEvent"
    ]
-[[plugins.external]]
-   plugin_name = "ext_power_control_plugin"
-   id = "a59621f2-4db6-4892-bda1-59ecb7ff24ae"
-   external_port = 6011
-   subscriptions = [
-       "PluginTerminateEvent"
-   ]
+
