@@ -15,7 +15,7 @@ To quickly start the application under [Docker](https://docs.docker.com/get-dock
 1. cd releases
 2. Follow the directions in the README.md file
 
-## Application Configuation
+## Application Configuration
 
 The camera-traps application requires configuration through environment variables or configuration files.  When launching the application from a *releases* subdirectory, the specific release's *config* directory will contain the default configuration files for running a short simulation test.
 
@@ -138,6 +138,35 @@ When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses th
 
 <image_file_prefix><image_uuid>.<image_format>
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
+
+## Support for NVIDIA
+The Image Scoring plugin can make use of NVIDIA GPUs to improve the performance of object detection and classification with some ML models. In order to make use of NVIDIA GPUs in the Camera Traps application, the following steps must be taken:
+
+1. *Ensure the NVIDIA drivers are installed natively on the machine*. For example, on Ubuntu LTS, follow the instructions in Section 3.1 [here](https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html). Be sure to reboot your machine after adding the keyring and installing the drivers. You can check to see if the drivers are installed properly and communicating with the hardware by running the following command: 
+
+```
+nvidia-smi
+```
+
+2. *Install the NVIDIA Container Toolkit and configure the Docker Runtime*. See the instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html). Make sure to restart Docker after installing and configuring the toolkit. To check if the toolkit and Docker are installed and configured correctly, run the following:
+
+```
+docker run --gpus=all --rm -it ubuntu nvidia-smi
+```
+The output should be similar to the output from Step 1.
+
+3. *Update the Camera Traps Compose File to Use GPUs*. Starting with release 0.3.3, the official Camera Traps releases docker-compose files include stanzas for making NVIDIA GPUs available to 
+both the Image Scoring and Power Monitoring plugins. At this time, those stanzas must be 
+uncommented; see the [docker-compose.yml](releases/0.3.3/docker-compose.yml) file for more details.
+
+
+## Support for ARM CPUs
+
+*This section is a work in progress...*
+
+We are currently working on support for ARM CPUs, including support for Mac OSX M* hardware. 
+
+
 
 # Developer Information
 

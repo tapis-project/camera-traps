@@ -66,4 +66,3 @@ internal_actions = [
        "MonitorPowerStopEvent",
        "PluginTerminateEvent"
    ]
-
