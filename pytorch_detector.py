@@ -24,7 +24,7 @@ except ModuleNotFoundError:
 
 print(f'Using PyTorch version {torch.__version__}')
 
-# THESE WERE ADD TO WORK WITH TRITON
+# THESE WERE ADD TO WORKED WITH TRITON
 import tritonclient.http as httpclient
 import torchvision
 
