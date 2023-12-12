@@ -47,4 +47,8 @@ ADD run_detector_multi.py /run_detector_multi.py
 
 RUN chmod +x /entrypoint.sh
 
+# Adding for Triton E2E Example
+RUN pip install "tritonclient[all]"
+ADD pytorch_detector.py /camera_traps_MD/pytorch_detector.py 
+
 ENTRYPOINT ["./entrypoint.sh"]
