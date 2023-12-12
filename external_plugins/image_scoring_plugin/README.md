@@ -1,1 +1,0 @@
-# Image Scoring Plugin

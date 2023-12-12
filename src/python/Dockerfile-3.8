@@ -1,8 +1,0 @@
-# Image: tapis/camera_traps_py_3.8
-FROM tapis/pyevents:3.8
-
-ADD requirements.txt /requirements.txt
-RUN pip install -r /requirements.txt
-
-ADD labrador-pup.jpg /labrador-pup.jpg
-ADD ctevents /ctevents
