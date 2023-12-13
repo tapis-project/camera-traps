@@ -133,8 +133,6 @@ class PTDetector:
             # Get input ready, here we are going to resize the image to dimensions (640x640).
             # TensorRT version of yolov5 requires minimum batch size of 4,
             #   which is why the image is repeated 4 times in the batch.
-            # Update: Turns out yolov5 does that by default in the background 
-            #   when running without triton.
             img = torchvision.transforms.Resize((640,640))(img).repeat(4,1,1,1)
 
             # Infer input types from Triton and add the image data to the request.
