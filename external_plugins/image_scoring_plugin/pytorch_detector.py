@@ -87,31 +87,31 @@ class PTDetector:
         max_conf = 0.0
 
         try:
-        
+
             img_original = np.asarray(img_original)
 
             # padded resize
             target_size = PTDetector.IMAGE_SIZE
-            
+
             # Image size can be an int (which translates to a square target size) or (h,w)
             if image_size is not None:
-                
+
                 assert isinstance(image_size,int) or (len(image_size)==2)
-                
+
                 if not self.printed_image_size_warning:
                     print('Warning: using user-supplied image size {}'.format(image_size))
                     self.printed_image_size_warning = True
-            
+
                 target_size = image_size
-            
+
             else:
-                
+
                 self.printed_image_size_warning = False
-                
+
             # ...if the caller has specified an image size
-            
+
             img = letterbox(img_original, new_shape=target_size, stride=PTDetector.STRIDE, auto=True)[0]  # JIT requires auto=False
-            
+
             img = img.transpose((2, 0, 1))  # HWC to CHW; PIL Image is RGB already
             img = np.ascontiguousarray(img)
             img = torch.from_numpy(img)
@@ -124,14 +124,14 @@ class PTDetector:
 
             # OMITTING THIS LINE WHICH WILL BE REPLACED BY TRITON CODE.
             # pred: list = self.model(img)[0]
-             
+
 
             #-------------------------------------------------------------Triton Client---------------------------------------------------------------------#
             # Establish connection to Triton
-            client = httpclient.InferenceServerClient(url="triton:8000")
+            client = httpclient.InferenceServerClient(url="172.17.0.1:8000")
 
             # Get input ready, here we are going to resize the image to dimensions (640x640).
-            # TensorRT version of yolov5 requires minimum batch size of 4,
+            # TensorRT version of yolov5 requires a minimum batch size of 4,
             #   which is why the image is repeated 4 times in the batch.
             img = torchvision.transforms.Resize((640,640))(img).repeat(4,1,1,1)
 
@@ -152,11 +152,14 @@ class PTDetector:
                                 outputs=output_tensor
                                 )
 
-            # Retrieve the detection results from Triton's response
-            pred = torch.from_numpy(resp.as_numpy("output0")).to(self.device)
+            # Retrieve the detection results from Triton's response.
+            # Use the first tensor in the batch
+            #   and reshape it to the proper dimensions (25500,8) -> (1,25500,8).
+            # PyTorch still expects the tensor to be the same device render the bounding box.
+            pred = torch.from_numpy(resp.as_numpy("output0")[0]).unsqueeze(0).to(self.device)
             #-------------------------------------------------------------Triton Client---------------------------------------------------------------------#
-            
-            # CONTINUE WITH REGUALR EXECUTION OF MEGADETECTOR
+
+            # CONTINUE WITH REGUALR EXECUTION OF MegaDetector
 
             # NMS
             if self.device == 'mps':
@@ -203,8 +206,8 @@ class PTDetector:
                 
             # ...for each detection batch
 
-    # ...try
-        
+        # ...try
+    
         except Exception as e:
             
             result['failure'] = FAILURE_INFER

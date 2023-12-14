@@ -48,7 +48,9 @@ ADD run_detector_multi.py /run_detector_multi.py
 RUN chmod +x /entrypoint.sh
 
 # Adding for Triton E2E Example
-RUN pip install "tritonclient[all]"
+# Install http only version of Triton Client
+RUN pip install "tritonclient[http]"
+# Replace modified MegaDetector file (Just has code to call Yolov5 on Triton).
 ADD pytorch_detector.py /camera_traps_MD/pytorch_detector.py 
 
 ENTRYPOINT ["./entrypoint.sh"]

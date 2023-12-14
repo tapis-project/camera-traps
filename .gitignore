@@ -33,3 +33,6 @@ src/python/dist
 result
 external_plugins/image_generating_plugin/result
 external_plugins/image_scoring_plugin/result
+
+*/.mypy_cache
+
