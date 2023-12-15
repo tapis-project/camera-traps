@@ -1,0 +1,22 @@
+# This configuration file is used by the image_store_plugin.
+
+# Set one or more thresholds that the image_store_plugin will
+# use to determine the disposition of an image.  Threshold values
+# are floating point numbers between 0.0 and 1.0.  The numbers 
+# must have a 0 or 1 to the left of the decimal point and at 
+# least 1 digit to the right.  
+#
+# The possible thresholds and their meanings when an image has 
+# a score that exceeds the threshold value are:
+#
+#  Save - save the image file 
+#  ReduceSave - reduce the image resolution and save
+#  Delete - discard the image
+#
+# The highest score in an image's list of scores determines the 
+# action.  If no 0.0 threshold is explicitly assigned, "Delete = 0.0" 
+# is implicitly assigned. 
+#
+[action_thresholds]
+Save = 0.7
+ReduceSave = 0.4

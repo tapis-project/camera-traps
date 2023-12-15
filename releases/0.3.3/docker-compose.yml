@@ -55,7 +55,8 @@ services:
 
   imageScoringPlugin:
     container_name: image_scoring
-    image: tapis/image_scoring_plugin_py_3.8:0.3.3
+    # image: tapis/image_scoring_plugin_py_3.8:0.3.3
+    image: tapis/image_scoring_plugin_py:0.3.3
     networks:
       - cameratraps
     pid: host
