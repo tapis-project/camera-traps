@@ -1,5 +1,7 @@
-
 #just used for help me remember usful command lines
+
+
+
 # docker build --build-arg REL=latest -t test_power .
 # docker run -it test_power:latest
 # docker cp bold_herschel:/ /home/murphie/Project/cameraTrap/inspect_power

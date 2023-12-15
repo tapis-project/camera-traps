@@ -129,8 +129,7 @@ services:
     # ------------------------
     depends_on:
       - engine
-      - imageGeneratingPlugin
-      - imageScoringPlugin
+
     environment:
       - POWER_MEASURING_PLUGIN_PORT=6010
       # Note: this LOG_PATH is the path in the conatiner, so must matcht the RHS of the mount below.
@@ -141,3 +140,4 @@ services:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
       - ./power_output_dir:/logs # Path for CPU and GPU power logs
+      - /run/jtop.sock:/run/jtop.sock # TODO: Required for JTOP to work
