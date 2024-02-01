@@ -4,6 +4,9 @@ on:
   release:
     types: [released]
 
+env: 
+  TRAPS_REL: ${{ github.event.release.tag_name }}
+
 jobs:
   docker:
 
@@ -26,4 +29,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/camera_traps_engine:${{ github.event.release.tag_name }}
+          tags: skhuvis/camera_traps_engine:$TRAPS_REL
