@@ -30,3 +30,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/camera_traps_engine:$TRAPS_REL
+          build-args: TRAPS_REL=$TRAPS_REL
