@@ -23,11 +23,18 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push engine
+#      - name: Build and push engine
+#        uses: docker/build-push-action@v5
+#        with:
+#          context: .
+#          platforms: linux/amd64,linux/arm64
+#          push: true
+#          tags: skhuvis/camera_traps_engine:${{ env.TRAPS_REL }}
+#          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
+      - name: Build and push pyevents
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: https://github.com/tapis-project/event-engine.git:pyevents
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/camera_traps_engine:${{ env.TRAPS_REL }}
-          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
+          tags: skhuvis/pyevents:${{ env.TRAPS_REL }}
