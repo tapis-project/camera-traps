@@ -31,10 +31,17 @@ jobs:
 #          push: true
 #          tags: skhuvis/camera_traps_engine:${{ env.TRAPS_REL }}
 #          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
-      - name: Build and push pyevents
+#      - name: Build and push pyevents
+#        uses: docker/build-push-action@v5
+#        with:
+#          context: https://github.com/tapis-project/event-engine.git#:pyevents
+#          platforms: linux/amd64,linux/arm64
+#          push: true
+#          tags: skhuvis/pyevents
+      - name: Build and push camera_traps_py
         uses: docker/build-push-action@v5
         with:
-          context: https://github.com/tapis-project/event-engine.git#:pyevents
+          context: src/python
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/pyevents
+          tags: skhuvis/camera_traps_py
