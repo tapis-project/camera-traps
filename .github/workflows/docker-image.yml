@@ -52,7 +52,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/image_scoring_plugin_py:${{ env.TRAPS_REL }}
-          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
       - name: Build and push image_generating_plugin
         uses: docker/build-push-action@v5
         with:
@@ -60,7 +60,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/image_generating_plugin_py:${{ env.TRAPS_REL }}
-          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
       - name: Build and push power_measuring_plugin
         uses: docker/build-push-action@v5
         with:
@@ -68,4 +68,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/power_measuring_plugin_py:${{ env.TRAPS_REL }}
-          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}

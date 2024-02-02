@@ -1,5 +1,5 @@
 # Image: tapis/camera_traps_py
-FROM tapis/pyevents
+FROM skhuvis/pyevents
 
 ADD requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
