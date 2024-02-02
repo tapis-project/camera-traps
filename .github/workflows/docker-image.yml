@@ -37,4 +37,4 @@ jobs:
           context: https://github.com/tapis-project/event-engine.git#:pyevents
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/pyevents:${{ env.TRAPS_REL }}
+          tags: skhuvis/pyevents
