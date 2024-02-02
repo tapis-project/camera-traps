@@ -34,7 +34,7 @@ jobs:
       - name: Build and push pyevents
         uses: docker/build-push-action@v5
         with:
-          context: https://github.com/tapis-project/event-engine.git:pyevents
+          context: https://github.com/tapis-project/event-engine.git#:pyevents
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/pyevents:${{ env.TRAPS_REL }}
