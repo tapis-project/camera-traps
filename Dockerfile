@@ -5,7 +5,7 @@
 # -------------------
 # First build phase: In this phase we do the build for release with an intermedidate layer that caches the dependencies
 # --------------------
-FROM rust:1.68 as builder
+FROM rust:1.75 as builder
 
 # install libzmq
 RUN USER=root apt-get update && apt-get install -y libzmq3-dev
