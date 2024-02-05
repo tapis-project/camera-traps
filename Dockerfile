@@ -38,7 +38,7 @@ RUN cargo build --release
 # --------------------
 # Second build phase: Final base image. This is image will only include the minimum binary and configs
 # --------------------
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 # # still need to install zmq
 RUN USER=root apt-get update && apt-get install -y libzmq3-dev
