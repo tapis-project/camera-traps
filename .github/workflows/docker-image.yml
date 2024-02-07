@@ -38,6 +38,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/pyevents
+      - name: Build and push pyevents:3.8
+        uses: docker/build-push-action@v5
+        with:
+          context: https://github.com/tapis-project/event-engine.git#:pyevents
+          file: https://raw.githubusercontent.com/tapis-project/event-engine/main/pyevents/Dockerfile-3.8
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: skhuvis/pyevents:3.8
       - name: Build and push camera_traps_py
         uses: docker/build-push-action@v5
         with:
@@ -45,14 +53,23 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: skhuvis/camera_traps_py:${{ env.TRAPS_REL }}
+      - name: Build and push camera_traps_py_3.8
+        uses: docker/build-push-action@v5
+        with:
+          context: src/python
+          file: src/python/Dockerfile-3.8
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: skhuvis/camera_traps_py_3.8:${{ env.TRAPS_REL }}
       - name: Build and push image_scoring_plugin
         uses: docker/build-push-action@v5
         with:
           context: external_plugins/image_scoring_plugin
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/image_scoring_plugin_py:${{ env.TRAPS_REL }}
+          tags: skhuvis/image_scoring_plugin_py_3.8:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
+          file: external_plugins/image_scoring_plugin/Dockerfile-3.8
       - name: Build and push image_generating_plugin
         uses: docker/build-push-action@v5
         with:
