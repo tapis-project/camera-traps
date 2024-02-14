@@ -19,7 +19,7 @@
 #    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
 #
 ARG REL=use-build-arg
-FROM skhuvis/camera_traps_py:$REL
+FROM tapis/camera_traps_py:$REL
 
 RUN pip install opencv-contrib-python-headless 
 RUN pip install PILLOW

@@ -19,7 +19,7 @@
 #    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
 #
 ARG REL=use-build-arg
-FROM skhuvis/camera_traps_py:$REL
+FROM tapis/camera_traps_py:$REL
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 
