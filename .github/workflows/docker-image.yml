@@ -29,7 +29,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/camera_traps_engine:${{ env.TRAPS_REL }}
+          tags: tapis/camera_traps_engine:${{ env.TRAPS_REL }}
           build-args: TRAPS_REL=${{ env.TRAPS_REL }}
       - name: Build and push pyevents
         uses: docker/build-push-action@v5
@@ -37,7 +37,7 @@ jobs:
           context: https://github.com/tapis-project/event-engine.git#:pyevents
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/pyevents
+          tags: tapis/pyevents
       - name: Build and push pyevents:3.8
         uses: docker/build-push-action@v5
         with:
@@ -45,14 +45,14 @@ jobs:
           file: https://raw.githubusercontent.com/tapis-project/event-engine/main/pyevents/Dockerfile-3.8
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/pyevents:3.8
+          tags: tapis/pyevents:3.8
       - name: Build and push camera_traps_py
         uses: docker/build-push-action@v5
         with:
           context: src/python
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/camera_traps_py:${{ env.TRAPS_REL }}
+          tags: tapis/camera_traps_py:${{ env.TRAPS_REL }}
       - name: Build and push camera_traps_py_3.8
         uses: docker/build-push-action@v5
         with:
@@ -60,14 +60,14 @@ jobs:
           file: src/python/Dockerfile-3.8
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/camera_traps_py_3.8:${{ env.TRAPS_REL }}
+          tags: tapis/camera_traps_py_3.8:${{ env.TRAPS_REL }}
       - name: Build and push image_scoring_plugin
         uses: docker/build-push-action@v5
         with:
           context: external_plugins/image_scoring_plugin
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/image_scoring_plugin_py_3.8:${{ env.TRAPS_REL }}
+          tags: tapis/image_scoring_plugin_py_3.8:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
           file: external_plugins/image_scoring_plugin/Dockerfile-3.8
       - name: Build and push image_generating_plugin
@@ -76,7 +76,7 @@ jobs:
           context: external_plugins/image_generating_plugin
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/image_generating_plugin_py:${{ env.TRAPS_REL }}
+          tags: tapis/image_generating_plugin_py:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
       - name: Build and push power_measuring_plugin
         uses: docker/build-push-action@v5
@@ -84,5 +84,5 @@ jobs:
           context: external_plugins/power_measuring_plugin
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: skhuvis/power_measuring_plugin_py:${{ env.TRAPS_REL }}
+          tags: tapis/power_measuring_plugin_py:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
