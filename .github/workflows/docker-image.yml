@@ -3,9 +3,12 @@ name: Docker Image CI
 on:
   release:
     types: [released]
-
-env: 
-  TRAPS_REL: ${{ github.event.release.tag_name }}
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: ''
+        required: true
+        type: string
 
 jobs:
   docker:
@@ -13,6 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: main
     steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up QEMU
