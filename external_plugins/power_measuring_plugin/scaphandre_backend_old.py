@@ -1,32 +1,20 @@
-import datetime
-import json
-import subprocess
-import time
-import os
-import sys
-import logging
 
-from power_measuring_plugin import stop
-
-log_dir = os.environ['TRAPS_POWER_LOG_PATH']
-file_name = 'jtop_log.json'
-
-logger = logging.getLogger("Power measurement")
+# TODO this haven't been tested yet. Since I don't have a suitable machine. 
+DEVICE_TYPES_METHODS = {"cpu": {"scaph": "scaphandre stdout -t "}, "gpu": {"nvsmi": "nvidia-smi --query-gpu=index,power.draw --format=csv"}}
 
 
-DEVICE_TYPES_METHODS = {"cpu": {"scaph": "scaphandre stdout -t "},
-                        "gpu": {"nvsmi": "nvidia-smi --query-gpu=index,power.draw --format=csv"}}
+def get_log_file_location(file_name):
+    """
+    Return the absolute path to the log file location for a specific log file.
+    file_name (str) should be the name of the file; i.e., "cpu.json", "gpu.json". etc. 
+    """
+    return os.path.join(LOG_DIR, file_name)
 
 
-def cpu_measure(pids, cpu_method, duration):
-    if cpu_method is None:
-        logger.warning(
-            "No CPU method specified. Using default scaphandre method.")
-        cpu_method = "scaph"
+def cpu_measure():
     method = DEVICE_TYPES_METHODS["cpu"][cpu_method]
     cmd = method + str(duration)
-    logger.info("start measuring PID={} CPU for {}s using {}".format(
-        pids, duration, cpu_method))
+    logger.info("start measuring PID={} CPU for {}s using {}".format(pids, duration, cpu_method))
 
     process = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
@@ -34,7 +22,7 @@ def cpu_measure(pids, cpu_method, duration):
     meta_infos = {}
     while not stop:
         output = process.stdout.readline()
-
+        
         if output == "" and process.poll() is not None:
             break
         if output:
@@ -53,21 +41,15 @@ def cpu_measure(pids, cpu_method, duration):
                         meta_info[2] = meta_info[2].strip('"')
                         meta_infos[readable_time] = meta_info
                         break
-
+                    
         if len(meta_infos):
-            with open(os.path.join(log_dir, file_name), 'w') as json_file:
+            with open(get_log_file_location('cpu.json'), 'w') as json_file:
                 json.dump(meta_infos, json_file)
 
-
-def gpu_measure(pids, gpu_method, duration):
-    if gpu_method is None:
-        logger.warning(
-            "No GPU method specified. Using default nvidia-smi method.")
-        gpu_method = "nvsmi"
+def gpu_measure():
     method = DEVICE_TYPES_METHODS["gpu"][gpu_method]
     cmd = method
-    logger.info("start measuring PID={} GPU for {}s using {}".format(
-        pids, duration, gpu_method))
+    logger.info("start measuring PID={} GPU for {}s using {}".format(pids, duration, gpu_method))
     time_interval = 2
 
     meta_infos = {}
@@ -86,7 +68,7 @@ def gpu_measure(pids, gpu_method, duration):
                     current_time = datetime.datetime.now()
                     readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
                     meta_infos[readable_time] = float(line.split()[-2])
-            with open(os.path.join(log_dir, file_name), 'w') as json_file:
+            with open(get_log_file_location('gpu.json'), 'w') as json_file:
                 json.dump(meta_infos, json_file)
 
         process.wait()

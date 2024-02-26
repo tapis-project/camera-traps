@@ -18,6 +18,7 @@ RUN mkdir /logs
 # ADD input_example.json /input.json
 ADD power_measuring_plugin.py /power_measuring_plugin.py
 ADD jtop_backend.py /jtop_backend.py
+ADD scaphandre_backend.py /scaphandre_backend.py
 
 
 ENV TRAPS_TEST_POWER_FUNCTION=1
