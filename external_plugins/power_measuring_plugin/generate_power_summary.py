@@ -96,8 +96,45 @@ def validate_metadata_schema(metadata_path):
     try: 
         validate(instance=metadata_file, schema=metadata_schema)
     except Exception as e:
-        print("Validation failed:", e)
+        print("Metadata validation failed:", e)
+        exit()
+
+def validate_log_schema(log_path):
+    # open log file
+    try:
+        with open(log_path, 'r') as file:
+            log_file = json.load(file)
+    except FileNotFoundError:
+        exit()
+
+    # set log schema
+    log_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "patternProperties": {
+                "^\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2} (AM|PM)$": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": [
+                            {"type": "number"},
+                            {"type": "string"}
+                        ],
+                        "minItems": 2,
+                        "maxItems": 2
+                    }
+                }
+            }
+        }
+    }
+    # validate schema
+    try: 
+        validate(instance=log_file, schema=log_schema)
+    except Exception as e:
+        print("Log validation failed:", e)
         exit()
 
 if __name__ == "__main__":
     validate_metadata_schema("example_metadata.json")
+    # validate_log_schema("example_cpu.json")
