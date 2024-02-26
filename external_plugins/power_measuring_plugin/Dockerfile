@@ -1,6 +1,8 @@
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py:$REL
+
 # FROM tapis/camera_traps_py_3.8
+
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN chmod +x $HOME/.cargo/env
