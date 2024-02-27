@@ -1,7 +1,15 @@
 from jsonschema import validate
 import json
 
+def generate_summary():
+    # validate 
+    validate_metadata_schema("example_metadata.json")
+    # validate_log_schema("example_cpu.json")
+
 def validate_metadata_schema(metadata_path):
+    """
+    Validate incoming metadata json file is of correct form
+    """
     # open metadata file
     try:
         with open(metadata_path, 'r') as file:
@@ -11,6 +19,7 @@ def validate_metadata_schema(metadata_path):
 
     # set schema
     metadata_schema = {
+        "$schema": "http://json-schema.org/schema#",
         "type": "object",
         "properties": {
             "plugins": {
@@ -100,6 +109,9 @@ def validate_metadata_schema(metadata_path):
         exit()
 
 def validate_log_schema(log_path):
+    """
+    Validate incoming log json file is of correct form
+    """
     # open log file
     try:
         with open(log_path, 'r') as file:
@@ -109,32 +121,42 @@ def validate_log_schema(log_path):
 
     # set log schema
     log_schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "patternProperties": {
-                "^\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2} (AM|PM)$": {
-                    "type": "array",
-                    "items": {
-                        "type": "array",
-                        "items": [
-                            {"type": "number"},
-                            {"type": "string"}
-                        ],
-                        "minItems": 2,
-                        "maxItems": 2
+        "$schema": "http://json-schema.org/schema#",
+        "type": "object",
+        "properties": {
+            "logs": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2} (AM|PM)$": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": [
+                                    {"type": "number"},
+                                    {"type": "string"}
+                                ],
+                                "minItems": 2,
+                                "maxItems": 2
+                            }
+                        }
                     }
                 }
-            }
+            }   
         }
     }
+
+    # new schema to avoid top level array error
+    log_schema_object = {"logs": log_file}
+
     # validate schema
     try: 
-        validate(instance=log_file, schema=log_schema)
+        validate(instance=log_file, schema=log_schema_object)
     except Exception as e:
         print("Log validation failed:", e)
         exit()
 
 if __name__ == "__main__":
     validate_metadata_schema("example_metadata.json")
-    # validate_log_schema("example_cpu.json")
+    validate_log_schema("example_cpu.json")
