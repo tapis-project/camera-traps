@@ -128,11 +128,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1680890900,
-        "narHash": "sha256-/puoLBgODn2k+YWUs3alUJQnWd9tm7map1iq5yQ1APY=",
+        "lastModified": 1696978057,
+        "narHash": "sha256-3zyFpE61W2FLalXXNSG2kbJnHqAr8yjfV3R2bdsfPbg=",
         "owner": "waltermoreira",
         "repo": "shell-utils",
-        "rev": "73186733b3a589bce196f03bc6290160a809b976",
+        "rev": "b421b6af9628dc5273ecff9a83d47d18f3004df9",
         "type": "github"
       },
       "original": {
