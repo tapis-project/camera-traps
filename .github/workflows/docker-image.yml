@@ -79,9 +79,9 @@ jobs:
           context: external_plugins/image_scoring_plugin
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: tapis/image_scoring_plugin_py_nano_3.8:${{ env.TRAPS_REL }}
+          tags: tapis/image_scoring_plugin_py_3.8:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
-          file: external_plugins/image_scoring_plugin/Dockerfile-3.8-nano
+          file: external_plugins/image_scoring_plugin/Dockerfile-3.8
       - name: Build and push image_scoring_plugin for nano
         uses: docker/build-push-action@v5
         with:
