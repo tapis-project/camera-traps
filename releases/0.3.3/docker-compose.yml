@@ -20,7 +20,8 @@ services:
       # mount the image output directory from the host to the directory specified in traps.toml
       # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
       # exist it will be created with root ownership.
-      - ./images_output_dir:/root/camera-traps/images
+      - icicle:/root/camera-traps/images  # Using `icicle` volume for images
+#      - ./images_output_dir:/root/camera-traps/images
       # mount the log4rs configuration file over the baked into the image.  Comment out
       # this mount if you want to use the image's default logging configuration.
       - ../../resources/log4rs.yml:/resources/log4rs.yml
@@ -35,6 +36,9 @@ services:
       - engine
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      - TRAPS_POWER_LOG_PATH=/logs
+      - TRAPS_TEST_POWER_FUNCTION=0
       - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
@@ -80,6 +84,9 @@ services:
       # The IMAGE_PATH_PREFIX is optional and needs to agree with the image_file_prefix
       # variable in the traps.toml file; when not being used, comment the line.
       # - IMAGE_FILE_PREFIX=
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      - TRAPS_POWER_LOG_PATH=/logs
+      - TRAPS_TEST_POWER_FUNCTION=0
       - MONITOR_POWER=true
     volumes:
       # mount the traps.toml in the current working directory.
@@ -87,7 +94,8 @@ services:
       - ./config/traps.toml:/traps.toml:ro
       # mount the shared images directory from the host to the container directory specified in the
       # IMAGE_PATH environment variable, above.
-      - ./images_output_dir:/input_images
+#      - ./images_output_dir:/input_images
+      - icicle:/input_images  # Using `icicle` volume for images
 
   powerMonitorPlugin:
     # USAGE Example:
@@ -133,4 +141,9 @@ services:
     volumes:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
-      - ./power_output_dir:/logs # Path for CPU and GPU power logs
+#      - ./power_output_dir:/logs # Path for CPU and GPU power logs
+      - icicle:/logs  # Using `icicle` volume for images
+
+volumes:
+  icicle:
+    external: true
