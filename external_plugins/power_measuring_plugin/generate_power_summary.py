@@ -2,7 +2,7 @@ from jsonschema import validate
 import json
 from datetime import datetime
 
-def generate_summary():
+def generate_power_summary():
     # open metadata file
     try:
         with open("example_metadata.json", 'r') as file:
@@ -31,7 +31,7 @@ def generate_summary():
     sum_power_consumption(cpu_log, summary, 'cpu_consumption')
  
     # write to json file
-    with open("sample_report.json", "w") as outfile: 
+    with open("power_summary_report.json", "w") as outfile: 
         json.dump(summary, outfile, indent=2)
 
 def sum_power_consumption(log, summary, device):
@@ -70,18 +70,27 @@ def monitor_times(log, summary):
     find start and end time
     """
     all_times = []
-    starts = []
-    ends = []
-    # for i, report in enumerate(summary):
-    #     for entry in log:
-    #         datetime_object = datetime.strptime(list(entry.keys())[0], "%m/%d/%Y %I:%M:%S %p")
-    #         all_times.append(datetime_object)
-    #     start_time = min(all_times)
-    #     end_time = max(all_times)
 
+    for report in summary:
+        for entry in log:
+            time = list(entry.keys())[0]
+            logs_at_time = (list(entry.values())[0]) # [[0.0, '2437322'], [1.4, '3423844'], [2.3, '4737228']]
+            for j in logs_at_time:
+                # if pid in log matches summary, append start time and end
+                if int(j[1]) == report['pid']:
+                    log_datetime = datetime.strptime(time, "%m/%d/%Y %I:%M:%S %p")
+                    if report['start_time'] is None and report['end_time'] is None:
+                        report['start_time'] = time
+                        report['end_time'] = time
+                    else:
+                        summary_starttime_datetime = datetime.strptime(report['start_time'], "%m/%d/%Y %I:%M:%S %p")
+                        summary_endtime_datetime = datetime.strptime(report['end_time'], "%m/%d/%Y %I:%M:%S %p")
+                        if summary_starttime_datetime > log_datetime:
+                            report['start_time'] = time
+                        if summary_endtime_datetime < log_datetime:
+                            report['end_time'] = time
+                        
 
-
-    print(start_time)
 
 def validate_metadata_schema(metadata_file):
     """
@@ -223,4 +232,4 @@ def validate_log_schema(log_file):
         exit()
 
 if __name__ == "__main__":
-    generate_summary()
+    generate_power_summary()
