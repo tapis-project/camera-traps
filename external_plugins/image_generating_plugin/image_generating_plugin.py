@@ -10,6 +10,9 @@ import threading
 import concurrent.futures
 from ctevents import ctevents
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
+import requests
+import zipfile
+from io import BytesIO
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -61,7 +64,6 @@ def simpleNext(img_dict, i, value_index, socket):
     """
     done = False
     if i >= len(img_dict):
-   # if i >= 15:
         done = True
         print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
         return done, i, len(img_dict)
@@ -74,7 +76,7 @@ def simpleNext(img_dict, i, value_index, socket):
     return done, i, value_index + 1
 
 
-def burstNext(index):
+def burstNext(img_dict,index,socket):
     """
     This function send the next x (burstQuantity specified) images specified in the directory based on the timestamp
     and invokes get binary function. 
@@ -84,14 +86,16 @@ def burstNext(index):
     burst_Quantity = int(data['burstQuantity'])
     for i in range(index, index+burst_Quantity):
         if (i >= len(img_dict)):
-            exit()
+            done = True
+            print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
+            return done, i, len(img_dict)
         value = list(img_dict.values())[i]
         value = str(value)[1:-1]
-        get_binary(value)
+        get_binary(value,socket)
     return (index+burst_Quantity)
 
 
-def identicalTimestamp(img_dict, timestamp_min):
+def identicalTimestamp(img_dict, timestamp_min,socket):
     """
     Incase of multiple images with same timestamp, this function gets single image
     and invokes get binary function.
@@ -103,11 +107,11 @@ def identicalTimestamp(img_dict, timestamp_min):
     if (len(img_dict[timestamp_min]) > 1):
         for i in range(0, len(img_dict[timestamp_min])):
             value = img_dict[timestamp_min][i]
-            get_binary(value)
+            get_binary(value,socket)
     return timestamp_min+start
 
 
-def nextImage(timestamp_min, index):
+def nextImage(img_dict,timestamp_min, index,socket):
     """
     For a given static time interval(t), this fucntion gives the next image t seconds forward.
     Binary search algorithm is used to minimize the search time.
@@ -136,11 +140,11 @@ def nextImage(timestamp_min, index):
     print("Output")
     value = img_dict[timestamp_min1]
     value = str(value)[1:-1]
-    get_binary(value)
+    get_binary(value, socket)
     return timestamp_min1+start, index
 
 
-def randomImage(timestamp_min, index):
+def randomImage(timestamp_min, index, socket):
     """
     For a given dynamic time interval(t), this fucntion gives the next image t seconds forward.
     Binary search algorithm is used to minimize the search time.
@@ -162,9 +166,33 @@ def randomImage(timestamp_min, index):
     print("Output")
     value = img_dict[timestamp_min]
     value = str(value)[1:-1]
-    get_binary(value)
+    get_binary(value,socket)
     return timestamp_min, index
 
+def extract_from_zipfile(url, socket):
+    """
+    This function helps to extract images from input url.
+    """
+    response = requests.get(url)
+    if response.status_code == 200:
+        with zipfile.ZipFile(BytesIO(response.content), 'r') as zip_ref:
+            file_list = zip_ref.namelist()
+            for file_name in file_list:
+                if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    with zip_ref.open(file_name) as image_file:
+                        uuid_image = str(uuid.uuid5(uuid.NAMESPACE_URL, file_name))
+                        binary_img = image_file.read()
+                        img = Image.open(BytesIO(binary_img))
+                        img_format = img.format
+                        logging.info(f"sending new image with the following data: image:{file_name}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
+                        try:
+                            ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
+                        except Exception as e:
+                            print(f"got exception {e}")
+        print("Extraction complete")
+    else:
+        print(f"Failed to download file from {url}")
+    
 def get_config():
     # TODO - return start
     # get the configuration file location
@@ -211,6 +239,10 @@ def send_images(data, socket):
     index_value = 0
     initial_index = 0
     track_image_count = 1
+    print(data['path'])
+    if data['path'].endswith(('.zip', '.rar')):
+        extract_from_zipfile(data['path'], socket)
+        
     img_dict, timestamp_min, timestamp_max,list_of_files = create_dict(data)
     length_of_files = len(list_of_files)
 
@@ -238,13 +270,13 @@ def send_new_image(data, index, indexvalue, inital_index, socket):
     if data['callingFunction'] == "nextImage":
         print("Timed Next")
         timestamp_min, initial_index = nextImage(
-            timestamp_min, initial_index)
+            img_dict,timestamp_min, initial_index, socket)
     elif data['callingFunction'] == "burstNext":
         print("Burst Next")
-        index = burstNext(index)
+        index = burstNext(img_dict,index, socket)
     elif data['callingFunction'] == "identicalTimestamp":
         print("Identical Timestamp")
-        timestamp_min = identicalTimestamp(img_dict, timestamp_min)
+        timestamp_min = identicalTimestamp(img_dict, timestamp_min, socket)
         print(timestamp_min)
     elif data['callingFunction'] == "randomImage":
         print("Random Image")
@@ -252,7 +284,7 @@ def send_new_image(data, index, indexvalue, inital_index, socket):
             input("Enter the random timestamp in seconds: "))
         timestamp_min += random_timestamp
         timestamp_min, initial_index = randomImage(
-            timestamp_min, initial_index)
+            img_dict, timestamp_min, initial_index,socket)
     else:
         print(f"Calling simpleNext with: {index}, {indexvalue}")
         return simpleNext(img_dict, index, indexvalue, socket)
