@@ -24,49 +24,59 @@ def generate_power_summary():
     validate_log_schema(cpu_log)
 
     # initialize summary list
-    summary = summary_init(metadata)
+    plugin_summary, pid_summary = summary_init(metadata)
+    summary = {"plugin power summary report": plugin_summary, "pid power summary report": pid_summary}
 
     # start and end time
-    monitor_times(cpu_log, summary)
+    monitor_times(cpu_log, pid_summary)
 
     # sum power consumption
-    sum_power_consumption(cpu_log, summary, 'cpu_consumption')
+    sum_power_consumption(cpu_log, pid_summary, plugin_summary, 'cpu_consumption')
  
     # write to json file
     with open("power_summary_report.json", "w") as outfile: 
         print("Writing to power_summary_report.json")
         json.dump(summary, outfile, indent=2)
 
-def sum_power_consumption(log, summary, device):
+def sum_power_consumption(log, pid_summary, plugin_summary, device):
     """
     sum power log, given log list of dicts, summary list of dicts, device string
     """
-    for i, report in enumerate(summary):
-        summary[i][device] = 0
+    for pid_report in pid_summary:
+        pid_report[device] = 0
         for entry in log:
             logs_at_time = (list(entry.values())[0]) # [[0.0, '2437322'], [1.4, '3423844'], [2.3, '4737228']]
             for j in logs_at_time:
                 # if pid in log matches summary, increment power value
-                if int(j[1]) == summary[i]['pid']:
-                    summary[i][device] += j[0]
+                if int(j[1]) == pid_report['pid']:
+                    pid_report[device] += j[0]
 
-    return summary
+    for plugin_report in plugin_summary:
+        plugin_report[device] = 0
+        for pid_report in pid_summary:
+            if plugin_report["plugin"] == pid_report['plugin_name']:
+                plugin_report[device] += pid_report[device]
+
+
+    return pid_summary, plugin_summary
     
 def summary_init(metadata):
     """
     initialize summary report
     """
-    summary = []
+    pid_summary = []
+    plugin_summary = []
     for plugin in metadata['plugins']:
+        plugin_summary_dict = {"plugin": plugin['name'], "cpu_consumption": None, "gpu_consumption": None}
+        plugin_summary.append(plugin_summary_dict)
         for pid in plugin['pids']:
-            summary_dict = {"pid": None, "command_line": None, 
+            pid_summary_dict = {"pid": pid, "plugin_name": plugin['name'], 
                 "start_time": None, "end_time": None, 
                 "cpu_consumption": None, "gpu_consumption": None}
-            summary_dict["pid"] = pid
-            summary_dict["command_line"] = plugin['command_line']
-            summary.append(summary_dict)
-
-    return summary
+            pid_summary.append(pid_summary_dict)
+        
+    
+    return plugin_summary, pid_summary
 
 def monitor_times(log, summary):
     """
@@ -92,7 +102,9 @@ def monitor_times(log, summary):
                             report['start_time'] = time
                         if summary_endtime_datetime < log_datetime:
                             report['end_time'] = time
-                        
+
+def main():
+    generate_power_summary()  
 
 if __name__ == "__main__":
-    generate_power_summary()
+    main()
