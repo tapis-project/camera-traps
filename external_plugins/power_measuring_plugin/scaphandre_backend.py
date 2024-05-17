@@ -9,33 +9,52 @@ import logging
 from power_measuring_plugin import stop
 
 log_dir = os.environ['TRAPS_POWER_LOG_PATH']
-file_name = 'jtop_log.json'
+
 
 logger = logging.getLogger("Power measurement")
 
 
+# Command lines to use for the 
 DEVICE_TYPES_METHODS = {"cpu": {"scaph": "scaphandre stdout -t "},
                         "gpu": {"nvsmi": "nvidia-smi --query-gpu=index,power.draw --format=csv"}}
 
 
 def cpu_measure(pids, cpu_method, duration):
+    """
+    Main wrapper function for measuring CPU consumption via the scaphandre backend. This function executes 
+    scaphandre as a subprocess, processing stdout one line at a time via a pipe. 
+    """
+    # TODO: the cpu_method is defunct, as the only use of this function is for the schaphandre backend. 
+    #       we should update the code to remove this variable. 
     if cpu_method is None:
         logger.warning(
             "No CPU method specified. Using default scaphandre method.")
         cpu_method = "scaph"
+    # In this function, we are always measuring CPU only, so we always write to the cpu.json file
+    file_name = "cpu.json"
+    
+    # Determine the command line to execute in the subprocess
     method = DEVICE_TYPES_METHODS["cpu"][cpu_method]
     cmd = method + str(duration)
-    logger.info("start measuring PID={} CPU for {}s using {}".format(
-        pids, duration, cpu_method))
 
+    logger.info(f"Using scaphandre to start measuring PID: {pids} for duration: {duration}")
+    
+    # Start scaphandre in a subprocess -----
+    logger.debug(f"Command line being started: {cmd}")
     process = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
+
+    # This variable maintains the power measurement data we collect from scaphandre.
     meta_infos = {}
+
+    # Loop to process stdout from scaphandre; we read one line at a time and check for the PIDs 
+    # we care about. 
     while not stop:
         output = process.stdout.readline()
 
         if output == "" and process.poll() is not None:
+            logger.info(f"(PIDs {pids}) output from scaphandre was empty; this thread will exit...")
             break
         if output:
             for line in output.strip().splitlines():
@@ -46,31 +65,65 @@ def cpu_measure(pids, cpu_method, duration):
                 readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
                 for pid in pids:
                     if str(pid) in line:
-                        # logger.info(line)
+                        logger.debug(f"parsing stdout line: {line}")
                         meta_info = line.split('\t')
+                        logger.debug(f"line splits: {meta_info}")
+                        # Parse the line for different parts ----
+                        # the power consumed, in wats
                         meta_info[0] = float(meta_info[0][:-2])
+                        # the pid
                         meta_info[1] = meta_info[1]
+                        # the first part of the command line -- this can be thrown away 
                         meta_info[2] = meta_info[2].strip('"')
-                        meta_infos[readable_time] = meta_info
+                        # -----
+                        logger.debug(f"(PIDs: {pids}) Adding the following output from scaphandre: {meta_info}")
+                        
+                        #meta_infos[readable_time] = meta_info
+                        # For each time enty, the schema calls for a list of lists, with each inner list
+                        # containing the pair of power measurement and pid 
+                        meta_infos[readable_time] = [ [meta_info[0], meta_info[1]] ]
                         break
-
+        
+        # Write all output accumulated so far to th file. This overwrite the file each time with the full
+        # output for this process. 
         if len(meta_infos):
-            with open(os.path.join(log_dir, file_name), 'w') as json_file:
+            with open(os.path.join(log_dir, file_name), 'a') as json_file:
                 json.dump(meta_infos, json_file)
 
 
 def gpu_measure(pids, gpu_method, duration):
+    """
+    Main wrapper function for measuring GPU consumption via the scaphandre backend. 
+    
+    * * * 
+        NOTE: this function if very confusing, as it actually uses the nvidia-smi tool, not the scaphandre tool
+    * * * 
+    
+    This function executes nvsmi as a subprocess, processing stdout one line at a time via a pipe. 
+    """
+    # TODO: the gpu_method is also defunct, as the only use of this function is for the schaphandre backend. 
+    #       we should update the code to remove this variable. 
     if gpu_method is None:
         logger.warning(
             "No GPU method specified. Using default nvidia-smi method.")
         gpu_method = "nvsmi"
+
+    # In this function, we are always measuring GPU only, so we always write to the cpu.json file
+    file_name = "gpu.json"
+
+    # determine the command line to execute in the subprocess
     method = DEVICE_TYPES_METHODS["gpu"][gpu_method]
     cmd = method
-    logger.info("start measuring PID={} GPU for {}s using {}".format(
-        pids, duration, gpu_method))
+    logger.info(f"Starting to measure GPU for the following PIDs: {pids}")
+    logger.debug(f"GPU command line being started: {cmd} ")
+
+    # The time, in seconds, that we sleep between calls to nvsmi. 
     time_interval = 2
 
+    # This variable maintains the power measurement data we collect from nvsmi.
     meta_infos = {}
+
+    # Main loop to start nvsmi as a subprocess and process the stdout
     while not stop and duration > 0:
         process = subprocess.Popen(
             cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
@@ -85,8 +138,10 @@ def gpu_measure(pids, gpu_method, duration):
                         continue
                     current_time = datetime.datetime.now()
                     readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
-                    meta_infos[readable_time] = float(line.split()[-2])
-            with open(os.path.join(log_dir, file_name), 'w') as json_file:
+                    parts = line.split()[-2]
+                    logger.debug(f"(PIDs: {pids}) Adding the following output from nvdia-smi: {parts}")
+                    meta_infos[readable_time] = float(parts)
+            with open(os.path.join(log_dir, file_name), 'a') as json_file:
                 json.dump(meta_infos, json_file)
 
         process.wait()

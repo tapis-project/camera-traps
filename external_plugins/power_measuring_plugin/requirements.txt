@@ -1,0 +1,4 @@
+flatbuffers==24.3.25
+numpy==1.24.4
+jetson-stats==4.2.8
+psutil==5.9.8

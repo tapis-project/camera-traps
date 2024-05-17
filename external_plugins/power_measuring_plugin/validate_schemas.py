@@ -92,9 +92,13 @@ def validate_metadata_schema(metadata_file):
             "start_time": {
                 "type": "string",
                 "format": "date-time"
+            },
+            "last_update_time": {
+                "type": "string",
+                "format": "date-time"
             }
         },
-        "required": ["plugins", "tools", "start_time"]
+        "required": ["plugins", "tools", "start_time", "last_update_time"]
     }
 
     # validate schema

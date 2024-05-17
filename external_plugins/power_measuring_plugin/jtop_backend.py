@@ -15,13 +15,13 @@ def read_stats(jetson):
     print(data)
     log = json.loads(open(log_file, 'r').read())
     log.append(data)
-    open(log_file, 'w').write(json.dumps(log))
+    open(log_file, 'a').write(json.dumps(log))
 
 
 def jtop_measure():
     log_file = os.path.join(log_dir, file_name)
     if not os.path.exists(log_file):
-        open(log_file, 'w').write('[]')
+        open(log_file, 'a').write('[]')
     with jtop() as jetson:
         if jetson.ok():
             read_stats(jetson)

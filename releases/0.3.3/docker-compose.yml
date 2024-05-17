@@ -107,6 +107,10 @@ services:
     image: tapis/power_measuring_plugin_py:0.3.3
     networks:
       - cameratraps
+    # Reading the Intel RAPL (Linux Powercap) interface requires privileges
+    privileged: true
+    # Ee also require being in the host namespace (as with all other processes) so we 
+    # can read the proc table for information about their processes
     pid: host
     # Uncomment the following line to use GPUs with the Power Monitor pluging. Note that
     # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
@@ -128,6 +132,7 @@ services:
       - POWER_MEASURING_PLUGIN_PORT=6010
       # Note: this LOG_PATH is the path in the conatiner, so must matcht the RHS of the mount below.
       - TRAPS_POWER_LOG_PATH=/logs
+      - TRAPS_POWER_LOG_LEVEL=DEBUG
       - TRAPS_TEST_POWER_FUNCTION=1
       # 1 for debug; Set to 0 when actually use it to measure other plugin's power
     volumes:
