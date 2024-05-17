@@ -8,12 +8,16 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN chmod +x $HOME/.cargo/env
 ENV PATH="/root/.cargo/bin:$PATH"
 
-RUN pip install flatbuffers numpy
-RUN pip install jetson-stats
+# RUN pip install flatbuffers numpy
+# RUN pip install jetson-stats
 
 RUN cd / && git clone https://github.com/hubblo-org/scaphandre.git
 RUN cd /scaphandre && cargo build --release
 ENV PATH="/scaphandre/target/release:${PATH}"
+
+ADD requirements.txt /requirements.txt
+RUN pip install -r requirements.txt 
+
 RUN mkdir /logs
 
 
