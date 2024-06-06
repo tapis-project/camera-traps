@@ -20,7 +20,7 @@ def validate_metadata_schema(metadata_file):
                             "enum": [
                                     "image_scoring_plugin",
                                     "image_generating_plugin",
-                                    "power_generating_plugin",
+                                    "power_monitor_plugin",
                                     "engine"
                                 ]
                             },
@@ -66,8 +66,8 @@ def validate_metadata_schema(metadata_file):
                                     "type": "string",
                                     "enum": [
                                         "jtop",
-                                        "scaph",
-                                        "nvsmi"
+                                        "scaphandre",
+                                        "nvidia-smi"
                                     ]
                                 },
                                 "tool_params": {

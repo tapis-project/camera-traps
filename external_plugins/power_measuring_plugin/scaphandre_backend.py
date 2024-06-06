@@ -1,3 +1,4 @@
+import csv
 import datetime
 import json
 import subprocess
@@ -31,10 +32,14 @@ def cpu_measure(pids, cpu_method, duration):
             "No CPU method specified. Using default scaphandre method.")
         cpu_method = "scaph"
     # In this function, we are always measuring CPU only, so we always write to the cpu.json file
-    file_name = "cpu.json"
-    
+    file_name = "cpu.csv"
+
     # Determine the command line to execute in the subprocess
     method = DEVICE_TYPES_METHODS["cpu"][cpu_method]
+    # Note that a duration of 0 in Camera Traps means "monitor forever", but the scaphandre CLI has changed recently and
+    # does not run at all when a duration of 0 is passed, so we override it to a large number. 
+    if duration == 0:
+        duration = 31449600 # this is 1 year's worth of seconds
     cmd = method + str(duration)
 
     logger.info(f"Using scaphandre to start measuring PID: {pids} for duration: {duration}")
@@ -57,12 +62,13 @@ def cpu_measure(pids, cpu_method, duration):
             logger.info(f"(PIDs {pids}) output from scaphandre was empty; this thread will exit...")
             break
         if output:
+            current_time = datetime.datetime.now()
+            readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            temp_result = []
             for line in output.strip().splitlines():
                 if line[-1] != '"':
                     continue
-
-                current_time = datetime.datetime.now()
-                readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+                # iterate through all the PIDs we are monitoring checking for the PID's occurrence in the output
                 for pid in pids:
                     if str(pid) in line:
                         logger.debug(f"parsing stdout line: {line}")
@@ -79,16 +85,23 @@ def cpu_measure(pids, cpu_method, duration):
                         logger.debug(f"(PIDs: {pids}) Adding the following output from scaphandre: {meta_info}")
                         
                         #meta_infos[readable_time] = meta_info
-                        # For each time enty, the schema calls for a list of lists, with each inner list
+                        # For each time entry, the schema calls for a list of lists, with each inner list
                         # containing the pair of power measurement and pid 
-                        meta_infos[readable_time] = [ [meta_info[0], meta_info[1]] ]
-                        break
+                        # for JSON file:
+                        # temp_result.append([meta_info[0], meta_info[1]])
+                        # for CSV file:
+                        temp_result.append([readable_time, meta_info[0], meta_info[1]])
         
-        # Write all output accumulated so far to th file. This overwrite the file each time with the full
-        # output for this process. 
-        if len(meta_infos):
-            with open(os.path.join(log_dir, file_name), 'a') as json_file:
-                json.dump(meta_infos, json_file)
+            # Append the most recent entry to the file
+            if len(temp_result) > 0:
+                with open(os.path.join(log_dir, file_name), 'a') as f:
+                    logger.debug(f"Appending to the CSV file for PIDs: {pids}")
+                    csv_writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+                    for r in temp_result:
+                        csv_writer.writerow(r)
+                # meta_infos[readable_time] = json.dumps(temp_result)
+                # with open(os.path.join(log_dir, file_name), 'a') as json_file:
+                #     json_file.write("{" + f'"{readable_time}": {meta_infos[readable_time]}' + "},\n")
 
 
 def gpu_measure(pids, gpu_method, duration):

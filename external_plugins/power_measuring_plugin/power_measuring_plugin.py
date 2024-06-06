@@ -1,10 +1,13 @@
 from ctevents.ctevents import socket_message_to_typed_event, send_monitor_power_start_fb_event
 from ctevents import MonitorPowerStartEvent, MonitorPowerStopEvent
+from ctevents.gen_events import PluginTerminateEvent
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
+from generate_power_summary import generate_power_summary
 
 import os
 import zmq
 import json
+import csv 
 import time
 import queue
 import logging
@@ -36,6 +39,7 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+# Main directory where power measurement log files (cpu.json, gpu.json, etc) are written
 LOG_DIR = os.environ.get('TRAPS_POWER_LOG_PATH', "/logs/")
 
 # Socket configuration 
@@ -59,6 +63,12 @@ BACKEND = "jtop" if PLATFORM == "JETSON" else "scaphandre"
 ALL_DEVICES = 0
 CPU_DEVICE = 1
 GPU_DEVICE = 2
+
+# How long to wait, in seconds, for a new message. If we do not receive a message in this 
+# amount of time, the power measuring plugin will exit. Since the power measuring plugin receives 
+# all of its messages at the very beginning, this is effectively a max total runtime. 
+# Set to 0 for unlimited time.
+SOCKET_TIMEOUT = 90
 
 
 request_queue = queue.Queue()
@@ -169,50 +179,56 @@ def get_base_metadata(start_time):
     """
     metadata = {
         "plugins": [],
-        "tools": [],
+        "tools": { "devices": [] },
         "start_time": start_time, 
         "last_update_time": None, 
     }
+    
     # add the tools based on the backend
+    cpu_file_path = os.path.join(LOG_DIR, "cpu.json")
+    gpu_file_path = os.path.join(LOG_DIR, "gpu.json")
     if BACKEND == "jtop":
         # jtop measures both CPU and GPU at the same time ---- 
-        metadata["tools"].append({
+        metadata["tools"]["devices"].append({
             		"device_type": "gpu",
 		            "tool_name": "jtop",
 		            "tool_params" : "",
 		            "power_units": "watts",
-                    # TODO 
-		            "measurement_log_path": "/root/output/gpu.json"
+		            "measurement_log_path": gpu_file_path,
         })
-        metadata["tools"].append({
+        metadata["tools"]["devices"].append({
             		"device_type": "cpu",
 		            "tool_name": "jtop",
 		            "tool_params" : "",
 		            "power_units": "watts",
-                    # TODO 
-		            "measurement_log_path": "/root/output/gpu.json"
+		            "measurement_log_path": cpu_file_path,
         })
     # The "scaphandre" backend is actually a code word for using scaphandre for CPU measurements and 
     # nvidia-smi for GPU. 
     elif BACKEND == "scaphandre":
-        metadata["tools"].append({
+        metadata["tools"]["devices"].append({
             		"device_type": "cpu",
 		            "tool_name": "scaphandre",
 		            "tool_params" : "scaphandre stdout -t ",
 		            "power_units": "watts",
-                    # TODO 
-		            "measurement_log_path": "/root/output/gpu.json"
+		            "measurement_log_path": cpu_file_path,
         })
-        metadata["tools"].append({
+        metadata["tools"]["devices"].append({
             		"device_type": "gpu",
 		            "tool_name": "nvidia-smi",
 		            "tool_params" : "nvidia-smi --query-gpu=index,power.draw --format=csv",
 		            "power_units": "watts",
-                    # TODO 
-		            "measurement_log_path": "/root/output/gpu.json"
+		            "measurement_log_path": gpu_file_path,
         })
 
-    return metadata
+    # TODO: Remove the following code when conversion to CSV is complete. 
+    # initialize log files 
+    # with open(cpu_file_path, 'w+') as f:
+    #     f.write("[\n")
+    # with open(gpu_file_path, 'w+') as f:
+    #     f.write("[\n")
+
+    return metadata, cpu_file_path, gpu_file_path
 
 def get_pids_meta(pids, types):
     """
@@ -234,12 +250,12 @@ def get_pids_meta(pids, types):
             continue
         name = proc.name()
         command_line = " ".join(proc.cmdline())
-        # TODO: we use a hueristic here since we have no actual way of determing which plugin 
+        # TODO: we use a heuristic here since we have no actual way of determining which plugin 
         #       is associated with the PID.
         if "image_generating_plugin.py" in command_line:
             name = "image_generating_plugin"
         elif "power_measuring_plugin.py" in command_line:
-            name = "power_measuring_plugin"
+            name = "power_monitor_plugin"
         elif "image_scoring_plugin.py" in command_line:
             name = "image_scoring_plugin"
 
@@ -248,6 +264,38 @@ def get_pids_meta(pids, types):
         procs["command_line"].append(command_line)
     return procs 
     
+def convert_csv_files_to_json(cpu_file_path, gpu_file_path):
+    """
+    This function converts the csv files to json.
+    """
+    logger.debug("Converting CPU and GPU files to JSON")
+    
+    # do the same processing to both files
+    for p in [cpu_file_path, gpu_file_path]:
+        # the final result is a JSON list
+        result = []
+        csv_path = p.replace("json", "csv")
+        if not os.path.exists(csv_path):
+            logger.info(f"Did not find CSV path {csv_path}.")
+            # write empty result to json file:
+            with open(p, "w+") as f: 
+                f.write("[]")
+            continue
+        with open(csv_path, 'r') as f: 
+            reader = csv.reader(f)
+            # for each row, get the time stamp, measurement and PID
+            for line in reader:
+                if not len(line) == 3:
+                    logger.error(f"Unexpected line length in CSV file ({p}); line: {line}")
+                    continue
+                time_stamp = line[0]
+                measurement = line[1]
+                pid = line[2]
+                result.append({time_stamp: [[measurement, pid]]})
+        # write to json file:
+        with open(p, "w+") as f: 
+            json.dump(result, f)
+        
 
 def main():
     """
@@ -271,7 +319,7 @@ def main():
     socket = get_socket()
 
     # The metadata about this execution; see the metadata.json example or the validate_schemas module
-    metadata = get_base_metadata(start_time_str)
+    metadata, cpu_file_path, gpu_file_path = get_base_metadata(start_time_str)
 
     # the TEST_FUNCTION controls whether this program monitors itself; if set to 1, it will 
     # monitor its own pid, allowing this program to be tested without the rest of the event engine.
@@ -283,16 +331,37 @@ def main():
         send_monitor_power_start_fb_event(
             socket, my_pids, monitor_type, monitor_duration)
 
+    # total number of monitor start event messages we have received 
+    nbr_monitor_start_events = 0 
+
     # Main event loop -- this loop waits for a new message on the event socket.
-    # For each new MonitorPowerStart event, we create a task encapsulating the monitoring to be done, 
-    # and we queue the task for a worker to receive and start the monitoring in a separate process. 
     while not stop:
-        message = get_next_msg(socket)
+        socket = get_socket()
+        try:
+            message = get_next_msg(socket, timeout=SOCKET_TIMEOUT)
+            # message = get_next_msg(socket)
+        except Exception as e:
+            # we got a resource temporarily unavailable error; sleep for a second and try again
+            if isinstance(e, zmq.error.Again):
+                logger.debug(f"Got a zmq.error.Again; hopefully this is startup...")
+                if nbr_monitor_start_events >= 3:
+                    logger.info("Already received 3 monitor start events; breaking out of loop.")
+                    stop = True
+                    continue
+                time.sleep(1)
+                continue
+            # we timed out waiting for a message; just check the max time and continue 
+            logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
+            stop = True 
+            logger.info("Power measuring pluging stopping due to timeout limit...")
+            continue
+        
         logger.info("Got a message from the event socket")
         event = socket_message_to_typed_event(message)
         
         # process a new MonitorPowerStart event ---- 
         if isinstance(event, MonitorPowerStartEvent):
+            nbr_monitor_start_events += 1
             # pull various monitoring info out of the event: pids, types to monitor, start time and during
             pids = event.PidsAsNumpy().tolist()
             types = event.MonitorTypesAsNumpy()
@@ -314,10 +383,26 @@ def main():
         elif isinstance(event, MonitorPowerStopEvent):
             logger.info(f"Message from event socket was a MonitorPowerStop event; shutting down...")
             stop = True
+        elif isinstance(event, PluginTerminateEvent):
+            if event.PluginUuid() == '*' or event.PluginName() == '*' or event.PluginName() == 'ext_power_monitor_plugin':
+                logger.info(f"Message from event socket was a PluginTerminateEvent event; shutting down...")
+                stop = True                
+            
         # Write the metadata file
         metadata["last_update_time"] = str(datetime.datetime.now()).replace(" ", "")
         with open(os.path.join(LOG_DIR, f"metadata_{start_time_str}.json"), 'w') as json_file:
                     json.dump(metadata, json_file)
+    
+    # First, sleep to let the other plugin programs complete
+    time.sleep(22)
+    
+    # Finalize the log files by cleaning up characters 
+    convert_csv_files_to_json(cpu_file_path, gpu_file_path)
+
+    # Generate report
+    logger.info("Power measurement plugin preparing to exit; generating summary report...")
+    generate_power_summary()
+
 
 
 if __name__ == "__main__":
