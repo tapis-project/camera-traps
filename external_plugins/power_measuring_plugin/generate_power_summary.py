@@ -55,7 +55,7 @@ def generate_power_summary():
     monitor_times(cpu_log, pid_summary)
 
     # sum power consumption
-    sum_power_consumption(cpu_log, pid_summary, plugin_summary, 'cpu_consumption')
+    sum_power_consumption(cpu_log, pid_summary, plugin_summary, 'cpu_power_consumption')
  
     # write to json file
     with open(os.path.join(LOG_DIR, "power_summary_report.json"), "w") as outfile: 
@@ -91,12 +91,12 @@ def summary_init(metadata):
     pid_summary = []
     plugin_summary = []
     for plugin in metadata['plugins']:
-        plugin_summary_dict = {"plugin": plugin['name'], "cpu_consumption": None, "gpu_consumption": None}
+        plugin_summary_dict = {"plugin": plugin['name'], "cpu_power_consumption": None, "gpu_power_consumption": None}
         plugin_summary.append(plugin_summary_dict)
         for pid in plugin['pids']:
             pid_summary_dict = {"pid": pid, "plugin_name": plugin['name'], 
                 "start_time": None, "end_time": None, 
-                "cpu_consumption": None, "gpu_consumption": None}
+                "cpu_power_consumption": None, "gpu_power_consumption": None}
             pid_summary.append(pid_summary_dict)
         
     

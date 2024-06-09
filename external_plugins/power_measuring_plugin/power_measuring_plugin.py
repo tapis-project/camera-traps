@@ -70,6 +70,15 @@ GPU_DEVICE = 2
 # Set to 0 for unlimited time.
 SOCKET_TIMEOUT = 2000
 
+# The total number of PowerMonitorStart messages this plugin expects to receive over the life of 
+# a single execution. Once it receives this number, it will wait SOCKET_TIMEOUT for additional messages 
+# but once it receives a zmq timeout error (error.Again), it will being the max runtime counter. 
+TOTAL_EXPECTED_POWER_MONITOR_START_MSGS = 3 
+
+# Max run time, in seconds, for the power measuring plugin execution after receiving the expected number 
+# of Power Monitor Start messages. The plugin will sleep this amount 
+# to allow for the other plugins to complete their executions before generating the summary. 
+MAX_RUN_TIME = 25
 
 request_queue = queue.Queue()
 
@@ -344,14 +353,14 @@ def main():
             # we got a resource temporarily unavailable error; sleep for a second and try again
             if isinstance(e, zmq.error.Again):
                 logger.debug(f"Got a zmq.error.Again; i.e., waited {SOCKET_TIMEOUT} ms without getting a message")
-                if nbr_monitor_start_events >= 3:
-                    logger.info("Already received 3 monitor start events; breaking out of loop.")
+                if nbr_monitor_start_events >= TOTAL_EXPECTED_POWER_MONITOR_START_MSGS:
+                    logger.info(f"Already received {TOTAL_EXPECTED_POWER_MONITOR_START_MSGS} monitor start events; breaking out of loop.")
                     stop = True
                 continue
             # we timed out waiting for a message; just check the max time and continue 
             logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
             stop = True 
-            logger.info("Power measuring pluging stopping due to timeout limit...")
+            logger.info("Power measuring plugin stopping due to timeout limit...")
             continue
         
         logger.info("Got a message from the event socket")
@@ -392,7 +401,7 @@ def main():
                     json.dump(metadata, json_file)
     
     # First, sleep to let the other plugin programs complete
-    time.sleep(22)
+    time.sleep(MAX_RUN_TIME)
     
     # Finalize the log files by cleaning up characters 
     convert_csv_files_to_json(cpu_file_path, gpu_file_path)
@@ -400,6 +409,8 @@ def main():
     # Generate report
     logger.info("Power measurement plugin preparing to exit; generating summary report...")
     generate_power_summary()
+    logger.info("Power summary generating, plugin now exiting..")
+    exit()
 
 
 
