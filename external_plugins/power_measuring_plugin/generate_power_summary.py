@@ -58,7 +58,7 @@ def generate_power_summary():
     sum_power_consumption(cpu_log, pid_summary, plugin_summary, 'cpu_consumption')
  
     # write to json file
-    with open("power_summary_report.json", "w") as outfile: 
+    with open(os.path.join(LOG_DIR, "power_summary_report.json"), "w") as outfile: 
         print("Writing to power_summary_report.json")
         json.dump(summary, outfile, indent=2)
 
