@@ -64,11 +64,11 @@ ALL_DEVICES = 0
 CPU_DEVICE = 1
 GPU_DEVICE = 2
 
-# How long to wait, in seconds, for a new message. If we do not receive a message in this 
+# How long to wait, in milliseconds, for a new message. If we do not receive a message in this 
 # amount of time, the power measuring plugin will exit. Since the power measuring plugin receives 
 # all of its messages at the very beginning, this is effectively a max total runtime. 
 # Set to 0 for unlimited time.
-SOCKET_TIMEOUT = 90
+SOCKET_TIMEOUT = 2000
 
 
 request_queue = queue.Queue()
@@ -343,12 +343,10 @@ def main():
         except Exception as e:
             # we got a resource temporarily unavailable error; sleep for a second and try again
             if isinstance(e, zmq.error.Again):
-                logger.debug(f"Got a zmq.error.Again; hopefully this is startup...")
+                logger.debug(f"Got a zmq.error.Again; i.e., waited {SOCKET_TIMEOUT} ms without getting a message")
                 if nbr_monitor_start_events >= 3:
                     logger.info("Already received 3 monitor start events; breaking out of loop.")
                     stop = True
-                    continue
-                time.sleep(1)
                 continue
             # we timed out waiting for a message; just check the max time and continue 
             logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
