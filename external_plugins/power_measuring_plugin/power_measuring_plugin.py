@@ -16,8 +16,6 @@ import psutil
 import threading
 import subprocess
 from copy import deepcopy
-import jtop_backend
-import scaphandre_backend
 
 
 # Configure the logger -----
@@ -51,14 +49,6 @@ TEST_FUNCTION = int(os.environ.get('TRAPS_TEST_POWER_FUNCTION', '0'))
 # global to determine when to stop
 stop = False
 
-
-# Determine the backend to use based on the current platform. 
-# Currently, two backends are supported: jtop and scaphandre
-# We use the kernel version (uname -a) to 
-PLATFORM = "JETSON" if "TEGRA" in os.popen(
-    "uname -a").read().upper() else "DESKTOP"
-BACKEND = "jtop" if PLATFORM == "JETSON" else "scaphandre"
-
 # Devices to measure 
 ALL_DEVICES = 0
 CPU_DEVICE = 1
@@ -83,29 +73,61 @@ MAX_RUN_TIME = 25
 request_queue = queue.Queue()
 
 
-def run_cpu_measure(pids, duration):
+def get_backend():
+    """
+    Determine which backend to use for measuring power. 
+    """
+    # first, determine the platform:
+    kernel = os.popen("uname -a").read().upper()
+    if "TEGRA" in kernel:
+        platform = "JETSON"
+    else:
+        platform = "DESKTOP"
+
+    # check if backend is set directly in the environment 
+    backend = os.environ.get("TRAPS_POWER_BACKEND")
+    if backend:
+        logger.debug(f"Detected backend of {backend} set in environment ")
+        return backend, platform
+    
+    # otherwise, try to automatically determine the best backend
+    if platform == 'JETSON':
+        return "jtop", platform
+    else:
+        return "scaphandre", platform
+        
+
+def run_cpu_measure(pids, duration, backend):
     """
     Wrapper function for measuring CPU. This function wraps the main functions provided in the various backends.
     Note that duration is ignored by the jtop backend. 
     """
-    if BACKEND == "jtop":
+    if backend == "jtop":
+        import jtop_backend
         jtop_backend.log_dir = LOG_DIR
         jtop_backend.jtop_measure()
-    elif BACKEND == "scaphandre":
+    elif backend == "scaphandre":
+        import scaphandre_backend
         scaphandre_backend.cpu_measure(pids, "scaph", duration)
+    elif backend == "powerjoular":
+        import powerjoular_backend
+        powerjoular_backend.cpu_measure(pids, duration)
 
 
-def run_gpu_measure(pids, duration):
+def run_gpu_measure(pids, duration, backend):
     """
     Wrapper function for measuring GPU. This function wraps the main functions provided in the various backends.
     """
-    if BACKEND == "jtop":
-        pass  # jtop measure cpu and gpu at the same time
-    if BACKEND == "scaphandre":
+    if backend == "jtop":
+        pass  # jtop measures cpu and gpu at the same time
+    if backend == "powerjoular":
+        pass  # powerjoular measures cpu and gpu at the same time
+    if backend == "scaphandre":
+        import scaphandre_backend
         scaphandre_backend.gpu_measure(pids, "nvsmi", duration)
 
 
-def run_power_measure(request_info):
+def run_power_measure(request_info, backend):
     """
     This is the main power measuring function. It is started in a separate thread for each "task". 
     The `request_info` contains four pieces of information, as described in the original MonitorPowerStartEvent:
@@ -139,12 +161,12 @@ def run_power_measure(request_info):
     if (measure_cpu):
         logger.debug(f"Starting a new thread to measure CPU for the following PIDs: {pids}")
         cpu_thread = threading.Thread(
-            target=run_cpu_measure, args=(pids, duration))
+            target=run_cpu_measure, args=(pids, duration, backend))
         cpu_thread.start()
     if (measure_gpu):
         logger.debug(f"Starting a new thread to measure GPU for the following PIDs: {pids}")
         gpu_thread = threading.Thread(
-            target=run_gpu_measure, args=(pids, duration))
+            target=run_gpu_measure, args=(pids, duration, backend))
         gpu_thread.start()
 
     # Block on the threads completing 
@@ -156,7 +178,7 @@ def run_power_measure(request_info):
     logger.info(f"Measurement threads have completed for the following PIDs: {pids}")
 
 
-def watcher():
+def watcher(backend):
     """
     The watcher is started in a separate thread from the main program to read the internal queue 
     for power monitoring tasks. For each such task, this thread spawns a new thread to do the 
@@ -169,7 +191,7 @@ def watcher():
             task = request_queue.get()
 
             # start a thread to monitor the power use
-            t = threading.Thread(target=run_power_measure, args=(task,))
+            t = threading.Thread(target=run_power_measure, args=(task, backend))
             t.start()
 
 
@@ -181,7 +203,7 @@ def get_socket():
     return get_plugin_socket(zmq.Context(), PORT)
 
 
-def get_base_metadata(start_time):
+def get_base_metadata(start_time, backend):
     """
     Returns the basic metadata object describing this execution.
     See the metadata.json example or the validate_schemas module for details. 
@@ -196,25 +218,25 @@ def get_base_metadata(start_time):
     # add the tools based on the backend
     cpu_file_path = os.path.join(LOG_DIR, "cpu.json")
     gpu_file_path = os.path.join(LOG_DIR, "gpu.json")
-    if BACKEND == "jtop":
-        # jtop measures both CPU and GPU at the same time ---- 
+    if backend == "jtop" or backend == "powerjoular":
+        # jtop and powerjoular measure both CPU and GPU at the same time ---- 
         metadata["tools"]["devices"].append({
             		"device_type": "gpu",
-		            "tool_name": "jtop",
+		            "tool_name": backend,
 		            "tool_params" : "",
 		            "power_units": "watts",
 		            "measurement_log_path": gpu_file_path,
         })
         metadata["tools"]["devices"].append({
             		"device_type": "cpu",
-		            "tool_name": "jtop",
+		            "tool_name": backend,
 		            "tool_params" : "",
 		            "power_units": "watts",
 		            "measurement_log_path": cpu_file_path,
         })
     # The "scaphandre" backend is actually a code word for using scaphandre for CPU measurements and 
     # nvidia-smi for GPU. 
-    elif BACKEND == "scaphandre":
+    elif backend == "scaphandre":
         metadata["tools"]["devices"].append({
             		"device_type": "cpu",
 		            "tool_name": "scaphandre",
@@ -238,6 +260,7 @@ def get_base_metadata(start_time):
     #     f.write("[\n")
 
     return metadata, cpu_file_path, gpu_file_path
+
 
 def get_pids_meta(pids, types):
     """
@@ -273,6 +296,7 @@ def get_pids_meta(pids, types):
         procs["command_line"].append(command_line)
     return procs 
     
+
 def convert_csv_files_to_json(cpu_file_path, gpu_file_path):
     """
     This function converts the csv files to json.
@@ -306,6 +330,51 @@ def convert_csv_files_to_json(cpu_file_path, gpu_file_path):
             json.dump(result, f)
         
 
+def convert_powerjoular_csv_to_json(pids, cpu_file_path, gpu_file_path):
+    """
+    This function converts all CVS files generated by the powerjoular backend to JSON files. The
+    powerjoular csv files are in a different format than those produced by the other backends. 
+    """
+    # the final result is a JSON list; since powerjoular measures both CPU and GPU, we collect them
+    # at the same time.
+    cpu_result = []
+    gpu_result = []
+
+    # For each PID, there should be a single file with the powerjoular measurements in the log 
+    # directory. 
+    for pid in pids:
+        file_name = f"powerjoular_{pid}"
+        full_path = os.path.join(LOG_DIR, file_name)
+        if not os.path.exists(full_path):
+            logger.info(f"Did not find powerjoular output for path {full_path}; skipping for PID {pid}")
+            continue
+        with open(full_path, 'r') as f: 
+            reader = csv.reader(f)
+            # for each row, get the time stamp, measurement and PID
+            for line in reader:
+                # There are 5 columns: 
+                # Date,CPU Utilization,Total Power,CPU Power,GPU Power
+                if not len(line) == 5:
+                    logger.error(f"Unexpected line length in CSV file ({full_path}); line: {line}")
+                    continue
+                # skip the header row 
+                if "Date" in line[0]:
+                    continue
+                # Parse the row
+                time_stamp = line[0]
+                cpu_power_measurement = line[3]
+                gpu_power_measurement = line[4]
+                cpu_result.append({time_stamp: [[cpu_power_measurement, pid]]})
+                gpu_result.append({time_stamp: [[gpu_power_measurement, pid]]})
+    
+    # write to json file:
+    with open(cpu_file_path, "w+") as f: 
+        json.dump(cpu_result, f)
+    with open(gpu_file_path, "w+") as f: 
+        json.dump(gpu_result, f)
+            
+
+
 def main():
     """
     Main loop of the power measuring plugin. This function instantiates the event socket, 
@@ -316,24 +385,32 @@ def main():
     start_time_str = str(start_time).replace(" ", "")
     global stop
     logger.info("Power measuring plugin is starting...")
-    logger.info(f"Detected platform: {PLATFORM}")
-    logger.info(f"Using backend: {BACKEND}")
+    
+    backend, platform = get_backend()
+
+    logger.info(f"Detected platform: {platform}")
+    logger.info(f"Using backend: {backend}")
 
     # start the watcher in a new thread; the watcher is responsible for reading "tasks" from the internal
     # queue and starting processes that monitor power for each PID.
-    watcher_thread = threading.Thread(target=watcher, args=())
+    watcher_thread = threading.Thread(target=watcher, args=(backend, ))
     watcher_thread.start()
 
     # instantiate the event socket
     socket = get_socket()
 
     # The metadata about this execution; see the metadata.json example or the validate_schemas module
-    metadata, cpu_file_path, gpu_file_path = get_base_metadata(start_time_str)
+    metadata, cpu_file_path, gpu_file_path = get_base_metadata(start_time_str, backend)
+
+    # The list of all PIDs that ultimately get monitored. 
+    all_pids = []
 
     # the TEST_FUNCTION controls whether this program monitors itself; if set to 1, it will 
     # monitor its own pid, allowing this program to be tested without the rest of the event engine.
     if TEST_FUNCTION == 1:
-        my_pids = [os.getpid()]
+        power_monitor_plugin_pid = os.getpid()
+        all_pids.append(power_monitor_plugin_pid)
+        my_pids = [power_monitor_plugin_pid]
         logger.info(f"Running in TEST mode, will monitor the usage of this plugin (PIDs: {my_pids}) for 10 seconds...")
         monitor_type = [0]
         monitor_duration = 10
@@ -371,6 +448,7 @@ def main():
             nbr_monitor_start_events += 1
             # pull various monitoring info out of the event: pids, types to monitor, start time and during
             pids = event.PidsAsNumpy().tolist()
+            all_pids.extend(pids)
             types = event.MonitorTypesAsNumpy()
             start_time = event.MonitorStartTs()
             duration = event.MonitorSeconds()
@@ -404,7 +482,10 @@ def main():
     time.sleep(MAX_RUN_TIME)
     
     # Finalize the log files by cleaning up characters 
-    convert_csv_files_to_json(cpu_file_path, gpu_file_path)
+    if backend == "powerjoular":
+        convert_powerjoular_csv_to_json(all_pids, cpu_file_path, gpu_file_path)
+    else:
+        convert_csv_files_to_json(cpu_file_path, gpu_file_path)
 
     # Generate report
     logger.info("Power measurement plugin preparing to exit; generating summary report...")

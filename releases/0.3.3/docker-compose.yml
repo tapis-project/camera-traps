@@ -130,12 +130,18 @@ services:
       - imageScoringPlugin
     environment:
       - POWER_MEASURING_PLUGIN_PORT=6010
-      # Note: this LOG_PATH is the path in the conatiner, so must matcht the RHS of the mount below.
+      # Note: this LOG_PATH is the path in the conatiner, so must match the RHS of the mount below.
       - TRAPS_POWER_LOG_PATH=/logs
+      # This is the log path on the *host*; this is needed when using the powerjoular backend, which 
+      # runs in a separate container
+      - TRAPS_POWER_LOG_HOST_PATH=/home/jstubbs/gits/tapis/camera-traps-main/releases/0.3.3/power_output_dir
       - TRAPS_POWER_LOG_LEVEL=DEBUG
+      - TRAPS_POWER_BACKEND=powerjoular
       - TRAPS_TEST_POWER_FUNCTION=1
       # 1 for debug; Set to 0 when actually use it to measure other plugin's power
     volumes:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
       - ./power_output_dir:/logs # Path for CPU and GPU power logs
+      # mount the docker socket for starting powerjoular containers
+      - /var/run/docker.sock:/var/run/docker.sock

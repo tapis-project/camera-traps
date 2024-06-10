@@ -66,6 +66,7 @@ def validate_metadata_schema(metadata_file):
                                     "type": "string",
                                     "enum": [
                                         "jtop",
+                                        "powerjoular",
                                         "scaphandre",
                                         "nvidia-smi"
                                     ]

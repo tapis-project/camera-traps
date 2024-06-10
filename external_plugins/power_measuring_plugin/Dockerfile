@@ -31,6 +31,5 @@ ADD powerjoular_backend.py /powerjoular_backend.py
 
 
 ENV TRAPS_TEST_POWER_FUNCTION=1
-ENV TRAPS_POWER_BACKEND="jtop"
 
 ENTRYPOINT [ "python", "-u", "/power_measuring_plugin.py" ]

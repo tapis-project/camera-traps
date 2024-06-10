@@ -1,7 +1,17 @@
+import datetime
 import docker
+import logging 
 import os 
+import time 
+
+from power_measuring_plugin import stop
+
+log_dir = os.environ['TRAPS_POWER_LOG_PATH']
+logger = logging.getLogger("Power measurement")
+
 
 POWER_JOULAR_IMAGE = "jstubbs/powerjoular"
+
 log_dir = os.environ['TRAPS_POWER_LOG_PATH']
 
 
@@ -15,8 +25,10 @@ def get_docker_client():
 def start_powerjoular(pid):
     """
     Start a separate docker container running the powerjoular program to monitor 
-    the pid, `pid`. We configure powerhoular to write its output to a file in the 
+    the pid, `pid`. We configure powerjoular to write its output to a file in the 
     log directory named after the PID. 
+    
+    Returns the container id of the powerjoular container started, 
 
     """
     client = get_docker_client()
@@ -49,13 +61,42 @@ def start_powerjoular(pid):
                                 # the program coutners through the Intel RAPL interface
                                 privileged=True,
                                 detach=True)
+    return cid 
+
     
-def cpu_measure(pids, cpu_method, duration):
+def cpu_measure(pids, duration):
     """
     Main wrapper function for measuring CPU & GPU consumption via the powerjoular backend. This function executes 
     powerjoular as a separate container, with the output ultimately being written to a shared directory. 
     """
+    # the set of container id's running powerjoular 
+    containers = []
+    
+    # start up a powerjoular container for each PID:
+    for pid in pids:
+        containers.append(start_powerjoular(pid))
+    
+    # wait until told to stop by the main process or until duration 
+    start = datetime.datetime.now()
+    if duration > 0:
+        td_duration = datetime.timedelta(seconds=duration)
+
     while not stop:
+        time.sleep(1)
+        now = datetime.datetime.now()
+        run_time = now - start 
+        if (duration > 0) and (run_time > td_duration):
+            break 
+    
+    # shut down the containers
+    logger.info("Stopping powerjoular containers")
+    client = get_docker_client()
+    for cid in containers:
+        try:
+            cid.remove(force=True)
+        except Exception as e: 
+            logger.debug(f"Got exception trying to force remove container; id:{cid}; e: {e}")
+        
 
 
 
