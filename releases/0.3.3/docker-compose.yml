@@ -48,7 +48,7 @@ services:
       # The following is optional but can be used to mount a different configuration file
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.
-      - ./config/image_gen_config.json:/input.json
+      - ./config/image_gen_config_small.json:/input.json
 
   imageScoringPlugin:
     container_name: image_scoring

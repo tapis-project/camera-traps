@@ -68,18 +68,28 @@ def sum_power_consumption(log, pid_summary, plugin_summary, device):
     """
     for pid_report in pid_summary:
         pid_report[device] = 0
+        num_measurements = 0
         for entry in log:
             logs_at_time = (list(entry.values())[0]) # [[0.0, '2437322'], [1.4, '3423844'], [2.3, '4737228']]
             for j in logs_at_time:
                 # if pid in log matches summary, increment power value
                 if int(j[1]) == pid_report['pid']:
                     pid_report[device] += float(j[0])
+                    num_measurements += 1 
+        # take an every of the watts
+        if num_measurements > 0:
+            pid_report[device] = pid_report[device] / float(num_measurements)
 
     for plugin_report in plugin_summary:
         plugin_report[device] = 0
+        num_measurements = 0
         for pid_report in pid_summary:
             if plugin_report["plugin"] == pid_report['plugin_name']:
                 plugin_report[device] += pid_report[device]
+                num_measurements += 1 
+        # take an every of the watts
+        if num_measurements > 0:
+            pid_report[device] = pid_report[device] / float(num_measurements)
 
 
     return pid_summary, plugin_summary

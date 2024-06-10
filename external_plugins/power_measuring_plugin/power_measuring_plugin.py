@@ -159,7 +159,7 @@ def run_power_measure(request_info, backend):
 
     # Start the threads to measure the devices ---- 
     if (measure_cpu):
-        logger.debug(f"Starting a new thread to measure CPU for the following PIDs: {pids}")
+        logger.debug(f"Starting a new thread to measure CPU for the following PIDs: {pids}; duration: {duration}; backend: {backend}")
         cpu_thread = threading.Thread(
             target=run_cpu_measure, args=(pids, duration, backend))
         cpu_thread.start()

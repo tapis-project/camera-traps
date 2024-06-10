@@ -49,7 +49,9 @@ def start_powerjoular(pid):
         "bind": log_dir, "mode": "rw"}
     }
 
-    # run the powerjoular container 
+    # run the powerjoular container
+    logger.info(f"Starting a powerjoular conatiner for PID: {pid}")
+    logger.debug(f"powerjoular container args: {powerjoular_args}; image: {POWER_JOULAR_IMAGE}")
     cid = client.containers.run(POWER_JOULAR_IMAGE, 
                                 powerjoular_args, 
                                 # we must run powerjoular in the host namespace so that it can 
@@ -69,6 +71,7 @@ def cpu_measure(pids, duration):
     Main wrapper function for measuring CPU & GPU consumption via the powerjoular backend. This function executes 
     powerjoular as a separate container, with the output ultimately being written to a shared directory. 
     """
+    logger.info(f"powerjoular backend starting for PIDs: {pids} and duration: {duration}")
     # the set of container id's running powerjoular 
     containers = []
     
@@ -86,10 +89,13 @@ def cpu_measure(pids, duration):
         now = datetime.datetime.now()
         run_time = now - start 
         if (duration > 0) and (run_time > td_duration):
+            logger.info(f"Hit max duration ({duration}); stopping powerjoular container for PIDs {pids})")
             break 
+    if stop:
+        logger.info(f"Hit stop condition; stopping powerjoular container for PIDs {pids})")
     
     # shut down the containers
-    logger.info("Stopping powerjoular containers")
+    logger.info(f"Stopping powerjoular containers for PIDs {pids}")
     client = get_docker_client()
     for cid in containers:
         try:
