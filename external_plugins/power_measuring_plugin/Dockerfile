@@ -27,6 +27,7 @@ ADD jtop_backend.py /jtop_backend.py
 ADD scaphandre_backend.py /scaphandre_backend.py
 ADD generate_power_summary.py /generate_power_summary.py
 ADD validate_schemas.py /validate_schemas.py 
+ADD powerjoular_backend.py /powerjoular_backend.py 
 
 
 ENV TRAPS_TEST_POWER_FUNCTION=1
