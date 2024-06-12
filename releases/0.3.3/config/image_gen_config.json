@@ -1,5 +1,5 @@
 {
-    "path": "https://lilablobssc.blob.core.windows.net/snapshot-safari/KGA/KGA_S1.lila.zip",
+    "path": "/example_images",
     "timestamp": "600",
     "callingFunction": "simpleNext",
     "burstQuantity": "5"

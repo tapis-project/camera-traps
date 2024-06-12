@@ -8,7 +8,8 @@ logging.basicConfig(level=logging.INFO)
 
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
-CROP_IMAGE = False
+CROP_IMAGE = os.environ.get('CROP_IMAGE', '0')
+DETECTION = os.environ.get('DETECTION', '0')
 # Whether to force image resizing to a (square) integer size (not recommended to change this)
 # None means no resizing.
 IMAGE_SIZE = None
@@ -20,7 +21,8 @@ from run_detector_multi import load_detector, run_detector
 PORT = os.environ.get('IMAGE_SCORING_PLUGIN_PORT', 6000)
 base_path = os.environ.get('IMAGE_PATH')
 image_path_prefix = os.environ.get('IMAGE_FILE_PREFIX', '')
-
+model_variant = os.environ.get('MODEL_TYPE', '0')
+print("Checking model variant", model_variant)
 # whether to cache the detector or to use the old method "load_and_run_detector()" method on each image
 # export any other value to use the old method.
 DEFAULT_MODE = 'cache_detector'
@@ -105,22 +107,68 @@ def main():
                                           render_confidence_threshold=0.1,
                                           box_thickness=DEFAULT_BOX_THICKNESS,
                                           box_expansion=DEFAULT_BOX_EXPANSION,                          
-                                          crop_images=CROP_IMAGE,
+                                          detections = DETECTION,crop_images=CROP_IMAGE,
                                           image_size=IMAGE_SIZE)
         # create and send an image scored event with the probability scores:
         scores = []
         for r in results:
+         label = "unknown"
            # Each score object should have the format: 
            #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
            # Each result returned from detector is a dictionary with `category` and `conf`
-           label = "unknown"
-           if r['category'] == '1':
-              label = "animal"
-           elif r['category'] == '2':
-              label = "human"
-           elif r['category'] == '3':
-              label = "transport vehicle"
-           scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+         if model_variant == 2:
+            if r['category'] == 0:
+               label = "Bird"
+            elif r['category'] == 1:
+               label = "Eastern Gray Squirrel"
+            elif r['category'] == 2:
+               label = "Eastern Chipmunk"
+            elif r['category'] == 3:
+               label = "Woodchuck"
+            elif r['category'] == 4:
+               label = "Wild Turkey"
+            elif r['category'] == 5:
+               label = "White-Tailed Deer"
+            elif r['category'] == 6:
+               label = "Virginia Opossum"
+            elif r['category'] == 7:
+               label = "Eastern Cottontail"
+            elif r['category'] == 9:
+               label = "Vehicle"
+            elif r['category'] == 10:
+               label = "Striped Skunk"
+            elif r['category'] == 11:
+               label = "Red Fox"
+            elif r['category'] == 12:
+               label = "Eastern Fox Squirrel"
+            elif r['category'] == 13:
+               label = "Northern Raccoon"
+            elif r['category'] == 14:
+               label = "Grey Fox"
+            elif r['category'] == 15:
+               label = "Horse"
+            elif r['category'] == 16:
+               label = "Dog"
+            elif r['category'] == 17:
+               label = "American Crow"
+            elif r['category'] == 18:
+               label = "Chicken"
+            elif r['category'] == 19:
+               label = "Domestic Cat"
+            elif r['category'] == 20:
+               label = "Coyote"
+            elif r['category'] == 21:
+               label = "Bobcat"
+            elif r['category'] == 22:
+               label = "American Black Bear"
+         else:
+            if r['category'] == '1':
+               label = "animal"
+            elif r['category'] == '2':
+               label = "human"
+            elif r['category'] == '3':
+               label = "vehicle"
+        scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         print(f"Sending image scored event with the following scores: {scores}") 
         send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         print(f"Image Scoring Plugin processing for message {total_messages} complete.")        

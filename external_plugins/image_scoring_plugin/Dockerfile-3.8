@@ -19,8 +19,26 @@
 #    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
 # 3) For a specific image directory
 #    docker run -e IMAGE_PATH = /images
+#ARG MODEL_TYPE
+#https://github.com/sowbaranika1302/camera_traps_megadetectorena
+
+#RUN if [ "$MODEL_TYPE" = "2" ]; then \
+        git clone https://github.com/sowbaranika1302/camera_traps_MD -b megadetector_ena && \
+        git clone https://github.com/microsoft/ai4eutils && \
+        git clone https://github.com/ultralytics/yolov5/ && \
+        cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1 ; \
+    else \
+        git clone https://github.com/sowbaranika1302/camera_traps_MD && \
+        git clone https://github.com/microsoft/ai4eutils && \
+        git clone https://github.com/ultralytics/yolov5/ && \
+        cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1 ; \
+    fi
+
+
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py_3.8:$REL
+
+#RUN wget -O /md_v5a.0.0.pt https://github.com/sowbaranika1302/Megadetector-model/raw/main/md_v5a.0.0.pt
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 

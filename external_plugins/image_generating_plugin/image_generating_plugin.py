@@ -1,4 +1,4 @@
-import json
+import json,csv
 import os
 import glob
 import uuid
@@ -32,7 +32,29 @@ def get_socket():
 
     return socket
 
-def get_binary(value, socket):
+def oracle_monitoring_info(track_image_count,uuid,uuid_image):
+    #ctevents.send_oracle_monitor(uuid)
+    #logging.info("Oracle Monitoring")
+    print("Inside monitoring oracle")
+    OUTPUT_DIR = os.environ.get('TRAPS_MAPPING_OUTPUT_PATH', "/output/")
+    file_name = "image_mapping.csv"
+    output_file = os.path.join(OUTPUT_DIR, file_name)
+    
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)  # Ensure the output directory exists
+    
+    if not os.path.exists(output_file):
+        with open(output_file, 'w', newline='') as file:
+            mapping = csv.writer(file)
+            field = ["Image count","UUID", "Image name"]
+            mapping.writerow(field)
+            mapping.writerow([track_image_count,uuid, uuid_image])
+    else:
+        with open(output_file, 'a', newline='') as file:
+            mapping = csv.writer(file)
+            mapping.writerow([track_image_count,uuid, uuid_image])
+
+def get_binary(value, track_image_count, socket):
     """
     This function is used to generate the uuid, image format and binary image and invokes the  
     new image event.
@@ -42,9 +64,12 @@ def get_binary(value, socket):
         binary_img = f.read()
     img = Image.open(value)
     img_format = img.format
+    
     logging.info(f"sending new image with the following data: image:{value}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     try: 
         ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
+        oracle_monitoring_info(track_image_count,uuid_image,value)
+       
     except Exception as e:
         print(f"got exception {e}")
 
@@ -57,7 +82,7 @@ def monitor_generating_power(socket):
         ctevents.send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
         logging.info(f"monitoring image generating power")
 
-def simpleNext(img_dict, i, value_index, socket):
+def simpleNext(img_dict, i, value_index, track_image_count,socket):
     """
     This function is used to retrieve the next image specified in the directory based on the timestamp
     and invokes get binary function.
@@ -68,7 +93,7 @@ def simpleNext(img_dict, i, value_index, socket):
         print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
         return done, i, len(img_dict)
     value = list(img_dict.values())[i][value_index]
-    get_binary(value, socket)
+    get_binary(value, track_image_count,socket)
     # if we hit the end of the current list, move to the next time stamp
     if value_index == len(list(img_dict.values())[i]) - 1:
         return done, i+1, 0
@@ -250,7 +275,7 @@ def send_images(data, socket):
         print("\n* * * * * * * * * * ")
         logging.info(f"Processing file {track_image_count} of {length_of_files}")
         logging.debug(f"Top of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
-        done, index, index_value = send_new_image(data, index, index_value, initial_index, socket)
+        done, index, index_value = send_new_image(data, index, index_value, initial_index, track_image_count, socket)
         logging.debug(f"Bottom of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
         print("* * * * * * * * * * \n")
         # try:
@@ -264,7 +289,7 @@ def send_images(data, socket):
     logging.debug(f"list_of_files: {list_of_files}")
 
 
-def send_new_image(data, index, indexvalue, inital_index, socket):
+def send_new_image(data, index, indexvalue, inital_index, track_image_count, socket):
     img_dict, timestamp_min, timestamp_max, list_of_files = create_dict(data)
 
     if data['callingFunction'] == "nextImage":
@@ -287,7 +312,7 @@ def send_new_image(data, index, indexvalue, inital_index, socket):
             img_dict, timestamp_min, initial_index,socket)
     else:
         print(f"Calling simpleNext with: {index}, {indexvalue}")
-        return simpleNext(img_dict, index, indexvalue, socket)
+        return simpleNext(img_dict, index, indexvalue, track_image_count, socket)
         
 def check_quit(socket):
     done = False

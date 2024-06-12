@@ -66,3 +66,14 @@ internal_actions = [
        "MonitorPowerStopEvent",
        "PluginTerminateEvent"
    ]
+
+[[plugins.external]]
+   plugin_name = "ext_oracle_monitor_plugin"
+   id = "6e153711-9823-4ee6-b608-58e2e801db51"
+   external_port = 6011
+   subscriptions = [
+       "ImageScoredEvent",
+       "ImageStoredEvent",
+       "ImageDeletedEvent",
+       "PluginTerminateEvent"
+   ]

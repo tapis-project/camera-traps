@@ -1,3 +1,14 @@
 #!/bin/bash
 
+if [ "$MODEL_TYPE" -eq 1 ]; then
+  wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt
+  echo "Executing the second model. Downloading the model..."
+fi
+
+if [ "$MODEL_TYPE" -eq 2 ]; then
+  wget -O /md_v5a.0.0.pt https://github.com/sowbaranika1302/Megadetector-model/raw/main/md_v5a.0.0.pt
+  echo "Executing the third model. Downloading the model..."
+fi
+
+echo "Running the Python script..."
 python -u image_scoring_plugin.py

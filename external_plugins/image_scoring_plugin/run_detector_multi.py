@@ -27,9 +27,31 @@ DEFAULT_BOX_EXPANSION = 0
 
 # Label mapping for MegaDetector
 DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '3': 'vehicle'  # available in megadetector v4+
+   "1": "bird",
+"2": "eastern gray squirrel",
+"3": "eastern chipmunk",
+"4": "woodchuck",
+"5": "wild turkey",
+"6": "white-tailed deer",
+"7": "virginia opossum",
+"8": "eastern cottontail",
+"9": "empty",
+"10": "vehicle",
+"11": "striped skunk",
+"12": "red fox",
+"13": "eastern fox squirrel",
+"14": "northern raccoon",
+"15": "grey fox",
+"16": "horse",
+"17": "dog",
+"18": "american crow",
+"19": "chicken",
+"20": "domestic cat",
+"21": "coyote",
+"22": "bobcat",
+"23": "american black bear"
+
+  # available in megadetector v4+
 }
 
 FAILURE_IMAGE_OPEN = 'Failure image access'
@@ -126,7 +148,7 @@ def load_detector(model_file, force_cpu=False):
 
 def run_detector(detector, image_file_names, output_dir,
                  render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-                 crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
+                 detections = False, crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
                  box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
                  ):
     """
@@ -229,7 +251,7 @@ def run_detector(detector, image_file_names, output_dir,
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
                     cropped_image.save(output_full_path)
 
-            else:
+            if detections:
 
                 # Image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
@@ -264,7 +286,7 @@ def run_detector(detector, image_file_names, output_dir,
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-                          crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
+                          detections = False, crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
                           box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
                           ):
     """Load and run detector on target images, and visualize the results."""
@@ -277,7 +299,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     
     detector = load_detector(model_file)
     result = run_detector(detector, image_file_names, output_dir,
-                          render_confidence_threshold, crop_images, box_thickness, 
+                          render_confidence_threshold, detections, crop_images, box_thickness, 
                           box_expansion, image_size)
     return result    
 # ...def load_and_run_detector()

@@ -521,19 +521,25 @@ def _event_to_typed_event(event):
     ImageScoredEvent, etc.) by first checking the type.
     """
     event_type_int = event.EventType()
+    print("testest", event_type_int)
+    print(EventType.NewImageEvent)
     if event_type_int == EventType.NewImageEvent:
+        print("hi inside image new")
         union_new_image_event = NewImageEvent.NewImageEvent()
         union_new_image_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_new_image_event
     if event_type_int == EventType.ImageReceivedEvent:
+        print("hi inside receieve")
         union_image_received_event = ImageReceivedEvent.ImageReceivedEvent()
         union_image_received_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_image_received_event
     if event_type_int == EventType.ImageScoredEvent:
+        print("hi inside score")
         union_image_scored_event = ImageScoredEvent.ImageScoredEvent()
         union_image_scored_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_image_scored_event
     if event_type_int == EventType.ImageStoredEvent:
+        print("hi inside image store")
         union_image_stored_event = ImageStoredEvent.ImageStoredEvent()
         union_image_stored_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_image_stored_event
@@ -576,4 +582,16 @@ def socket_message_to_typed_event(msg: bytearray):
         msg = bytearray(msg)
     b = _remove_event_prefix(msg)
     e = _bytes_to_event(b)
+    return _event_to_typed_event(e)
+
+
+def socket_message_to_scored_event(msg: bytearray):
+    # Remove the event type byte prefix and then convert to an event.
+    # We can only do that with a bytearray, which is mutable, while a bytes object is not, 
+    # so first check 
+    if type(msg) == bytes:
+        # note: this makes an additional copy of the entire bytes object in memory, so will be less performant.
+        msg = bytearray(msg)
+    b = _remove_event_prefix(msg)
+    e = _bytes_to_scored_event(b)
     return _event_to_typed_event(e)
