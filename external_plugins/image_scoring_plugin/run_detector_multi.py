@@ -26,11 +26,43 @@ DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
 
 # Label mapping for MegaDetector
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '3': 'vehicle'  # available in megadetector v4+
-}
+model_variant = os.environ.get('MODEL_TYPE', '0')
+if model_variant == "2":
+# Label mapping for MegaDetector
+    DEFAULT_DETECTOR_LABEL_MAP = {
+        "1": "bird",
+        "2": "eastern gray squirrel",
+        "3": "eastern chipmunk",
+        "4": "woodchuck",
+        "5": "wild turkey",
+        "6": "white-tailed deer",
+        "7": "virginia opossum",
+        "8": "eastern cottontail",
+        "9": "empty",
+        "10": "vehicle",
+        "11": "striped skunk",
+        "12": "red fox",
+        "13": "eastern fox squirrel",
+        "14": "northern raccoon",
+        "15": "grey fox",
+        "16": "horse",
+        "17": "dog",
+        "18": "american crow",
+        "19": "chicken",
+        "20": "domestic cat",
+        "21": "coyote",
+        "22": "bobcat",
+        "23": "american black bear",
+        # available in megadetector v4+
+    }
+else:
+    DEFAULT_DETECTOR_LABEL_MAP = {
+        '1': 'animal',
+        '2': 'person',
+        '3': 'vehicle',
+        # available in megadetector v4+
+    }
+    
 
 FAILURE_IMAGE_OPEN = 'Failure image access'
 

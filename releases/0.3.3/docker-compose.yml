@@ -81,6 +81,7 @@ services:
       # variable in the traps.toml file; when not being used, comment the line.
       # - IMAGE_FILE_PREFIX=
       - MONITOR_POWER=true
+      - MODEL_TYPE=1
     volumes:
       # mount the traps.toml in the current working directory.
       # NOTE -- not currently used (TODO)
