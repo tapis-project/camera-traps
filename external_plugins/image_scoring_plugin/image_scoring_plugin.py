@@ -27,7 +27,8 @@ if not logger.handlers:
 
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
-CROP_IMAGE = False
+CROP_IMAGE = (os.getenv('CROP_IMAGE') == 'true')
+DETECTIONS = (os.getenv('DETECTIONS') == 'true')
 # Whether to force image resizing to a (square) integer size (not recommended to change this)
 # None means no resizing.
 IMAGE_SIZE = None
@@ -112,7 +113,7 @@ def main():
                                 render_confidence_threshold=0.1,
                                 box_thickness=DEFAULT_BOX_THICKNESS,
                                 box_expansion=DEFAULT_BOX_EXPANSION,                          
-                                crop_images=CROP_IMAGE,
+                                crop_images=CROP_IMAGE, detections = DETECTIONS,
                                 image_size=IMAGE_SIZE)
 
         # NOTE: we already have the run_detector.py file (https://github.com/microsoft/CameraTraps/blob/main/detection/run_detector.py)
@@ -125,7 +126,7 @@ def main():
                                           render_confidence_threshold=0.1,
                                           box_thickness=DEFAULT_BOX_THICKNESS,
                                           box_expansion=DEFAULT_BOX_EXPANSION,                          
-                                          crop_images=CROP_IMAGE,
+                                          crop_images=CROP_IMAGE, detections = DETECTIONS,
                                           image_size=IMAGE_SIZE)
         # create and send an image scored event with the probability scores:
         scores = []

@@ -158,7 +158,7 @@ def load_detector(model_file, force_cpu=False):
 
 def run_detector(detector, image_file_names, output_dir,
                  render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-                 crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
+                 crop_images=False, detections = False, box_thickness=DEFAULT_BOX_THICKNESS, 
                  box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
                  ):
     """
@@ -254,14 +254,16 @@ def run_detector(detector, image_file_names, output_dir,
 
         try:
             if crop_images:
-
+                print("Cropping",crop_images)
+                print(type(crop_images))
                 images_cropped = viz_utils.crop_image(result['detections'], image)
                 
                 for i_crop, cropped_image in enumerate(images_cropped):
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
                     cropped_image.save(output_full_path)
 
-            else:
+            if detections:
+                print("Detecting",detections)
 
                 # Image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
@@ -296,7 +298,7 @@ def run_detector(detector, image_file_names, output_dir,
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-                          crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
+                          crop_images=False, detections = False,box_thickness=DEFAULT_BOX_THICKNESS, 
                           box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
                           ):
     """Load and run detector on target images, and visualize the results."""
@@ -309,7 +311,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     
     detector = load_detector(model_file)
     result = run_detector(detector, image_file_names, output_dir,
-                          render_confidence_threshold, crop_images, box_thickness, 
+                          render_confidence_threshold, crop_images, detections, box_thickness, 
                           box_expansion, image_size)
     return result    
 # ...def load_and_run_detector()
