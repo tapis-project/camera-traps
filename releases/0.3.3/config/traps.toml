@@ -1,7 +1,7 @@
 # This is the camera-traps application configuration file for versions 0.1.x of the application.
 # It assumes the use of containers and docker-compose as the deployment mechanism.
 
-title = "Camera-Traps Application Configuration v0.3.2"
+title = "Camera-Traps Application Configuration v0.3.3"
 
 # The event engine's publish and subscribe port used to create the event_engine::App instance.
 publish_port = 5559
