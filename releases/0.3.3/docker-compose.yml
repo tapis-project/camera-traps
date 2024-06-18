@@ -61,19 +61,20 @@ services:
     # Docker must be configured to use it. See the README for details.
     #
     # UNCOMMENT --------------
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all # Use 'all' or specify the number of GPUs you want to use
-    #           capabilities: [ gpu ]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Use 'all' or specify the number of GPUs you want to use
+              capabilities: [ gpu ]
     # --------------------------
     depends_on:
       - engine
       - imageGeneratingPlugin
     environment:
       - IMAGE_SCORING_PLUGIN_PORT=6001
+      - IMAGE_SCORING_LOG_LEVEL=DEBUG
       # The IMAGE_PATH variable needs to match what is specified in the vouume mount below for the
       # container path portion of the shared images directory.
       - IMAGE_PATH=/input_images
@@ -81,7 +82,9 @@ services:
       # variable in the traps.toml file; when not being used, comment the line.
       # - IMAGE_FILE_PREFIX=
       - MONITOR_POWER=true
-      - MODEL_TYPE=1
+      # The type of ML model to use for scoring; comment or set to 0 to use the built in model; otherwise, 
+      # a model file will be downloaded at the start of the script corresponding to the type passed. 
+      # - MODEL_TYPE=1
     volumes:
       # mount the traps.toml in the current working directory.
       # NOTE -- not currently used (TODO)
