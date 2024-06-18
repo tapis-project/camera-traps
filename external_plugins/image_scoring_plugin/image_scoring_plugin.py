@@ -4,7 +4,26 @@ from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_f
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 import zmq
 import logging
-logging.basicConfig(level=logging.INFO)
+
+log_level = os.environ.get("IMAGE_SCORING_LOG_LEVEL", "INFO")
+logger = logging.getLogger("Image Scoring Plugin")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
+
 
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
@@ -51,13 +70,14 @@ def monitor_scoring_power(socket):
     monitor_type = [1]
     monitor_seconds = 0
     if monitor_flag:
+        logger.debug(f"Sending a power monitor start event for the following data: PID: {pid}; monitor_type: {monitor_type}; duration: {monitor_seconds}")
         send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
-        logging.info(f"monitoring image scoring power")
+        logger.info(f"Message sent to monitor power for image scoring plugin")
 
 def main():
-    print("top of main.")
+    logger.info("top of main.")
     socket = get_socket()
-    print("got zmq socket.")
+    logger.debug("got zmq socket.")
     monitor_scoring_power(socket)
     done = False
     total_messages = 0
@@ -67,11 +87,11 @@ def main():
     while not done:
         
         # get the next message
-        print(f"waiting on message: {total_messages + 1}")
+        logger.debug(f"waiting on message: {total_messages + 1}")
         m = get_next_msg(socket)
         e = socket_message_to_typed_event(m)
 
-        print(f"just got message {total_messages}; type(e): {type(e)}")
+        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         total_messages += 1
         # TODO: we could check if e is not an image_received event, skip it....
         
@@ -84,7 +104,7 @@ def main():
             image_format = image_format.decode('utf-8')
         image_file_path = get_image_file_path(image_uuid, image_format)                
         # score the image
-        print(f"Scoring image: {image_file_path}")
+        logger.debug(f"Scoring image: {image_file_path}")
         if MODE == DEFAULT_MODE:
             results= run_detector(detector=detector,
                                 image_file_names=[image_file_path],
@@ -171,9 +191,9 @@ def main():
                label = "vehicle"
 
         scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
-        print(f"Sending image scored event with the following scores: {scores}") 
+        logger.info(f"Sending image scored event with the following scores: {scores}") 
         send_image_scored_fb_event(socket, image_uuid, image_format, scores)
-        print(f"Image Scoring Plugin processing for message {total_messages} complete.")        
+        logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        
 
 
 # TODO -- remove the commented code below? -----

@@ -25,7 +25,7 @@ log_level = os.environ.get("TRAPS_POWER_LOG_LEVEL", "INFO")
 if log_level == "DEBUG":
     logger.setLevel(logging.DEBUG)
 elif log_level == "INFO":
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 elif log_level == "WARN":
     logger.setLevel(logging.WARN)
 elif log_level == "ERROR":
@@ -50,9 +50,9 @@ TEST_FUNCTION = int(os.environ.get('TRAPS_TEST_POWER_FUNCTION', '0'))
 stop = False
 
 # Devices to measure 
-ALL_DEVICES = 0
-CPU_DEVICE = 1
-GPU_DEVICE = 2
+ALL_DEVICES = 1
+CPU_DEVICE = 2
+GPU_DEVICE = 3
 
 # How long to wait, in milliseconds, for a new message. If we do not receive a message in this 
 # amount of time, the power measuring plugin will exit. Since the power measuring plugin receives 
@@ -144,6 +144,12 @@ def run_power_measure(request_info, backend):
     # Determine which devices to measure 
     measure_cpu = False
     measure_gpu = False
+    # TODO: This is a hack because there was confusion about the MonitorType values;
+    #       should be removed once code review complete ----------
+    if 0 in devices:
+        devices.append(ALL_DEVICES)
+    #        -----------------------------------------------------
+
     if ALL_DEVICES in devices:
         measure_cpu = True
         measure_gpu = True
@@ -374,7 +380,6 @@ def convert_powerjoular_csv_to_json(pids, cpu_file_path, gpu_file_path):
         json.dump(gpu_result, f)
             
 
-
 def main():
     """
     Main loop of the power measuring plugin. This function instantiates the event socket, 
@@ -412,7 +417,7 @@ def main():
         all_pids.append(power_monitor_plugin_pid)
         my_pids = [power_monitor_plugin_pid]
         logger.info(f"Running in TEST mode, will monitor the usage of this plugin (PIDs: {my_pids}) for 10 seconds...")
-        monitor_type = [0]
+        monitor_type = [1]
         monitor_duration = 10
         send_monitor_power_start_fb_event(
             socket, my_pids, monitor_type, monitor_duration)
