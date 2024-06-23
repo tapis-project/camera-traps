@@ -7,8 +7,24 @@ from ctevents.ctevents import socket_message_to_typed_event
 from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent
 from ctevents.gen_events.ImageLabelScore import ImageLabelScore
 
-logging.basicConfig(level=logging.INFO)
+
+log_level = os.environ.get("ORACLE_LOG_LEVEL", "INFO")
 logger = logging.getLogger("Oracle Monitor")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
 
 PORT = int(os.environ.get('ORACLE_PLUGIN_PORT', 6011))
 OUTPUT_DIR = os.environ.get('TRAPS_ORACLE_OUTPUT_PATH', "/output/")
@@ -48,8 +64,12 @@ def main():
             with open(output_file, 'a', newline='') as file:
                 mapping = csv.writer(file)
                 uuid = event.ImageUuid()
-                scores = event.ScoresLength()
-                #sc = event.Scores(scores)
+                scores = [] # event.ScoresLength()
+                for i in range(event.ScoresLength()):
+                    label = event.Scores(i).Label().decode('utf-8')
+                    prob = event.Scores(i).Probability()
+                    scores.append({"label": label, "probability": prob})
+
                 timestamp = event.EventCreateTs()
                 logger.info(f"Inside scoring {uuid}, {scores}, {timestamp}")
                 mapping.writerow([uuid, scores, timestamp])
@@ -70,4 +90,6 @@ def main():
             logger.info(event)
 
 if __name__ == '__main__':
+    logger.info("Oracle plugin starting...")
     main()
+    logger.info("Oracle plugin exiting...")
