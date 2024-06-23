@@ -270,7 +270,8 @@ def get_base_metadata(start_time, backend):
 
 def get_pids_meta(pids, types):
     """
-    Tries to look up the metadata associated with a process id. 
+    Tries to look up the metadata associated with a set PIDs for a specific plugin that has
+    requested power monitoring. 
     """
     procs = {"name": [], "command_line": [], "devices_measured": []}
     if ALL_DEVICES in types:
@@ -280,10 +281,13 @@ def get_pids_meta(pids, types):
             procs["devices_measured"].append("cpu")
         if GPU_DEVICE in types:
             procs["devices_measured"].append("gpu")
+    
+    # look up the process name and command line associated with each PID
     for pid in pids:
         try:
             proc = psutil.Process(pid)
         except Exception as e:
+            logger.error(f"Got exception looking up PID {pid} with psutil; e: {e}")
             # raises a FileNotFoundError if pid no longer exists.
             continue
         name = proc.name()
@@ -296,6 +300,8 @@ def get_pids_meta(pids, types):
             name = "power_monitor_plugin"
         elif "image_scoring_plugin.py" in command_line:
             name = "image_scoring_plugin"
+        elif "oracle_plugin.py" in command_line:
+            name = "oracle_plugin"
 
         logger.debug(f"Found proc for pid {pid}; name: {name}; cmdline: {command_line}")
         procs["name"].append(name)
