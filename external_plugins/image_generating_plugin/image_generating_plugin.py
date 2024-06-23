@@ -14,7 +14,25 @@ import requests
 import zipfile
 from io import BytesIO
 import logging
-logging.basicConfig(level=logging.INFO)
+
+log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
+logger = logging.getLogger("Image Generating Plugin")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
 
 def get_socket():
     """
@@ -60,7 +78,7 @@ def get_binary(value, track_image_count, socket):
         binary_img = f.read()
     img = Image.open(value)
     img_format = img.format
-    logging.info(f"sending new image with the following data: image:{value}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
+    logger.info(f"sending new image with the following data: image:{value}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     try: 
         ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
         oracle_monitoring_info(track_image_count,uuid_image,value)
@@ -74,7 +92,7 @@ def monitor_generating_power(socket):
     monitor_seconds = 0
     if monitor_flag:
         ctevents.send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
-        logging.info(f"monitoring image generating power")
+        logger.info(f"monitoring image generating power")
 
 def simpleNext(img_dict, i, value_index, track_image_count, socket):
     """
@@ -203,7 +221,7 @@ def extract_from_zipfile(url, socket):
                         binary_img = image_file.read()
                         img = Image.open(BytesIO(binary_img))
                         img_format = img.format
-                        logging.info(f"sending new image with the following data: image:{file_name}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
+                        logger.info(f"sending new image with the following data: image:{file_name}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
                         try:
                             ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
                         except Exception as e:
@@ -267,10 +285,10 @@ def send_images(data, socket):
 
     while not done:
         print("\n* * * * * * * * * * ")
-        logging.info(f"Processing file {track_image_count} of {length_of_files}")
-        logging.debug(f"Top of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
+        logger.info(f"Processing file {track_image_count} of {length_of_files}")
+        logger.debug(f"Top of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
         done, index, index_value = send_new_image(data, index, index_value, initial_index, track_image_count, socket)
-        logging.debug(f"Bottom of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
+        logger.debug(f"Bottom of send_images loop; index: {index}; index_value: {index_value}; initial_index: {initial_index}")
         print("* * * * * * * * * * \n")
         # try:
         #     msg = get_next_msg(socket, timeout=10)
@@ -280,7 +298,7 @@ def send_images(data, socket):
         #     continue
         track_image_count+=1
     print("Bottom of send_images; exiting...")
-    logging.debug(f"list_of_files: {list_of_files}")
+    logger.debug(f"list_of_files: {list_of_files}")
 
 
 def send_new_image(data, index, indexvalue, inital_index,track_image_count, socket):
@@ -337,4 +355,8 @@ def main():
 
 
 if __name__ == '__main__':
+    logger.info("Image generating plugin starting...")
     main()
+    # sleep a few seconds before exiting to allow power plugin to look up our PID 
+    time.sleep(5)
+    logger.info("Image generating plugin exiting...")
