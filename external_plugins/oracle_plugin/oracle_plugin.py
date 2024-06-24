@@ -7,8 +7,25 @@ from ctevents.ctevents import socket_message_to_typed_event
 from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent
 from ctevents.gen_events.ImageLabelScore import ImageLabelScore
 
-logging.basicConfig(level=logging.INFO)
+
+log_level = os.environ.get("ORACLE_LOG_LEVEL", "INFO")
 logger = logging.getLogger("Oracle Monitor")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
 PORT = int(os.environ.get('ORACLE_PLUGIN_PORT', 6011))
 OUTPUT_DIR = os.environ.get('TRAPS_ORACLE_OUTPUT_PATH', "/output/")
 file_name = "image_mapping.json"
@@ -56,12 +73,20 @@ def main():
         event = socket_message_to_typed_event(message)
         
         if isinstance(event, ImageScoredEvent):
-            uuid = event.ImageUuid().decode('utf-8').strip("'")
-            # for i in range(event.ScoresLength()):
-            #     label = event.Scores(i).Label().decode('utf-8')
-            timestamp = event.EventCreateTs().decode('utf-8').strip("'")
-            #logger.info(f"Inside scoring {uuid}, {timestamp}")
-            update_json(uuid, {"image_scoring_timestamp": timestamp})
+            with open(output_file, 'a', newline='') as file:
+
+                uuid = event.ImageUuid().decode('utf-8').strip("'")
+                scores = [] # event.ScoresLength()
+                for i in range(event.ScoresLength()):
+                    label = event.Scores(i).Label().decode('utf-8')
+                    prob = event.Scores(i).Probability()
+                    scores.append({"label": label, "probability": prob})
+
+                timestamp = event.EventCreateTs().decode('utf-8').strip("'")
+           
+                logger.info(f"Inside scoring {uuid}, {scores}, {timestamp}")
+                update_json(uuid, {"image_scoring_timestamp": timestamp})
+
 
         elif isinstance(event, ImageStoredEvent):
             uuid = event.ImageUuid().decode('utf-8').strip("'")
@@ -80,4 +105,6 @@ def main():
             logger.info(event)
 
 if __name__ == '__main__':
+    logger.info("Oracle plugin starting...")
     main()
+    logger.info("Oracle plugin exiting...")
