@@ -4,8 +4,7 @@ import logging
 import json
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from ctevents.ctevents import socket_message_to_typed_event
-from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent
-from ctevents.gen_events.ImageLabelScore import ImageLabelScore
+from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, ImageReceivedEvent
 
 
 log_level = os.environ.get("ORACLE_LOG_LEVEL", "INFO")
@@ -40,19 +39,17 @@ def update_json(uuid,updated_data):
     with open(output_file, 'r+') as file:
         try:
             mapping = json.load(file)
-            print(mapping)
         except json.JSONDecodeError:
-
             print("error")
-    
         if uuid in mapping:
-            for field,value in enumerate(updated_data):
-                print(field,value,updated_data)
-                mapping[uuid][field].update(updated_data)
-                print(mapping)
-        file.seek(0)
-        json.dump(mapping,file)
-        file.truncate()
+            for field in mapping[uuid]:
+                for key,value in updated_data.items():
+                    field[key] = value
+        # file.seek(0)
+        # json.dump(mapping,file)
+        # file.truncate()
+    with open(output_file, "w") as file:
+        json.dump(mapping, file)
 
 def main():
     done = False
@@ -71,36 +68,36 @@ def main():
 
         logger.info("Got a message from the event socket - Oracle monitor check")
         event = socket_message_to_typed_event(message)
-        
-        if isinstance(event, ImageScoredEvent):
-            with open(output_file, 'a', newline='') as file:
+        if isinstance(event, ImageReceivedEvent):
+            uuid = event.ImageUuid().decode('utf-8').strip("'")
+            timestamp = event.EventCreateTs().decode('utf-8').strip("'")
+            logger.info("Image received {uuid}, {timestamp}")
+            update_json(uuid, {"image_receiving_timestamp": timestamp})
 
-                uuid = event.ImageUuid().decode('utf-8').strip("'")
-                scores = [] # event.ScoresLength()
-                for i in range(event.ScoresLength()):
-                    label = event.Scores(i).Label().decode('utf-8')
-                    prob = event.Scores(i).Probability()
-                    scores.append({"label": label, "probability": prob})
-
-                timestamp = event.EventCreateTs().decode('utf-8').strip("'")
-           
-                logger.info(f"Inside scoring {uuid}, {scores}, {timestamp}")
-                update_json(uuid, {"image_scoring_timestamp": timestamp})
-
+        elif isinstance(event, ImageScoredEvent):
+            uuid = event.ImageUuid().decode('utf-8').strip("'")
+            scores = [] # event.ScoresLength()
+            for i in range(event.ScoresLength()):
+                label = event.Scores(i).Label().decode('utf-8')
+                prob = event.Scores(i).Probability()
+                scores.append({"label": label, "probability": prob})
+            timestamp = event.EventCreateTs().decode('utf-8').strip("'")
+            logger.info(f"Inside scoring {uuid}, {scores}, {timestamp}")
+            update_json(uuid, {"image_scoring_timestamp": timestamp, "score" : scores})
 
         elif isinstance(event, ImageStoredEvent):
             uuid = event.ImageUuid().decode('utf-8').strip("'")
             timestamp = event.EventCreateTs().decode('utf-8').strip("'")
             destination = event.Destination().decode('utf-8').strip("'")
-            #logger.info("Image stored", {uuid},{timestamp},{destination})
-            update_json(uuid, {"image_store_delete_time": timestamp, "image_stored": "True", "image_deleted": "False"})
+            logger.info("Image stored", {uuid},{timestamp},{destination})
+            update_json(uuid, {"image_store_delete_time": timestamp, "image_decision": destination})
 
-        elif isinstance(event, ImageDeletedEvent):
-            uuid = event.ImageUuid().decode('utf-8').strip("'")
-            timestamp = event.EventCreateTs().decode('utf-8').strip("'")
-            #logger.info("Image stored", {uuid},{timestamp},"Deleted")
-            update_json(uuid, {"image_store_delete_time": timestamp, "image_stored": "False", "image_deleted": "True"})
-
+        # elif isinstance(event, ImageDeletedEvent):
+        #     print("INSIDE DELETING")
+        #     uuid = event.ImageUuid().decode('utf-8').strip("'")
+        #     timestamp = event.EventCreateTs().decode('utf-8').strip("'")
+        #     logger.info("Image deleted", {uuid},{timestamp},"Deleted")
+        #     update_json(uuid, {"image_store_delete_time": timestamp, "image_stored": "False", "image_deleted": "True"})
         else:
             logger.info(event)
 

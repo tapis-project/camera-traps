@@ -74,5 +74,6 @@ internal_actions = [
        "ImageScoredEvent",
        "ImageStoredEvent",
        "ImageDeletedEvent",
+       "ImageReceivedEvent",
        "PluginTerminateEvent"
    ]

@@ -63,8 +63,7 @@ def oracle_monitoring_info(track_image_count, uuid, uuid_image):
         "image_receiving_timestamp": "",
         "image_scoring_timestamp": "",
         "image_store_delete_time": "",
-        "image_stored": "",
-        "image_deleted": ""
+        "image_decision": ""
     }
     mapping = {}
     if os.path.exists(output_file):
