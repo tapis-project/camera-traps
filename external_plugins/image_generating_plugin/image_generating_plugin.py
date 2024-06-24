@@ -1,4 +1,4 @@
-import json,csv
+import json
 import os
 import glob
 import uuid
@@ -31,24 +31,35 @@ def get_socket():
     socket.RCVTIMEO = 100 # in milliseconds
     return socket
 
-def oracle_monitoring_info(track_image_count,uuid,uuid_image):
-    #ctevents.send_oracle_monitor(uuid)
-    #logging.info("Oracle Monitoring")
+def oracle_monitoring_info(track_image_count, uuid, uuid_image):
     print("Inside monitoring oracle")
     OUTPUT_DIR = os.environ.get('TRAPS_MAPPING_OUTPUT_PATH', "/output/")
-    file_name = "image_mapping.csv"
+    file_name = "image_mapping.json"
     output_file = os.path.join(OUTPUT_DIR, file_name)
-    
-    if not os.path.exists(output_file):
-        with open(output_file, 'w', newline='') as file:
-            mapping = csv.writer(file)
-            field = ["Image count","UUID", "Image name"]
-            mapping.writerow(field)
-            mapping.writerow([track_image_count,uuid, uuid_image])
-    else:
-        with open(output_file, 'a', newline='') as file:
-            mapping = csv.writer(file)
-            mapping.writerow([track_image_count,uuid, uuid_image])
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    new_data = {
+        "image_count": track_image_count,
+        "UUID": uuid,
+        "image_name": uuid_image,
+        "score": "",
+        "image_receiving_timestamp": "",
+        "image_scoring_timestamp": "",
+        "image_store_delete_time": "",
+        "image_stored": "",
+        "image_deleted": ""
+    }
+    mapping = {}
+    if os.path.exists(output_file):
+        with open(output_file, 'r') as file:
+            try:
+                mapping = json.load(file)
+                print("Successfully loaded content:", mapping)
+            except json.JSONDecodeError as e:
+                print("Failed to decode JSON, exception:", e)
+    mapping.setdefault(uuid,[]).append(new_data)
+    with open(output_file, 'w') as file:
+        json.dump(mapping, file, indent=2)
+    print(mapping)
 
 def get_binary(value, track_image_count, socket):
     """
@@ -63,6 +74,7 @@ def get_binary(value, track_image_count, socket):
     logging.info(f"sending new image with the following data: image:{value}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     try: 
         ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
+        print("Inititating",track_image_count,uuid_image,value )
         oracle_monitoring_info(track_image_count,uuid_image,value)
     except Exception as e:
         print(f"got exception {e}")
