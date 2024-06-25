@@ -1,5 +1,11 @@
 # Camera Traps Release Notes
 
+## Version 0.3.3
+
+1. Implementation of power monitoring plugin for x86 and ARM architectures.
+2. Implementation of oracle plugin to analyze simulation results.
+2. Various bug fixes.
+
 ## Version 0.3.2
 
 1. Runtime configuration updates, principally involving changes to the *releases* directory structure.
