@@ -20,7 +20,7 @@
 #
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py:$REL
-
+RUN mkdir /output
 RUN pip install opencv-contrib-python-headless 
 RUN pip install PILLOW
 RUN pip install requests

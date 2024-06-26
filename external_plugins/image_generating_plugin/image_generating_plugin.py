@@ -9,6 +9,7 @@ from PIL import Image
 import threading
 import concurrent.futures
 from ctevents import ctevents
+from ctevents.ctevents import send_terminating_plugin_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 import requests
 import zipfile
@@ -54,16 +55,10 @@ def oracle_monitoring_info(track_image_count, uuid, uuid_image):
     OUTPUT_DIR = os.environ.get('TRAPS_MAPPING_OUTPUT_PATH', "/output/")
     file_name = "image_mapping.json"
     output_file = os.path.join(OUTPUT_DIR, file_name)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
     new_data = {
         "image_count": track_image_count,
         "UUID": uuid,
         "image_name": uuid_image,
-        "score": "",
-        "image_receiving_timestamp": "",
-        "image_scoring_timestamp": "",
-        "image_store_delete_time": "",
-        "image_decision": ""
     }
     mapping = {}
     if os.path.exists(output_file):
@@ -309,6 +304,7 @@ def send_images(data, socket):
         #     continue
         track_image_count+=1
     print("Bottom of send_images; exiting...")
+    send_terminating_plugin_fb_event(socket,"ext_image_gen_plugin","d3266646-41ec-11ed-a96f-5391348bab46")
     logger.debug(f"list_of_files: {list_of_files}")
 
 
@@ -352,7 +348,7 @@ def main():
 
     monitor_generating_power(socket)
     send_images(data, socket)
-
+    
     # with concurrent.futures.ThreadPoolExecutor() as executor:
     #     # run send_new_image and get_next_msg concurrently
     #     thread1 = executor.submit(send_images, data, socket)

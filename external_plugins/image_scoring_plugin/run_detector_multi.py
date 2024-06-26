@@ -4,8 +4,25 @@ import statistics
 import time
 from tqdm import tqdm
 import humanfriendly
-
+import logging
 import visualization_utils as viz_utils
+
+log_level = os.environ.get("IMAGE_SCORING_LOG_LEVEL", "INFO")
+logger = logging.getLogger("Image Scoring Plugin")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 DETECTOR_METADATA = {
     'v5a.0.0':
@@ -60,6 +77,7 @@ else:
         '1': 'animal',
         '2': 'person',
         '3': 'vehicle',
+        '4': 'empty',
         # available in megadetector v4+
     }
     
@@ -254,8 +272,7 @@ def run_detector(detector, image_file_names, output_dir,
 
         try:
             if crop_images:
-                print("Cropping",crop_images)
-                print(type(crop_images))
+                logger.info(f"Cropping the image - {image_file_names}")
                 images_cropped = viz_utils.crop_image(result['detections'], image)
                 
                 for i_crop, cropped_image in enumerate(images_cropped):
@@ -263,7 +280,7 @@ def run_detector(detector, image_file_names, output_dir,
                     cropped_image.save(output_full_path)
 
             if detections:
-                print("Detecting",detections)
+                logger.info(f"Performing detections on image - {image_file_names}")
 
                 # Image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
@@ -292,7 +309,9 @@ def run_detector(detector, image_file_names, output_dir,
                                                     std_dev_time_load))
     print('- inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
                                                       std_dev_time_infer))
-    print(result['detections'])
+    # print(f"{result['max_detection_conf']} {type(result['max_detection_conf'])}")
+    if not result['detections'] and model_variant != "2":
+        result['detections'].append({'category':'4', 'conf': 0})
     return result['detections']
 
 

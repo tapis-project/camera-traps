@@ -9,3 +9,4 @@ from .gen_events.ImageReceivedEvent import ImageReceivedEvent
 from .gen_events.ImageStoredEvent import ImageStoredEvent
 from .gen_events.ImageDeletedEvent import ImageDeletedEvent
 from .gen_events.ImageLabelScore import ImageLabelScore
+from .gen_events.PluginTerminateEvent import PluginTerminateEvent

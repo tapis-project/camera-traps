@@ -4,7 +4,7 @@ import logging
 import json
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from ctevents.ctevents import socket_message_to_typed_event
-from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, ImageReceivedEvent
+from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, ImageReceivedEvent, PluginTerminateEvent
 
 
 log_level = os.environ.get("ORACLE_LOG_LEVEL", "INFO")
@@ -28,6 +28,7 @@ if not logger.handlers:
 PORT = int(os.environ.get('ORACLE_PLUGIN_PORT', 6011))
 OUTPUT_DIR = os.environ.get('TRAPS_ORACLE_OUTPUT_PATH', "/output/")
 file_name = "image_mapping.json"
+final_file = "image_mapping_final.json"
 SOCKET_TIMEOUT = 2000
 
 def get_socket():
@@ -36,20 +37,39 @@ def get_socket():
 
 def update_json(uuid,updated_data):
     output_file = os.path.join(OUTPUT_DIR, file_name)
-    with open(output_file, 'r+') as file:
+    output_file2 = os.path.join(OUTPUT_DIR, final_file)
+    try:
+        with open(output_file2, 'r') as file2:
+            try:
+                existing_data = json.load(file2)
+            except json.JSONDecodeError:
+                logger.error(f"JSON decoding error for {output_file2}")
+                existing_data = {}
+    except FileNotFoundError:
+        logger.error(f"File not found: {output_file2}")
+        existing_data = {}   
+
+    if uuid not in existing_data:
+        logger.info(f"Fetching - {uuid} from {output_file}")
         try:
-            mapping = json.load(file)
-        except json.JSONDecodeError:
-            print("error")
-        if uuid in mapping:
-            for field in mapping[uuid]:
-                for key,value in updated_data.items():
-                    field[key] = value
+            with open(output_file, 'r') as file:
+                try:
+                    mapping = json.load(file)
+                except json.JSONDecodeError:
+                    logger.error(f"JSON loading Error for {output_file}")
+                    mapping = {}
+                existing_data[uuid] = mapping.get(uuid,{uuid : [{"UUID": uuid}]})
+        except FileNotFoundError:
+            logger.error(f"File {output_file} not found")
+
         # file.seek(0)
         # json.dump(mapping,file)
-        # file.truncate()
-    with open(output_file, "w") as file:
-        json.dump(mapping, file)
+        # file.truncate()  
+    for field in existing_data[uuid]:
+        for key,value in updated_data.items():
+            field[key] = value           
+    with open(output_file2, "w") as file2: 
+        json.dump(existing_data, file2, indent=2)
 
 def main():
     done = False
@@ -65,13 +85,16 @@ def main():
             done = True 
             logger.info("Oracle monitoring plugin stopping due to timeout limit...")
             continue
+        if not message:
+            logger.info("No message found in get_next_msg")
 
         logger.info("Got a message from the event socket - Oracle monitor check")
         event = socket_message_to_typed_event(message)
+
         if isinstance(event, ImageReceivedEvent):
             uuid = event.ImageUuid().decode('utf-8').strip("'")
             timestamp = event.EventCreateTs().decode('utf-8').strip("'")
-            logger.info("Image received {uuid}, {timestamp}")
+            logger.info(f"Image received {uuid}, {timestamp}")
             update_json(uuid, {"image_receiving_timestamp": timestamp})
 
         elif isinstance(event, ImageScoredEvent):
@@ -87,21 +110,29 @@ def main():
 
         elif isinstance(event, ImageStoredEvent):
             uuid = event.ImageUuid().decode('utf-8').strip("'")
-            timestamp = event.EventCreateTs().decode('utf-8').strip("'")
+            timestamp = event.EventCreateTs().decode('utf-8')
             destination = event.Destination().decode('utf-8').strip("'")
-            logger.info("Image stored", {uuid},{timestamp},{destination})
+            logger.info(f"Image stored {uuid},{timestamp},{destination}")
             update_json(uuid, {"image_store_delete_time": timestamp, "image_decision": destination})
 
-        # elif isinstance(event, ImageDeletedEvent):
-        #     print("INSIDE DELETING")
-        #     uuid = event.ImageUuid().decode('utf-8').strip("'")
-        #     timestamp = event.EventCreateTs().decode('utf-8').strip("'")
-        #     logger.info("Image deleted", {uuid},{timestamp},"Deleted")
-        #     update_json(uuid, {"image_store_delete_time": timestamp, "image_stored": "False", "image_deleted": "True"})
+        elif isinstance(event, ImageDeletedEvent):
+            uuid = event.ImageUuid().decode('utf-8').strip("'")
+            print("timestamp inside image delete",{event.EventCreateTs()} )
+            timestamp = event.EventCreateTs().decode('utf-8')
+            logger.info(f"Image deleted {uuid},{timestamp}")
+            update_json(uuid, {"image_delete_time": timestamp, "image_decision": "Deleted"})
+
+        elif isinstance(event,PluginTerminateEvent):
+            uuid = event.ImageUuid().decode('utf-8').strip("'")
+            plugin_name = event.TargetPluginName()
+            logger.info(f"Terminate {uuid},{plugin_name}")
+
         else:
             logger.info(event)
+        
 
 if __name__ == '__main__':
     logger.info("Oracle plugin starting...")
     main()
+
     logger.info("Oracle plugin exiting...")

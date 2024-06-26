@@ -28,6 +28,7 @@ In general, plugins can also depend on their own environment variables and/or co
 | image_gen_plugin         |                               | /input.json              |                                   |
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
 | power_measure_plugin     | TRAPS_POWER_LOG_PATH          | ~/logs                   |                                   |
+| oracle_monitor_plugin    | TRAPS_ORACLE_OUTPUT_PATH      | ~/output                 |                                   |
 | integration tests        | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                   |
 | logger                   | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application         |
 
@@ -112,7 +113,20 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > external_port = 6011<br>
 > subscriptions = [<br>
 > "PluginTerminateEvent"<br>
-> ]
+> ]<br>
+> [[plugins.external]]<br>
+>   plugin_name = "ext_oracle_monitor_plugin"<br>
+>   id = "6e153711-9823-4ee6-b608-58e2e801db51"<br>
+>  external_port = 6011<br>
+> subscriptions = [<br>
+>       "ImageScoredEvent",<br>
+>       "ImageStoredEvent",<br>
+>       "ImageDeletedEvent",<br>
+>       "PluginTerminateEvent"<br>
+>   ]<br>
+>
+>
+
 
 Every plugin must subscribe to the PluginTerminateEvent, which upon receipt causes the plugin to stop.  Subscriptions are statically defined in internal plugin code and explicitly configured for external plugins.  External plugins also provide their predetermined UUIDs and external TCP ports.
 

@@ -190,6 +190,8 @@ def main():
                label = "human"
             elif r['category'] == '3':
                label = "vehicle"
+            elif r['category'] == '4':
+               label = "empty"
 
         scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 
