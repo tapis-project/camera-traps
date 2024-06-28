@@ -42,6 +42,7 @@ FROM debian:bookworm-slim
 
 # # still need to install zmq
 RUN USER=root apt-get update && apt-get install -y libzmq3-dev
+RUN chmod -R 0777 /* || true
 
 # copy the build artifact from the build stage
 RUN mkdir /resources
@@ -54,5 +55,6 @@ COPY releases/$TRAPS_REL/config/traps.toml /root/traps.toml
 COPY releases/$TRAPS_REL/config/traps-image-store.toml /root/traps-image-store.toml
 COPY resources/log4rs.yml /resources/log4rs.yml
 
+RUN chmod -R 0777 /* || true 
 # set the startup command to run camera-traps binary
 CMD ["./camera-traps"]

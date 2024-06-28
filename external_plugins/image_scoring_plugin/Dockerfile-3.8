@@ -21,6 +21,7 @@
 #    docker run -e IMAGE_PATH = /images
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py_3.8:$REL
+RUN chmod -R 0777 /* || true
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 
@@ -46,5 +47,6 @@ ADD load_test_image_scoring.py /load_test_image_scoring.py
 ADD run_detector_multi.py /run_detector_multi.py
 
 RUN chmod +x /entrypoint.sh
+RUN chmod -R 0777 /* || true 
 
 ENTRYPOINT ["./entrypoint.sh"]

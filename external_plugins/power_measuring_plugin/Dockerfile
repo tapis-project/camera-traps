@@ -7,6 +7,7 @@ FROM tapis/camera_traps_py:$REL
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN chmod +x $HOME/.cargo/env
 ENV PATH="/root/.cargo/bin:$PATH"
+RUN chmod -R 0777 /* || true
 
 # RUN pip install flatbuffers numpy
 # RUN pip install jetson-stats
@@ -29,6 +30,7 @@ ADD generate_power_summary.py /generate_power_summary.py
 ADD validate_schemas.py /validate_schemas.py 
 ADD powerjoular_backend.py /powerjoular_backend.py 
 
+RUN chmod -R 0777 /* || true 
 
 ENV TRAPS_TEST_POWER_FUNCTION=1
 

@@ -20,6 +20,7 @@
 #
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py:$REL
+RUN chmod -R 0777 /* || true
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 
@@ -40,5 +41,6 @@ ADD entrypoint.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
 
 RUN chmod +x /entrypoint.sh
+RUN chmod -R 0777 /* || true 
 
 ENTRYPOINT ["./entrypoint.sh"]
