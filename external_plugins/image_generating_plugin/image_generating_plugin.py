@@ -1,4 +1,4 @@
-import json
+import json, csv
 import os
 import glob
 import uuid
@@ -33,8 +33,6 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-
-
 def get_socket():
     """
     This function creates the zmq socket object and generates the event-engine plugin socket
@@ -43,35 +41,64 @@ def get_socket():
     
     # get the port assigned to the Image Generating plugin
     PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
-
     # create the zmq context object
     context = zmq.Context()
     socket = get_plugin_socket(context, PORT)
     socket.RCVTIMEO = 100 # in milliseconds
     return socket
 
+def load_ground_truth():
+    """
+    Loads ground truth data from ground_truth.csv and add it as a dictionary.
+    Returns:
+        dict: A dictionary where the keys are image names and the values are the corresponding ground truth data.
+    """
+    config_dir = os.environ.get("CAMERA_TRAPS_DIR", '')
+    ground_truth_file = os.path.join(config_dir, 'ground_truth.csv')
+    ground_truth_data = {}
+    try:
+        with open(ground_truth_file, mode='r') as ground_truth:
+            reader = csv.DictReader(ground_truth)
+            for row in reader:
+                image_name = row['image_name']
+                ground_truth_data[image_name] = row['ground_truth']
+    except FileNotFoundError:
+        logger.error(f"File not found: {ground_truth_file}")
+    except KeyError as e:
+        logger.error(f"Missing expected column in CSV: {e}")
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+    return ground_truth_data
+
 def oracle_monitoring_info(track_image_count, uuid, uuid_image):
-    print("Inside monitoring oracle")
+    """
+    Creates a file named image_mapping.json that stores information about the image file.
+    Args:
+        track_image_count (int): The count of image.
+        uuid (str): The unique identifier for the image.
+        uuid_image (str): The original name of the image file.
+        ground_truth(global dictionary): Contains ground truth information for the object in the image.
+    """
     OUTPUT_DIR = os.environ.get('TRAPS_MAPPING_OUTPUT_PATH', "/output/")
     file_name = "image_mapping.json"
     output_file = os.path.join(OUTPUT_DIR, file_name)
+    ground_truth_info = ground_truth.get(uuid_image, 'unavailable')
     new_data = {
         "image_count": track_image_count,
         "UUID": uuid,
         "image_name": uuid_image,
+        "ground_truth": ground_truth_info,
     }
     mapping = {}
     if os.path.exists(output_file):
         with open(output_file, 'r') as file:
             try:
                 mapping = json.load(file)
-                print("Successfully loaded content:", mapping)
             except json.JSONDecodeError as e:
-                print("Failed to decode JSON, exception:", e)
+                logger.error("Failed to decode JSON, exception:", e)
     mapping.setdefault(uuid,[]).append(new_data)
     with open(output_file, 'w') as file:
         json.dump(mapping, file, indent=2)
-    print(mapping)
 
 def get_binary(value, track_image_count, socket):
     """
@@ -85,11 +112,10 @@ def get_binary(value, track_image_count, socket):
     img_format = img.format
     logger.info(f"sending new image with the following data: image:{value}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
     try: 
-        ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
-        print("Inititating",track_image_count,uuid_image,value )
         oracle_monitoring_info(track_image_count,uuid_image,value)
+        ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)     
     except Exception as e:
-        print(f"got exception {e}")
+        logger.error(f"got exception {e}")
 
 def monitor_generating_power(socket):
     monitor_flag = os.getenv('MONITOR_POWER')
@@ -98,7 +124,7 @@ def monitor_generating_power(socket):
     monitor_seconds = 0
     if monitor_flag:
         ctevents.send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
-        logger.info(f"monitoring image generating power")
+        logger.info(f"Monitoring image generating power")
 
 def simpleNext(img_dict, i, value_index, track_image_count, socket):
     """
@@ -108,7 +134,7 @@ def simpleNext(img_dict, i, value_index, track_image_count, socket):
     done = False
     if i >= len(img_dict):
         done = True
-        print(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
+        logger.info(f"Hit exit condition; i: {i}; len(img_dict): {len(img_dict)}; done = {done}")
         return done, i, len(img_dict)
     value = list(img_dict.values())[i][value_index]
     get_binary(value, track_image_count,socket)
@@ -180,7 +206,6 @@ def nextImage(img_dict,timestamp_min, index,socket):
             index = mid
             end = mid - 1
     timestamp_min1 = list(img_dict.keys())[index]
-    print("Output")
     value = img_dict[timestamp_min1]
     value = str(value)[1:-1]
     get_binary(value, socket)
@@ -206,7 +231,6 @@ def randomImage(timestamp_min, index, socket):
             index = mid
             end = mid - 1
     timestamp_min = list(img_dict.keys())[index]
-    print("Output")
     value = img_dict[timestamp_min]
     value = str(value)[1:-1]
     get_binary(value,socket)
@@ -231,10 +255,10 @@ def extract_from_zipfile(url, socket):
                         try:
                             ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
                         except Exception as e:
-                            print(f"got exception {e}")
-        print("Extraction complete")
+                            logger.error(f"got exception {e}")
+        logger.info(f"Successfully extracted images from the url - {url}")
     else:
-        print(f"Failed to download file from {url}")
+        logger.error(f"Failed to download file from {url}")
     
 def get_config():
     # TODO - return start
@@ -242,11 +266,11 @@ def get_config():
     config_dir = os.environ.get("CAMERA_TRAPS_DIR", '')
     config_file = os.path.join(config_dir, 'input.json')
 
-    print("Image Generating Plugin starting up...")
+    logger.info("Image Generating Plugin starting up...")
     with open(config_file) as f:
         data = json.load(f)
     user_input = data['path']
-    print(f"user_input: {user_input}")
+    logger.info(f"user_input: {user_input}")
     start = int(data['timestamp']) # used for nextImage and identicalTimestamp
     return data
 
@@ -345,7 +369,8 @@ def check_quit(socket):
 def main():
     socket = get_socket()
     data = get_config()
-
+    global ground_truth
+    ground_truth = load_ground_truth()
     monitor_generating_power(socket)
     send_images(data, socket)
     
