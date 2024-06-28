@@ -1,0 +1,42 @@
+refresh_rate: 60 seconds
+
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.100}:{L} - {m}{n}"
+
+  fout:
+    kind: file
+    path: "test.log"
+    encoder:
+      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.100}:{L} - {m}{n}"
+
+  roller:
+    kind: rolling_file
+    append: true
+    path: "logs/roller.log"
+    encoder:
+      pattern: "{d(%Y-%m-%dT%H:%M:%S.%f)(utc)}Z {l:<5} [{T}] {f:>.100}:{L} - {m}{n}"
+    policy:
+      kind: compound
+      trigger:
+        kind: size
+        limit: 10b
+      roller:
+        kind: fixed_window
+        base: 1
+        count: 3
+        pattern: "logs/roller{}.log"
+        
+root:
+  level: debug
+  appenders:
+    - stdout
+
+# loggers:
+#   rust-logtest2:
+#     level: trace
+#     appenders:
+#       - stdout
+#     additive: false

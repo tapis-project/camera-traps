@@ -1,0 +1,11 @@
+{
+  {% if use_bundled_example_images or source_image_dir %}
+  "path": "/example_images",
+  {% elif use_image_url %}
+}
+  "path": "{{ source_image_url }}",
+{% endif %}
+  "timestamp": "600",
+  "callingFunction": "simpleNext",
+  "burstQuantity": "5"
+}
