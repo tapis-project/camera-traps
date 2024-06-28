@@ -34,8 +34,18 @@ use_gpu_in_scoring: true
 ```
 
 The values in `my-input.yml` override defaults provided 
-by the installer. See the following sections for details
-about the configurations available. 
+by the installer. In the example above, the following
+will happen:
+
+1. Camera Traps installer will install the main docker-compose.yml file and all necessary directories and 
+additional files within the `test` directory of 
+`/home/jstubbs/tmp/ct-installer`. 
+2. The image scoring plugin will be configured to use 
+GPUs on the host machine. 
+3. All other default configurations will be used. 
+   
+
+See the following sections for details about the configurations available and defaults used.  
 
 
 Required Configuration
