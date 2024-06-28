@@ -59,8 +59,14 @@ def get_inputs():
 
 
 def get_vars(input_data, default_data):
+    """
+    This function uses the inputs and defaults to produce a final dictionary, `vars`, of variables 
+    to use to compile the templated. Values in input_data override those in default_data. Additionally,
+    some values will be changed to meet program requirements. 
+    """
     # override defaults with inputs 
     vars = { **default_data, **input_data }
+    
     # add the user's UID and GID -- the installer container process runs as the actual system user
     try:
         uid = os.getuid()
@@ -69,8 +75,19 @@ def get_vars(input_data, default_data):
         print(f"ERROR: could not determine uid and gid; error: {e}")
         print("Exiting...")
         sys.exit(1)
+    
+    # the powerjoular backend requires the docker socket to function:
+    if vars.get("power_monitor_backend") == 'powerjoular':
+        vars['power_monitor_mount_docker_socket'] = True
+    
+    # Add the installer's UID and GID
     vars["uid"] = uid
     vars["gid"] = gid 
+
+    # Add the host install path 
+    install_host_path = os.environ.get("INSTALL_HOST_PATH")
+    vars["install_host_path"] = install_host_path
+    
     print(f"Merged variables: {vars}")
     return vars 
 
