@@ -1,5 +1,6 @@
 # Image: tapis/camera_traps_py_3.8
 FROM tapis/pyevents:3.8
+RUN chmod -R 0777 /* || true
 
 ADD requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
@@ -7,3 +8,4 @@ RUN pip install -r /requirements.txt
 ADD labrador-pup.jpg /labrador-pup.jpg
 ADD ctevents /ctevents
 ADD test_ctevents.py /test_ctevents.py
+RUN chmod -R 0777 /* || true
