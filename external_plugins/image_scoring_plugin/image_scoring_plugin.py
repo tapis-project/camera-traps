@@ -130,68 +130,68 @@ def main():
                                           image_size=IMAGE_SIZE)
         # create and send an image scored event with the probability scores:
         scores = []
+        label = "unknown"
         for r in results:
-         label = "unknown"
            # Each score object should have the format: 
            #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
            # Each result returned from detector is a dictionary with `category` and `conf`
-         if model_variant == "2":
-            if r['category'] == "1":
-               label = "bird"
-            elif r['category'] == "2":
-               label = "eastern gray squirrel"
-            elif r['category'] == "3":
-               label = "eastern chipmunk"
-            elif r['category'] == "4":
-               label = "woodchuck"
-            elif r['category'] == "5":
-               label = "wild turkey"
-            elif r['category'] == "6":
-               label = "white-tailed deer"
-            elif r['category'] == "7":
-               label = "virginia opossum"
-            elif r['category'] == "8":
-               label = "eastern cottontail"
-            elif r['category'] == "9":
-               label = "empty"
-            elif r['category'] == "10":
-               label = "vehicle"
-            elif r['category'] == "11":
-               label = "striped skunk"
-            elif r['category'] == "12":
-               label = "red fox"
-            elif r['category'] == "13":
-               label = "eastern fox squirrel"
-            elif r['category'] == "14":
-               label = "northern raccoon"
-            elif r['category'] == "15":
-               label = "grey fox"
-            elif r['category'] == "16":
-               label = "horse"
-            elif r['category'] == "17":
-               label = "dog"
-            elif r['category'] == "18":
-               label = "american crow"
-            elif r['category'] == "19":
-               label = "chicken"
-            elif r['category'] == "20":
-               label = "domestic cat"
-            elif r['category'] == "21":
-               label = "coyote"
-            elif r['category'] == "22":
-               label = "bobcat"
-            elif r['category'] == "23":
-               label = "american black bear"
+            if model_variant == "2":
+                if r['category'] == "1":
+                    label = "bird"
+                elif r['category'] == "2":
+                    label = "eastern gray squirrel"
+                elif r['category'] == "3":
+                    label = "eastern chipmunk"
+                elif r['category'] == "4":
+                    label = "woodchuck"
+                elif r['category'] == "5":
+                    label = "wild turkey"
+                elif r['category'] == "6":
+                    label = "white-tailed deer"
+                elif r['category'] == "7":
+                    label = "virginia opossum"
+                elif r['category'] == "8":
+                    label = "eastern cottontail"
+                elif r['category'] == "9":
+                    label = "empty"
+                elif r['category'] == "10":
+                    label = "vehicle"
+                elif r['category'] == "11":
+                    label = "striped skunk"
+                elif r['category'] == "12":
+                    label = "red fox"
+                elif r['category'] == "13":
+                    label = "eastern fox squirrel"
+                elif r['category'] == "14":
+                    label = "northern raccoon"
+                elif r['category'] == "15":
+                    label = "grey fox"
+                elif r['category'] == "16":
+                    label = "horse"
+                elif r['category'] == "17":
+                    label = "dog"
+                elif r['category'] == "18":
+                    label = "american crow"
+                elif r['category'] == "19":
+                    label = "chicken"
+                elif r['category'] == "20":
+                    label = "domestic cat"
+                elif r['category'] == "21":
+                    label = "coyote"
+                elif r['category'] == "22":
+                    label = "bobcat"
+                elif r['category'] == "23":
+                    label = "american black bear"
 
-         else:
-            if r['category'] == '1':
-               label = "animal"
-            elif r['category'] == '2':
-               label = "human"
-            elif r['category'] == '3':
-               label = "vehicle"
-            elif r['category'] == '4':
-               label = "empty"
+            else:
+                if r['category'] == '1':
+                    label = "animal"
+                elif r['category'] == '2':
+                    label = "human"
+                elif r['category'] == '3':
+                    label = "vehicle"
+                elif r['category'] == '4':
+                    label = "empty"
 
         scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 
