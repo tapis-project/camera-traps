@@ -50,6 +50,7 @@ services:
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.
       - ./config/image_gen_config_small.json:/input.json
+      - ./config/ground_truth.csv:/ground_truth.csv
       - ./oracle_plugin_dir:/output
 
   imageScoringPlugin:
@@ -64,12 +65,12 @@ services:
     #
     # UNCOMMENT --------------
     deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all # Use 'all' or specify the number of GPUs you want to use
-              capabilities: [ gpu ]
+    resources:
+    reservations:
+    devices:
+    - driver: nvidia
+    count: all # Use 'all' or specify the number of GPUs you want to use
+    capabilities: [ gpu ]
     # --------------------------
     depends_on:
       - engine
