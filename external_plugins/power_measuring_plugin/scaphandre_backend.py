@@ -16,8 +16,8 @@ logger = logging.getLogger("Power measurement")
 
 
 # Command lines to use for the 
-DEVICE_TYPES_METHODS = {"cpu": {"scaph": "scaphandre stdout -t "},
-                        "gpu": {"nvsmi": "nvidia-smi --query-gpu=index,power.draw --format=csv"}}
+DEVICE_TYPES_METHODS = {"cpu": {"scaph": "sudo /scaphandre/target/release/scaphandre stdout -t "},
+                        "gpu": {"nvsmi": "sudo nvidia-smi --query-gpu=index,power.draw --format=csv"}}
 
 
 def cpu_measure(pids, cpu_method, duration):

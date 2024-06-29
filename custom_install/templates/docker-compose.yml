@@ -165,7 +165,7 @@ services:
       - TRAPS_POWER_LOG_PATH=/logs
       # This is the log path on the *host*; It must be an absolute path!
       # This is needed when using the powerjoular backend, which runs in a separate container
-      - TRAPS_POWER_LOG_HOST_PATH={{ install_dir }}/{{ power_output_dir }}
+      - TRAPS_POWER_LOG_HOST_PATH={{ install_host_path }}/{{ install_dir }}/{{ power_output_dir }}
       - TRAPS_POWER_LOG_LEVEL={{ power_monitor_log_level }}
       - TRAPS_POWER_BACKEND={{ power_monitor_backend }}
       {% if power_plugin_monitor_power %}
@@ -180,6 +180,13 @@ services:
       # mount the docker socket for starting powerjoular containers
       - /var/run/docker.sock:/var/run/docker.sock
       {% endif %}
+      # mount the /etc files from host to make sure user exists and sudo works properly
+      {% if run_containers_as_user %}
+      - /etc/passwd:/etc/passwd:ro 
+      - /etc/group:/etc/group:ro
+      - /etc/shadow:/etc/shadow:ro
+      {% endif %}
+
 
   oraclePlugin:
     container_name: oracle_monitor
