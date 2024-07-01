@@ -9,5 +9,8 @@ export uid=$(id -u)
 export gid=$(id -g)
 
 # run the installer container as the host UID and GID, mounting the the host file system as passed
+
 # in argument 1 and the INPUT_FILE environment variable, as passed in argument 2.
-docker run -it --rm --user $uid:$gid -v $1:/host/ -e INSTALL_HOST_PATH=$1 -e INPUT_FILE=$2 tapis/camera-traps-installer
+input_file=${2:-install_config.yml}
+
+    docker run -it --rm --user $uid:$gid -v $1:/host/ -e INSTALL_HOST_PATH=$1 -e INPUT_FILE=$input_file tapis/camera-traps-installer

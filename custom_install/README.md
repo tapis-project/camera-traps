@@ -14,7 +14,8 @@ passing two positional arguments:
   Camera Traps.
 * Input YAML file: path relative to Host directory where 
   an input YAML file containing the configurations for 
-  the installation. 
+  the installation. This input is *optional*, the default
+  value is install_config.yml
 
 Example invocation:
 
