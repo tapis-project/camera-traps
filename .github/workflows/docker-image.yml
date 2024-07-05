@@ -340,7 +340,7 @@ jobs:
           context: external_plugins/oracle_plugin
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: sowbaranika1302/oracle_plugin:${{ env.TRAPS_REL }}
+          tags: tapis/oracle_plugin:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
 
   custom_install:
