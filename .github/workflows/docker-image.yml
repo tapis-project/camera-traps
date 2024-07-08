@@ -9,9 +9,65 @@ on:
         description: ''
         required: true
         type: string
+      engine:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      pyevents:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      pyevents_38:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      camera_traps_py:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      camera_traps_py_38:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      image_scoring_plugin_py_38:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      image_scoring_plugin_py_nano_38:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      image_generating_plugin:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      power_measuring_plugin:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      oracle_plugin:
+        description: ''
+        required: true
+        type: boolean
+        default: true
+      custom_install:
+        description: ''
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   engine:
+    if: "${{ github.event.inputs.engine }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -44,6 +100,7 @@ jobs:
           build-args: TRAPS_REL=${{ env.TRAPS_REL }}
 
   pyevents:
+    if: "${{ github.event.inputs.pyevents }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -75,6 +132,7 @@ jobs:
           tags: tapis/pyevents
 
   pyevents_38:
+    if: "${{ github.event.inputs.pyevents_38 }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -107,6 +165,7 @@ jobs:
           tags: tapis/pyevents:3.8
 
   camera_traps_py:
+    if: "${{ github.event.inputs.camera_traps_py }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -138,6 +197,7 @@ jobs:
           tags: tapis/camera_traps_py:${{ env.TRAPS_REL }}
 
   camera_traps_py_38:
+    if: "${{ github.event.inputs.camera_traps_py_38 }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -170,6 +230,7 @@ jobs:
           tags: tapis/camera_traps_py_3.8:${{ env.TRAPS_REL }}
 
   image_scoring_plugin_py_38:
+    if: "${{ github.event.inputs.image_scoring_plugin_py_38 }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -209,6 +270,7 @@ jobs:
           file: external_plugins/image_scoring_plugin/Dockerfile-3.8
 
   image_scoring_plugin_py_nano_38:
+    if: "${{ github.event.inputs.image_scoring_plugin_py_nano_38 }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -248,6 +310,7 @@ jobs:
           file: external_plugins/image_scoring_plugin/Dockerfile-3.8-nano
 
   image_generating_plugin:
+    if: "${{ github.event.inputs.image_generating_plugin }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -280,6 +343,7 @@ jobs:
           build-args: REL=${{ env.TRAPS_REL }}
 
   power_measuring_plugin:
+    if: "${{ github.event.inputs.power_measuring_plugin }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -312,6 +376,7 @@ jobs:
           build-args: REL=${{ env.TRAPS_REL }}
 
   oracle_plugin:
+    if: "${{ github.event.inputs.oracle_plugin }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
@@ -344,6 +409,7 @@ jobs:
           build-args: REL=${{ env.TRAPS_REL }}
 
   custom_install:
+    if: "${{ github.event.inputs.custom_install }}"
     runs-on: ubuntu-latest
     environment: main
     steps:
