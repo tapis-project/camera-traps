@@ -50,7 +50,7 @@ services:
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.
       - ./config/image_gen_config_small.json:/input.json
-      - ./config/ground_truth.csv:/ground_truth.csv
+      - ./config/ground_truth_dir/ground_truth.csv:/ground_truth.csv
       - ./oracle_plugin_dir:/output
 
   imageScoringPlugin:

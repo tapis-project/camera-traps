@@ -1,7 +1,8 @@
 import json
 import os
-from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event
+from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event,send_terminate_plugin_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
+from ctevents import PluginTerminateEvent
 import zmq
 import logging
 
@@ -21,8 +22,6 @@ if not logger.handlers:
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
-
 
 
 DEFAULT_BOX_THICKNESS = 4
@@ -86,7 +85,6 @@ def main():
         detector = load_detector(model_file="md_v5a.0.0.pt")
 
     while not done:
-        
         # get the next message
         logger.debug(f"waiting on message: {total_messages + 1}")
         m = get_next_msg(socket)
@@ -97,6 +95,9 @@ def main():
         # TODO: we could check if e is not an image_received event, skip it....
         
         # - find the image on the file system, (the image path)
+        if isinstance(e, PluginTerminateEvent):
+            logger.info(f"Received Terminate event {e.TargetPluginName} and shutting down image scoring plugin")
+            send_terminate_plugin_fb_event(socket,"ext_image_score_plugin","d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a")
         image_uuid = e.ImageUuid()
         if type(image_uuid) == bytes:
            image_uuid = image_uuid.decode('utf-8')
@@ -153,7 +154,7 @@ def main():
                 elif r['category'] == "8":
                     label = "eastern cottontail"
                 elif r['category'] == "9":
-                    label = "empty"
+                    label = "human"
                 elif r['category'] == "10":
                     label = "vehicle"
                 elif r['category'] == "11":
@@ -192,8 +193,8 @@ def main():
                     label = "vehicle"
                 elif r['category'] == '4':
                     label = "empty"
-
-        scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+            #If an image contains multiple detection, we need to append muplitple label and probability for each image.
+            scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 
         send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        
