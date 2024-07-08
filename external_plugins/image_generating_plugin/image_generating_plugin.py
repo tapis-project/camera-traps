@@ -53,6 +53,7 @@ def load_ground_truth():
     Returns:
         dict: A dictionary where the keys are image names and the values are the corresponding ground truth data.
     """
+    logger.info("Retrieving the ground truth file in image generating plugin")
     config_dir = os.environ.get("CAMERA_TRAPS_DIR", '')
     ground_truth_file = os.path.join(config_dir, 'ground_truth.csv')
     ground_truth_data = {}
@@ -79,6 +80,7 @@ def oracle_monitoring_info(track_image_count, uuid, uuid_image):
         uuid_image (str): The original name of the image file.
         ground_truth(global dictionary): Contains ground truth information for the object in the image.
     """
+    logger.info("Creating mapping file in image generating plugin")
     OUTPUT_DIR = os.environ.get('TRAPS_MAPPING_OUTPUT_PATH', "/output/")
     file_name = "image_mapping.json"
     output_file = os.path.join(OUTPUT_DIR, file_name)
@@ -96,7 +98,8 @@ def oracle_monitoring_info(track_image_count, uuid, uuid_image):
                 mapping = json.load(file)
             except json.JSONDecodeError as e:
                 logger.error("Failed to decode JSON, exception:", e)
-    mapping.setdefault(uuid,[]).append(new_data)
+   
+    mapping[uuid] = new_data
     with open(output_file, 'w') as file:
         json.dump(mapping, file, indent=2)
 
@@ -244,6 +247,7 @@ def extract_from_zipfile(url, socket):
     if response.status_code == 200:
         with zipfile.ZipFile(BytesIO(response.content), 'r') as zip_ref:
             file_list = zip_ref.namelist()
+            image_count = 0
             for file_name in file_list:
                 if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
                     with zip_ref.open(file_name) as image_file:
@@ -251,8 +255,10 @@ def extract_from_zipfile(url, socket):
                         binary_img = image_file.read()
                         img = Image.open(BytesIO(binary_img))
                         img_format = img.format
+                        image_count+=1
                         logger.info(f"sending new image with the following data: image:{file_name}; uuid:{uuid_image}; format: {img_format}; type(format): {type(img_format)}")
                         try:
+                            oracle_monitoring_info(image_count,uuid_image,file_name)
                             ctevents.send_new_image_fb_event(socket, uuid_image, img_format, binary_img)
                         except Exception as e:
                             logger.error(f"got exception {e}")
@@ -329,6 +335,7 @@ def send_images(data, socket):
         track_image_count+=1
     print("Bottom of send_images; exiting...")
     send_terminating_plugin_fb_event(socket,"ext_image_gen_plugin","d3266646-41ec-11ed-a96f-5391348bab46")
+    print("Inititated terminating plugin from image generating plugin")
     logger.debug(f"list_of_files: {list_of_files}")
 
 

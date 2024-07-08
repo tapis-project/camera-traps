@@ -1,5 +1,5 @@
 {
-    "path": "https://lilablobssc.blob.core.windows.net/snapshot-safari/KGA/KGA_S1.lila.zip",
+    "path": "https://storage.googleapis.com/public-datasets-lila/ena24/ena24.zip",
     "timestamp": "600",
     "callingFunction": "nextImage",
     "burstQuantity": "5"
