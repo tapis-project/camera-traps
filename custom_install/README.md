@@ -329,6 +329,6 @@ This is a complete list of all possible configurations.
   * Example: false
 
 * `oracle_plugin_image`: The image to use for the oracle 
-  plugin, not including the tag. (Default: sowbaranika1302/oracle_plugin)
+  plugin, not including the tag. (Default: tapis/oracle_plugin)
 
-  * Example: sowbaranika1302/oracle_plugin
+  * Example: tapis/oracle_plugin
