@@ -145,7 +145,7 @@ def main():
             logger.info("Inititating Shutting down all the plugins")
             send_terminate_plugin_fb_event(socket,"*","6e153711-9823-4ee6-b608-58e2e801db51")
             exit()
-            #Leaving the uuid empty throws an error[Uuid: invalid character]
+            #Leaving the uuid empty/* throws an error[Unable to parse string 'target_plugin_uuid' into a Uuid: invalid character: expected an optional prefix of `urn:uuid:`]
             #send_terminating_plugin_fb_event(socket,"ext_oracle_monitor_plugin","6e153711-9823-4ee6-b608-58e2e801db51")
         else:
             logger.info(event)

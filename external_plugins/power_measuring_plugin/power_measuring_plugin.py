@@ -480,7 +480,7 @@ def main():
             logger.info(f"Message from event socket was a MonitorPowerStop event; shutting down...")
             stop = True
         elif isinstance(event, PluginTerminateEvent):
-            if event.PluginUuid() == '*' or event.PluginName() == '*' or event.PluginName() == 'ext_power_monitor_plugin':
+            if event.TargetPluginUuid() == '6e153711-9823-4ee6-b608-58e2e801db51' or event.TargetPluginName() == '*' or event.TargetPluginName() == 'ext_power_monitor_plugin':
                 logger.info(f"Message from event socket was a PluginTerminateEvent event; shutting down...")
                 stop = True                
             
