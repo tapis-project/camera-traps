@@ -36,7 +36,10 @@ services:
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
       - MONITOR_POWER=true
-      - TRAPS_MAPPING_OUTPUT_PATH=/output
+      - ORACLE_IMAGE_MAPPING_OUTPUT=/output
+      - INPUT_IMAGE_PATH=/example_images
+      - GROUND_TRUTH_FILE=/ground_truth_dir/ground_truth.csv
+      - MODEL_TYPE=0
     volumes:
       # mount the traps.toml in the current working directory.
       - ./config/traps.toml:/traps.toml:ro
@@ -49,8 +52,7 @@ services:
       # The following is optional but can be used to mount a different configuration file
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.
-      - ./config/image_gen_config_small.json:/input.json
-      - ./config/ground_truth_dir/ground_truth.csv:/ground_truth.csv
+      - ./config/ground_truth_dir:/ground_truth_dir
       - ./oracle_plugin_dir:/output
 
   imageScoringPlugin:
@@ -157,7 +159,7 @@ services:
 
   oraclePlugin:
     container_name: oracle_monitor
-    image: sowbaranika1302/oracle_plugin:0.3.3
+    image: tapis/oracle_plugin:0.3.3
     environment:
       - ORACLE_PLUGIN_PORT=6011
       - TRAPS_ORACLE_OUTPUT_PATH=/output

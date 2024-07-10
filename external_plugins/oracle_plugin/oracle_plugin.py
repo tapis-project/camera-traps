@@ -24,13 +24,15 @@ if not logger.handlers:
     logger.addHandler(handler)
 total_images_processed = 0
 total_images_generated = 0
-image_decision = False
+updated_last_decision_to_file = False
 received_terminating_signal = False
 uuids_with_errors = []
 PORT = int(os.environ.get('ORACLE_PLUGIN_PORT', 6011))
 OUTPUT_DIR = os.environ.get('TRAPS_ORACLE_OUTPUT_PATH', "/output/")
-file_name = "image_mapping.json"
+file_name = "uuid_image_mapping.json"
 final_file = "image_mapping_final.json"
+output_file = os.path.join(OUTPUT_DIR, file_name)
+output_file2 = os.path.join(OUTPUT_DIR, final_file)
 SOCKET_TIMEOUT = 2000
 
 def get_socket():
@@ -38,8 +40,7 @@ def get_socket():
     return get_plugin_socket(context, PORT)  
 
 def update_json(uuid,updated_data):
-    output_file = os.path.join(OUTPUT_DIR, file_name)
-    output_file2 = os.path.join(OUTPUT_DIR, final_file)
+    global updated_last_decision_to_file, total_images_processed, total_images_generated
     existing_data = {}
     try:
         with open(output_file2, 'r') as file2:
@@ -56,7 +57,6 @@ def update_json(uuid,updated_data):
             with open(output_file, 'r') as file:
                 try:
                     mapping = json.load(file)
-                    global total_images_generated
                     total_images_generated = max(total_images_generated, mapping[uuid]['image_count'])
                     # total_images_generated = max(total_images_generated, mapping.values()[-1].get('image_count',total_images_generated))
                     #Enables the recovery of UUID details from the image mapping file in case of a previous file opening failure.
@@ -68,8 +68,6 @@ def update_json(uuid,updated_data):
                     logger.error(f"JSON loading Error for {output_file}")
                     uuids_with_errors.append(uuid)
                     mapping = {}
-                
-
                 existing_data[uuid] = mapping.get(uuid,{"UUID": uuid})
         except FileNotFoundError:
             logger.error(f"File {output_file} not found")
@@ -77,11 +75,13 @@ def update_json(uuid,updated_data):
         # file.seek(0)
         # json.dump(mapping,file)
         # file.truncate()  
-    
     for key,value in updated_data.items():
         existing_data[uuid][key] = value         
     with open(output_file2, "w") as file2: 
+        total_images_processed = existing_data[uuid].get('image_count',total_images_processed)
+        updated_last_decision_to_file = existing_data[uuid].get('image_decision',False)
         json.dump(existing_data, file2, indent=2)
+
 
 def main():
     done = False
@@ -140,8 +140,8 @@ def main():
                 logger.info("Received Terminating signal from image generating plugin")
                 global received_terminating_signal
                 received_terminating_signal = True
-
-        if received_terminating_signal and image_decision and total_images_generated == total_images_processed:
+       
+        if received_terminating_signal and updated_last_decision_to_file and total_images_generated == total_images_processed:
             logger.info("Inititating Shutting down all the plugins")
             send_terminate_plugin_fb_event(socket,"*","6e153711-9823-4ee6-b608-58e2e801db51")
             exit()
