@@ -41,6 +41,6 @@ ADD entrypoint.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
 
 RUN chmod +x /entrypoint.sh
-RUN chmod -R 0777 /* || true 
+RUN chmod -R 0777 /example_images /entrypoint.sh /image_scoring_plugin.py /image_scoring_plugin.py || true 
 
 ENTRYPOINT ["./entrypoint.sh"]

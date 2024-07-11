@@ -29,6 +29,6 @@ RUN pip install requests
 ADD input_example.json /input.json
 ADD image_generating_plugin.py /image_generating_plugin.py
 
-RUN chmod -R 0777 /* || true 
+RUN chmod -R 0777 /image_generating_plugin.py /input.json  || true 
 
 ENTRYPOINT [ "python", "-u", "/image_generating_plugin.py" ]
