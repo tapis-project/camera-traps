@@ -154,6 +154,21 @@ users a pre-bundled set of example image. See below:
   * Example: N/A
  
 
+**Integrating with CKN**
+
+* `deploy_ckn`: Whether to deploy the CKN capture daemon; required for integration with CKN. Default is false.
+
+  * Example: true
+
+* `ckn_kafka_broker_address`: The remote address of the CKN Kafka broker. 
+  
+  * Example: `129.114.35.150`
+
+* `ckn_kafka_broker_port`: The remote port of the CKN Kafka broker.
+  
+  * Example: 9092
+
+
 All Configurations 
 ------------------
 

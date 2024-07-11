@@ -45,3 +45,8 @@ power_monitor_mount_docker_socket: false
 oracle_plugin_image: tapis/oracle_plugin
 oracle_plugin_output_dir: oracle_output_dir
 device_id: AAAAAAAAAAAAAAAAAAAA
+
+# CKN Daemon -- for Monitoring Plane Integration
+deploy_ckn: false
+ckn_kafka_broker_address: 129.114.35.150
+ckn_kafka_broker_port: 9092

@@ -228,3 +228,25 @@ services:
     volumes:
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+
+{% if deploy_ckn %}
+  cknDaemon:
+    container_name: ckn_daemon
+    image: iud2i/ckn-daemon-cameratraps:v0.0.4
+    environment:
+      - ORACLE_CSV_PATH=/logs/image_mapping_final.json
+      - CKN_LOG_FILE=/logs/ckn.log
+      - CKN_KAFKA_BROKER={{ ckn_kafka_broker_address }}:{{ ckn_kafka_broker_port }}
+      - CKN_KAFKA_TOPIC=oracle-events
+      - CAMERA_TRAPS_DEVICE_ID={{ device_id }}
+    networks:
+      - cameratraps
+
+    pid: host
+
+    depends_on:
+      - oraclePlugin
+
+    volumes:
+      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/logs
+{% endif %}
