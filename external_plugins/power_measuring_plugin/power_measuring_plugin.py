@@ -1,6 +1,5 @@
 from ctevents.ctevents import socket_message_to_typed_event, send_monitor_power_start_fb_event
-from ctevents import MonitorPowerStartEvent, MonitorPowerStopEvent
-from ctevents.gen_events import PluginTerminateEvent
+from ctevents import MonitorPowerStartEvent, MonitorPowerStopEvent, PluginTerminateEvent
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from generate_power_summary import generate_power_summary
 
@@ -15,6 +14,7 @@ import datetime
 import psutil
 import threading
 import subprocess
+import sys
 from copy import deepcopy
 
 
@@ -58,7 +58,7 @@ GPU_DEVICE = 3
 # amount of time, the power measuring plugin will exit. Since the power measuring plugin receives 
 # all of its messages at the very beginning, this is effectively a max total runtime. 
 # Set to 0 for unlimited time.
-SOCKET_TIMEOUT = 2000
+SOCKET_TIMEOUT = 10000
 
 # The total number of PowerMonitorStart messages this plugin expects to receive over the life of 
 # a single execution. Once it receives this number, it will wait SOCKET_TIMEOUT for additional messages 
@@ -167,12 +167,12 @@ def run_power_measure(request_info, backend):
     if (measure_cpu):
         logger.debug(f"Starting a new thread to measure CPU for the following PIDs: {pids}; duration: {duration}; backend: {backend}")
         cpu_thread = threading.Thread(
-            target=run_cpu_measure, args=(pids, duration, backend))
+            target=run_cpu_measure, args=(pids, duration, backend), daemon=True)
         cpu_thread.start()
     if (measure_gpu):
         logger.debug(f"Starting a new thread to measure GPU for the following PIDs: {pids}")
         gpu_thread = threading.Thread(
-            target=run_gpu_measure, args=(pids, duration, backend))
+            target=run_gpu_measure, args=(pids, duration, backend), daemon=True)
         gpu_thread.start()
 
     # Block on the threads completing 
@@ -197,7 +197,7 @@ def watcher(backend):
             task = request_queue.get()
 
             # start a thread to monitor the power use
-            t = threading.Thread(target=run_power_measure, args=(task, backend))
+            t = threading.Thread(target=run_power_measure, args=(task, backend), daemon=True)
             t.start()
 
 
@@ -404,7 +404,7 @@ def main():
 
     # start the watcher in a new thread; the watcher is responsible for reading "tasks" from the internal
     # queue and starting processes that monitor power for each PID.
-    watcher_thread = threading.Thread(target=watcher, args=(backend, ))
+    watcher_thread = threading.Thread(target=watcher, args=(backend, ), daemon=True)
     watcher_thread.start()
 
     # instantiate the event socket
@@ -441,9 +441,6 @@ def main():
             # we got a resource temporarily unavailable error; sleep for a second and try again
             if isinstance(e, zmq.error.Again):
                 logger.debug(f"Got a zmq.error.Again; i.e., waited {SOCKET_TIMEOUT} ms without getting a message")
-                if nbr_monitor_start_events >= TOTAL_EXPECTED_POWER_MONITOR_START_MSGS:
-                    logger.info(f"Already received {TOTAL_EXPECTED_POWER_MONITOR_START_MSGS} monitor start events; breaking out of loop.")
-                    stop = True
                 continue
             # we timed out waiting for a message; just check the max time and continue 
             logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
@@ -451,8 +448,8 @@ def main():
             logger.info("Power measuring plugin stopping due to timeout limit...")
             continue
         
-        logger.info("Got a message from the event socket")
         event = socket_message_to_typed_event(message)
+        logger.info(f"Got a message from the event socket of type: {type(event)}")
         
         # process a new MonitorPowerStart event ---- 
         if isinstance(event, MonitorPowerStartEvent):
@@ -480,18 +477,17 @@ def main():
             logger.info(f"Message from event socket was a MonitorPowerStop event; shutting down...")
             stop = True
         elif isinstance(event, PluginTerminateEvent):
-            if event.TargetPluginUuid() == '6e153711-9823-4ee6-b608-58e2e801db51' or event.TargetPluginName() == '*' or event.TargetPluginName() == 'ext_power_monitor_plugin':
-                logger.info(f"Message from event socket was a PluginTerminateEvent event; shutting down...")
+            logger.info("message from event socket was a PluginTerminateEvent")
+            logger.info(f"TargetPluginUuid: {event.TargetPluginUuid()}; TargetPluginName: {event.TargetPluginName()}")
+            if event.TargetPluginUuid() == b'6e153711-9823-4ee6-b608-58e2e801db51' or event.TargetPluginName() == b'*' or event.TargetPluginName() == b'ext_power_monitor_plugin':
+                logger.info(f"Message from event socket was a PluginTerminateEvent for power monitoring plugin; shutting down...")
                 stop = True                
             
         # Write the metadata file
         metadata["last_update_time"] = str(datetime.datetime.now()).replace(" ", "")
         with open(os.path.join(LOG_DIR, f"metadata_{start_time_str}.json"), 'w') as json_file:
                     json.dump(metadata, json_file)
-    
-    # First, sleep to let the other plugin programs complete
-    time.sleep(MAX_RUN_TIME)
-    
+        
     # Finalize the log files by cleaning up characters 
     if backend == "powerjoular":
         convert_powerjoular_csv_to_json(all_pids, cpu_file_path, gpu_file_path)
@@ -502,7 +498,7 @@ def main():
     logger.info("Power measurement plugin preparing to exit; generating summary report...")
     generate_power_summary()
     logger.info("Power summary generating, plugin now exiting..")
-    exit()
+    sys.exit()
 
 
 
