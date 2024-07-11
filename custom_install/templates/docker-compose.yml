@@ -49,6 +49,26 @@ services:
       {% if image_generating_monitor_power %}
       - MONITOR_POWER=true
       {% endif %}
+      {% if use_image_directory or use_bundled_example_images %}
+      # when using a directory of images (whether is the bundled examples or a custom dir), the images are 
+      # always mounted into the container at /example_images
+      - INPUT_IMAGE_PATH=/example_images
+      {% elif use_image_url %}
+      - INPUT_IMAGE_PATH={{ source_image_url }}
+      {% endif %}
+      {% if use_custom_ground_truth_file_url %}
+      - USE_CUSTOM_GROUND_TRUTH_FILE_URL=true
+      - CUSTOM_GROUND_TRUTH_URL={{ custom_ground_truth_file_url }}
+      {% endif %}
+      {% if use_model_url %}
+      # URL to a compatible ML model .pt file. Will be downloaded at the start of the scoring pluging execution.  
+      - MODEL_URL={{ model_url }}
+      {% endif %}
+      {% if use_custom_model_type %}
+      # Specify one of a predefined set of ML models to use for scoring; 
+      # If specified, the model file will be downloaded at the start of the script corresponding to the type passed. 
+      - MODEL_TYPE={{ model_type }}
+      {% endif %}
       # directory in the container where outputs are written; shouldn't need to change 
       - TRAPS_MAPPING_OUTPUT_PATH=/output
     volumes:
@@ -66,10 +86,7 @@ services:
 
       # NOTE: this is NOT the shared images directory!!
       - {{ source_image_dir }}:/example_images:ro
-      {% endif %}
-      # JSON configuration file for the image generating plugin
-      - {{ host_config_dir }}/image_gen_config.json:/input.json
-      
+      {% endif %}      
       # mount the directory shared with the oracle plugin 
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
 
@@ -197,6 +214,7 @@ services:
     environment:
       - ORACLE_PLUGIN_PORT=6011
       - TRAPS_ORACLE_OUTPUT_PATH=/output
+      - DEVICE_ID={{ device_id }}
     networks:
       - cameratraps
     {% if use_host_pid %}

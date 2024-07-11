@@ -12,6 +12,8 @@ use_image_directory: false
 source_image_dir: 
 use_image_url: false 
 source_image_url: 
+use_custom_ground_truth_file_url: false 
+custom_ground_truth_file_url: 
 use_gpu_in_scoring: false 
 images_output_dir: images_output_dir 
 image_generating_log_level: DEBUG 
@@ -42,3 +44,4 @@ power_monitor_mount_docker_socket: false
 # Oracle Plugin 
 oracle_plugin_image: tapis/oracle_plugin
 oracle_plugin_output_dir: oracle_output_dir
+device_id: AAAAAAAAAAAAAAAAAAAA

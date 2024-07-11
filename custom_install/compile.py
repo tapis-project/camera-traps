@@ -136,6 +136,7 @@ def generate_additional_directories(vars, full_install_dir):
             print("Exiting...")
             sys.exit(1)
         vars["source_image_dir"] = "example_images"
+        print(f"Using example_images for source_image_dir")
     
     elif vars["use_image_directory"]:
         if not vars.get("source_image_dir"):
@@ -179,8 +180,9 @@ def main():
     default_data = get_defaults()
     input_data, full_install_dir = get_inputs()
     vars = get_vars(input_data, default_data)
-    compile_templates(vars, full_install_dir)
     generate_additional_directories(vars, full_install_dir)
+    compile_templates(vars, full_install_dir)
+    
 
 
 if __name__ == '__main__':

@@ -91,6 +91,10 @@ Important Optional Configurations
 
   * Example: 0.4
 
+* `device_id`: The id of the device where the camera traps code will be installed. For example, 
+  this could be the id of a ChameleonCloud node or a TACC IoT device. By default, the string
+  `AAAAAAAAAAAAAAAAAAAA` is assigned for cases where the device id will not be needed. 
+
 
 **Source Images**
 
@@ -123,6 +127,12 @@ users a pre-bundled set of example image. See below:
 
   * Example: `https://lilablobssc.blob.core.windows.net/snapshot-safari/KGA/KGA_S1.lila.zip`
 
+*  `use_custom_ground_truth_file_url`: Whether to use a custom ground truth file with the dataset. 
+  This only needs to be set when using a non-standard dataset. Default is false. When setting to true,
+  must also set the `custom_ground_truth_file_url` variable.
+
+* `custom_ground_truth_file_url`: URL to a custom ground truth file to download. This variable is only
+  used if `use_custom_ground_truth_file_url` is set to true. 
 
 **Specifying the Model**
 
