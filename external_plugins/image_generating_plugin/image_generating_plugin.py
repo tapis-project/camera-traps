@@ -174,6 +174,7 @@ def main():
     ground_truth = load_ground_truth()
     monitor_generating_power()
     process_image(input_image_path)
+    send_quit_command(socket)
 
 if __name__ == '__main__':
     logger.info("Image generating plugin starting...")

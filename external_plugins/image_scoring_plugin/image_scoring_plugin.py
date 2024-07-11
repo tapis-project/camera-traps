@@ -99,6 +99,7 @@ def main():
         if isinstance(e, PluginTerminateEvent):
             logger.info(f"Received Terminate event * and shutting down image scoring plugin")
             send_terminate_plugin_fb_event(socket,"ext_image_score_plugin","d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a")
+            send_quit_command(socket)
             sys.exit()
         if not isinstance(e, ImageReceivedEvent):
             logger.error(f"Got an unexpected event of type {type(e)}; message was: {e}; ignoring message.")
@@ -206,15 +207,6 @@ def main():
         logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        
 
 
-# TODO -- remove the commented code below? -----
-# f = open('/example_images/detections.json')
-# data = json.load(f)
-# for i in data['images'] :
-#   for j in i['detections']:
-#     if(j['category']=="1" and i['max_detection_conf']==j['conf']):
-#       print(i["file"],j['conf'])
-# f.close()
-# ---------------
 
 if __name__ == "__main__":
    main()

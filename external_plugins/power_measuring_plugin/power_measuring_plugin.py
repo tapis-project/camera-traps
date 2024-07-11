@@ -498,6 +498,7 @@ def main():
     logger.info("Power measurement plugin preparing to exit; generating summary report...")
     generate_power_summary()
     logger.info("Power summary generating, plugin now exiting..")
+    send_quit_command(socket)
     sys.exit()
 
 
