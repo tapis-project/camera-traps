@@ -2,7 +2,8 @@ import json
 import os
 from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event,send_terminate_plugin_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
-from ctevents import PluginTerminateEvent
+from ctevents import PluginTerminateEvent, ImageReceivedEvent
+import sys
 import zmq
 import logging
 
@@ -98,7 +99,10 @@ def main():
         if isinstance(e, PluginTerminateEvent):
             logger.info(f"Received Terminate event * and shutting down image scoring plugin")
             send_terminate_plugin_fb_event(socket,"ext_image_score_plugin","d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a")
-            exit()
+            sys.exit()
+        if not isinstance(e, ImageReceivedEvent):
+            logger.error(f"Got an unexpected event of type {type(e)}; message was: {e}; ignoring message.")
+            continue
         image_uuid = e.ImageUuid()
         if type(image_uuid) == bytes:
            image_uuid = image_uuid.decode('utf-8')
