@@ -435,7 +435,8 @@ def main():
     while not stop:
         socket = get_socket()
         try:
-            message = get_next_msg(socket, timeout=SOCKET_TIMEOUT)
+            # message = get_next_msg(socket, timeout=SOCKET_TIMEOUT)
+            message = get_next_msg(socket)
             # message = get_next_msg(socket)
         except Exception as e:
             # we got a resource temporarily unavailable error; sleep for a second and try again
