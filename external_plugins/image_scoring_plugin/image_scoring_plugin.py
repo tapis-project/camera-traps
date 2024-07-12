@@ -98,7 +98,6 @@ def main():
         # - find the image on the file system, (the image path)
         if isinstance(e, PluginTerminateEvent):
             logger.info(f"Received Terminate event * and shutting down image scoring plugin")
-            send_terminate_plugin_fb_event(socket,"ext_image_score_plugin","d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a")
             send_quit_command(socket)
             sys.exit()
         if not isinstance(e, ImageReceivedEvent):
