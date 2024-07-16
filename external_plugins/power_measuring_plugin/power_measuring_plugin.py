@@ -70,6 +70,8 @@ TOTAL_EXPECTED_POWER_MONITOR_START_MSGS = 3
 # to allow for the other plugins to complete their executions before generating the summary. 
 MAX_RUN_TIME = 25
 
+# task queue shared between parent process and child threads; for scheduling threads that will do the
+# actual work of monitoring different PIDs using a given backend
 request_queue = queue.Queue()
 
 
@@ -184,6 +186,57 @@ def run_power_measure(request_info, backend):
     logger.info(f"Measurement threads have completed for the following PIDs: {pids}")
 
 
+def run_system_monitor():
+    """
+    A function to monitor the entire system using psutil; reports CPU, MEM and DISK usage for the 
+    entire system.
+    """
+    log_dir = os.environ['TRAPS_POWER_LOG_PATH']
+
+    # Write the header for the system_measurements.csv 
+    with open(os.path.join(log_dir, "system_measurements.csv"), 'a') as f:
+        logger.debug(f"Appending to the system_measurements.csv")
+        csv_writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+        result = ["readable_time", "cpu_percent", "mem_total", "mem_avail", "mem_percent_used", "disk_total", "disk_free", 
+                  "disk_percent"]
+        csv_writer.writerow(result)
+
+    
+    # loop for forever; this function runs in a daemon thread and will thus terminate when the main program exits;
+    while True:
+        # Measure the CPU usage of the entire system, as a percentage of the total number of processors
+        # blocks for the interval time, in seconds, and returns a measure of the total system wide CPU utilization
+        # as a percentage 
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+
+        # Statistical measures of total system memory usage provided as a named tuple, in bytes.
+        memory_usage = psutil.virtual_memory()
+        # total physical memory (exclusive swap)
+        mem_total = memory_usage[0]
+        # memory that can be given instantly to processes without the system going into swap. 
+        mem_avail = memory_usage[1]
+        # percentage usage := (total - available)/total * 100
+        mem_percent = memory_usage[2]
+        # Note from documentation: if you just want to know how much physical memory is left in a cross platform 
+        # fashion simply rely on available and percent fields. 
+
+        # Disk usage statistics about the partition for the given path as a named tuple expressed in bytes, plus the percentage usage
+        disk_usage = psutil.disk_usage('/')
+        # total, used and free space 
+        disk_total = disk_usage[0]
+        disk_used = disk_usage[1]
+        disk_free = disk_usage[2]
+        disk_percent = disk_usage[3]
+        current_time = datetime.datetime.now()
+        readable_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+        result = [readable_time, cpu_percent, mem_total, mem_avail, mem_percent, disk_total, disk_free, disk_percent]
+        with open(os.path.join(log_dir, "system_measurements.csv"), 'a') as f:
+            csv_writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            logger.debug(f"Appending to the system_measurements.csv")
+            csv_writer.writerow(result)
+        # sleep one second between each measurement
+        time.sleep(1)
+
 def watcher(backend):
     """
     The watcher is started in a separate thread from the main program to read the internal queue 
@@ -195,10 +248,19 @@ def watcher(backend):
         if not request_queue.empty():
             # get the next task to do 
             task = request_queue.get()
+            
+            # check if this is the task to monitor disk, cpu and memory for the entire system; in this 
+            # case, the task is simply a string with value "psutil"
+            if type(task) == str:
+                if task == "psutil":
+                    # start thread to monitor system CPU, MEM and disk
+                    t = threading.Thread(target=run_system_monitor, daemon=True)
+                    t.start()
 
-            # start a thread to monitor the power use
-            t = threading.Thread(target=run_power_measure, args=(task, backend), daemon=True)
-            t.start()
+            elif type(task) == tuple:
+                # start a thread to monitor the power use
+                t = threading.Thread(target=run_power_measure, args=(task, backend), daemon=True)
+                t.start()
 
 
 def get_socket():
@@ -406,6 +468,9 @@ def main():
     # queue and starting processes that monitor power for each PID.
     watcher_thread = threading.Thread(target=watcher, args=(backend, ), daemon=True)
     watcher_thread.start()
+
+    # queue the system-side monitor task
+    request_queue.put("psutil")    
 
     # instantiate the event socket
     socket = get_socket()
