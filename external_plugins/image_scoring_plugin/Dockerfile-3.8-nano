@@ -108,6 +108,6 @@ ENV NVIDIA_DRIVER_CAPABILITIES all
 
 
 RUN chmod +x /entrypoint.sh
-RUN chmod -R 0777 /* || true 
+RUN chmod -R 0777 /example_images /load_test_image_scoring.py /ai4eutils /md_v5a.0.0.pt /camera_traps_MD /yolov5 /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py || true 
 
 ENTRYPOINT ["./entrypoint.sh"]
