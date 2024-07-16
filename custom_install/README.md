@@ -168,6 +168,11 @@ users a pre-bundled set of example image. See below:
   
   * Example: 9092
 
+* `experiment_id`: An id to associate all measurements from this execution with. For example, a Tapis Job id.
+  By default, this variable is set to none.
+
+* `user_id`: The user id of the owner of the experiment. By default, this variable is set to none.
+
 
 All Configurations 
 ------------------

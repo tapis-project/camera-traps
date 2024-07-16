@@ -239,6 +239,8 @@ services:
       - CKN_KAFKA_BROKER={{ ckn_kafka_broker_address }}:{{ ckn_kafka_broker_port }}
       - CKN_KAFKA_TOPIC=oracle-events
       - CAMERA_TRAPS_DEVICE_ID={{ device_id }}
+      - EXPERIMENT_ID={{ experiment_id }}
+      - USER_ID={{ user_id }}
     networks:
       - cameratraps
 
