@@ -232,7 +232,7 @@ services:
 {% if deploy_ckn %}
   cknDaemon:
     container_name: ckn_daemon
-    image: iud2i/ckn-daemon-cameratraps:v0.0.6
+    image: iud2i/ckn-daemon-cameratraps:{{ ckn_daemon_tag }}
     environment:
       - ORACLE_CSV_PATH=/logs/image_mapping_final.json
       - CKN_LOG_FILE=/logs/ckn.log
