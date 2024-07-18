@@ -107,7 +107,7 @@ def run_cpu_measure(pids, duration, backend):
     if backend == "jtop":
         import jtop_backend
         jtop_backend.log_dir = LOG_DIR
-        jtop_backend.jtop_measure()
+        jtop_backend.jtop_measure(pids)
     elif backend == "scaphandre":
         import scaphandre_backend
         scaphandre_backend.cpu_measure(pids, "scaph", duration)
