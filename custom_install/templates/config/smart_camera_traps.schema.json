@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "mlEdgeConfigFile",
+  "type": "object",
+  "properties": {
+    "dataSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "type": ["number", "string"]
+          },
+          "description": {
+            "type": "string"
+          },
+          "tarFileUrl": {
+            "type": "string"
+          },
+          "groundTruthLabelFileUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName",
+          "id",
+          "description",
+          "tarFileUrl",
+          "groundTruthLabelFileUrl"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "type": ["number", "string"]
+          },
+          "description": {
+            "type": "string"
+          },
+          "urlToPtFile": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName",
+          "id",
+          "description",
+          "urlToPtFile"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "site": {
+            "type": "string",
+            "enum": ["TACC", "CHAMELEON"]
+          },
+          "type": {
+            "type": "string",
+            "enum": ["x86WoGpu", "x86WGpu", "jetsonNano"]
+          }
+        },
+        "required": ["name", "description", "site", "type"],
+        "additionalProperties": false
+      }
+    },
+    "advancedConfiguration": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "dataSets",
+    "models",
+    "devices"
+  ]
+}
