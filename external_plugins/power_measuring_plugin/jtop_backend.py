@@ -53,7 +53,7 @@ def jtop_measure(pids):
         time.sleep(1)       
 
 
-def read_stats(jetson):
+def read_stats():
     """
     Function to read the instantaneous CPU, GPU and total power consumption using the jtop backend.
     This function returns three values: cpu_consumed, gpu_consumed and tot_consumed.
