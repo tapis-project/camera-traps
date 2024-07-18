@@ -48,7 +48,7 @@ device_id: AAAAAAAAAAAAAAAAAAAA
 
 # CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: false
-ckn_daemon_tag: v0.0.7
+ckn_daemon_tag: v0.0.9
 ckn_kafka_broker_address: 129.114.35.150
 ckn_kafka_broker_port: 9092
 experiment_id: 
