@@ -248,20 +248,27 @@ def watcher(backend):
         if not request_queue.empty():
             # get the next task to do 
             task = request_queue.get()
+            logger.debug(f"watcher got a new task: {task}")
             
             # check if this is the task to monitor disk, cpu and memory for the entire system; in this 
             # case, the task is simply a string with value "psutil"
             if type(task) == str:
                 if task == "psutil":
                     # start thread to monitor system CPU, MEM and disk
+                    logger.debug("watcher starting system monitor thread..")
                     t = threading.Thread(target=run_system_monitor, daemon=True)
                     t.start()
 
-            elif type(task) == tuple:
+            elif type(task) in [list, tuple]:
+                logger.debug(f"watch got a tuple task; starting thread for backend: {backend}")
                 # start a thread to monitor the power use
-                t = threading.Thread(target=run_power_measure, args=(task, backend), daemon=True)
-                t.start()
-
+                try:
+                    t = threading.Thread(target=run_power_measure, args=(task, backend), daemon=True)
+                    t.start()
+                except Exception as e:
+                    logger.error(f"watcher got exception starting backend thread; e: {e}")
+            else:
+                logger.error(f"watch got unrecognized task type; type(task): {type(task)}; task: {task}")
 
 def get_socket():
     """
