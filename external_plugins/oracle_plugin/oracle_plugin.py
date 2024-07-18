@@ -84,6 +84,14 @@ def update_json(uuid,updated_data):
         updated_last_decision_to_file = existing_data[uuid].get('image_decision',False)
         json.dump(existing_data, file2, indent=2)
 
+def add_terminating_function_json(uuid):
+    with open(output_file2, "r") as file2: 
+        existing_data = json.load(file2)
+        existing_data[uuid] = {}
+    with open(output_file2, "w") as file2: 
+        json.dump(existing_data, file2, indent=2)
+
+
 
 def main():
     done = False
@@ -145,6 +153,7 @@ def main():
        
         if received_terminating_signal and updated_last_decision_to_file and total_images_generated == total_images_processed:
             logger.info("Inititating Shutting down all the plugins")
+            add_terminating_function_json("6e153711-9823-4ee6-b608-58e2e801db51")
             send_terminate_plugin_fb_event(socket,"*","6e153711-9823-4ee6-b608-58e2e801db51")
             logger.info("Sent PluginTerminate * event")
             time.sleep(1)
