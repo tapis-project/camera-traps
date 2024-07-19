@@ -20,6 +20,7 @@ def jtop_measure(pids):
     function uses the jetson Python SDK (jetson-stats on PyPI) to measure both CPU and GPU 
     power consumed. 
     """
+    logger.info(f"jtop_measure starting for pids: {pids}")
     cpu_log_file = os.path.join(log_dir, "cpu.csv")
     gpu_log_file = os.path.join(log_dir, "gpu.csv")
     tot_log_file = os.path.join(log_dir, "tot_power_jtop.csv")
