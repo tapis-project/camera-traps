@@ -73,7 +73,7 @@ def read_stats():
             
             # CPU ----
             try: 
-                cpu = data["POM_5V_CPU"]["power"]
+                cpu = data["rail"]["POM_5V_CPU"]["power"]
                 # convert milliwatt to watt
                 cpu = float(cpu) / 1000
             except Exception as e:
@@ -81,7 +81,7 @@ def read_stats():
 
             # GPU ----
             try: 
-                gpu = data["POM_5V_GPU"]["power"]
+                gpu = data["rail"]["POM_5V_GPU"]["power"]
                 # convert milliwatt to watt
                 gpu = float(gpu) / 1000
             except Exception as e:
