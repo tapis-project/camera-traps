@@ -196,6 +196,10 @@ services:
       {% if power_monitor_mount_docker_socket %} 
       # mount the docker socket for starting powerjoular containers
       - /var/run/docker.sock:/var/run/docker.sock
+      {% endif %}      
+      {% if power_monitor_backend == "jtop" %}
+      # the jtop backend requires the jtop socket
+      - /run/jtop.sock:/run/jtop.sock
       {% endif %}
       # mount the /etc files from host to make sure user exists and sudo works properly
       {% if run_containers_as_user %}
