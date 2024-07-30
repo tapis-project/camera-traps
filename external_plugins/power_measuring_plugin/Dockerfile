@@ -1,9 +1,9 @@
 ARG REL=use-build-arg
-ARG USER=root
 FROM tapis/camera_traps_py:$REL
 
 # FROM tapis/camera_traps_py_3.8
 
+ARG USER=root
 RUN apt update && apt install -y sudo 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN chmod +x $HOME/.cargo/env
