@@ -54,7 +54,7 @@ COPY --from=cuda ./usr/local/cuda/lib64/stubs ./usr/local/cuda-$CUDA/targets/aar
 COPY --from=cuda ./usr/local/cuda/lib64/libcudadevrt.a ./usr/local/cuda-$CUDA/targets/aarch64-linux/lib/
 COPY --from=cuda ./usr/local/cuda/lib64/libcudart_static.a ./usr/local/cuda-$CUDA/targets/aarch64-linux/lib/
 
-RUN wget -O /md_v5a.0.0.pt https://github.com/sowbaranika1302/Megadetector-model/raw/main/mdv5.pt
+RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 
 RUN pip install --upgrade pip
 ADD requirements-nano.txt /requirements.txt
