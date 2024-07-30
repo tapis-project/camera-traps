@@ -1,4 +1,5 @@
 ARG REL=use-build-arg
+ARG USER=root
 FROM tapis/camera_traps_py:$REL
 
 # FROM tapis/camera_traps_py_3.8
