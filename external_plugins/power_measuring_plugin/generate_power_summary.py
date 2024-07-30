@@ -35,27 +35,33 @@ def generate_power_summary():
         elif tool_type == "gpu":
             gpu_file_path = tool["measurement_log_path"]
     
-    # open cpu file
-    try:
-        with open(cpu_file_path, 'r') as file:
-            cpu_log = json.load(file)
-    except FileNotFoundError:
-        print(f"could not find cpu.json at path: {cpu_file_path}.")
-        exit()  
+    # parse each of the CPU and GPU files in the same way
+    paths = [cpu_file_path, gpu_file_path]
+    for p in paths: 
+        try:
+            with open(p, 'r') as f:
+                log_data = json.load(f)
+        except FileNotFoundError:
+            print(f"could not find json file at path: {p}.")
+            exit()  
 
-    # validate 
-    validate_metadata_schema(metadata)
-    validate_log_schema(cpu_log)
+        # validate 
+        validate_metadata_schema(metadata)
+        validate_log_schema(log_data)
 
-    # initialize summary list
-    plugin_summary, pid_summary = summary_init(metadata)
-    summary = {"plugin power summary report": plugin_summary, "pid power summary report": pid_summary}
+        # Only initialize summary list the first time
+        if p == cpu_file_path:
+            plugin_summary, pid_summary = summary_init(metadata)
+            summary = {"plugin power summary report": plugin_summary, "pid power summary report": pid_summary}
 
-    # start and end time
-    monitor_times(cpu_log, pid_summary)
+        # start and end time
+        monitor_times(log_data, pid_summary)
 
-    # sum power consumption
-    sum_power_consumption(cpu_log, pid_summary, plugin_summary, 'cpu_power_consumption')
+        # sum power consumption
+        if p == cpu_file_path:
+            sum_power_consumption(log_data, pid_summary, plugin_summary, 'cpu_power_consumption')
+        else:
+            sum_power_consumption(log_data, pid_summary, plugin_summary, 'gpu_power_consumption')
  
     # write to json file
     with open(os.path.join(LOG_DIR, "power_summary_report.json"), "w") as outfile: 
@@ -76,7 +82,7 @@ def sum_power_consumption(log, pid_summary, plugin_summary, device):
                 if int(j[1]) == pid_report['pid']:
                     pid_report[device] += float(j[0])
                     num_measurements += 1 
-        # take an every of the watts
+        # take an average of the watts
         if num_measurements > 0:
             pid_report[device] = pid_report[device] / float(num_measurements)
 
@@ -87,7 +93,7 @@ def sum_power_consumption(log, pid_summary, plugin_summary, device):
             if plugin_report["plugin"] == pid_report['plugin_name']:
                 plugin_report[device] += pid_report[device]
                 num_measurements += 1 
-        # take an every of the watts
+        # take an average of the watts
         if num_measurements > 0:
             pid_report[device] = pid_report[device] / float(num_measurements)
 
