@@ -201,8 +201,8 @@ def main():
                     label = "empty"
             #If an image contains multiple detection, we need to append muplitple label and probability for each image.
             scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
-            logger.info(f"Sending image scored event with the following scores: {scores}") 
-            send_image_scored_fb_event(socket, image_uuid, image_format, scores)
+        logger.info(f"Sending image scored event with the following scores: {scores}") 
+        send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        
 
 
