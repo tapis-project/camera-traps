@@ -33,7 +33,7 @@ DETECTIONS = (os.getenv('DETECTIONS') == 'true')
 # None means no resizing.
 IMAGE_SIZE = None
 model_variant = os.environ.get('MODEL_TYPE', '0')
-from camera_traps_MD.run_detector import load_and_run_detector
+from camera_traps.run_detector import load_and_run_detector
 from run_detector_multi import load_detector, run_detector
 
 

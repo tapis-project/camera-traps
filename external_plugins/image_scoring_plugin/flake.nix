@@ -44,19 +44,19 @@
           '';
         };
 
-        # cameratrapsMD repo ----
-        cameraTrapsMD = myPython.pkgs.buildPythonPackage {
-          name = "camera_traps_MD";
+        # cameratraps repo ----
+        cameraTraps = myPython.pkgs.buildPythonPackage {
+          name = "camera_traps";
           src = pkgs.fetchFromGitHub {
-            owner = "sowbaranika1302";
-            repo = "camera_traps_MD";
+            owner = "ICICLE-ai";
+            repo = "camera_traps";
             rev = "28f91e01b2afadde23a0e653a4ab9d6879a976c9";
             hash = "sha256-VBwprg1qvxtWBMOZpmJk6qqUhXUvmnVNqEvgoES4J5k=";
           };
           format = "other";
           installPhase = ''
-            mkdir -p $out/lib/python3.8/site-packages/camera_traps_MD
-            cp -r . $out/lib/python3.8/site-packages/camera_traps_MD/
+            mkdir -p $out/lib/python3.8/site-packages/camera_traps
+            cp -r . $out/lib/python3.8/site-packages/camera_traps/
           '';
         };
 
@@ -147,8 +147,8 @@
               --set IMAGES_DIR_PATH ${exampleImages} \
               --set OUTPUT_DIR_PATH /tmp \
               --set PYTHONPATH \
-              "${cameraTrapsMD}/lib/python3.8/site-packages:\
-              ${cameraTrapsMD}/lib/python3.8/site-packages/camera_traps_MD:\
+              "${cameraTraps}/lib/python3.8/site-packages:\
+              ${cameraTraps}/lib/python3.8/site-packages/camera_traps:\
               ${ai4eutils}/lib/python3.8/site-packages/ai4eutils:\
               ${yolov5}/lib/python3.8/site-packages/yolov5:\
               ${ctevents}/lib/python3.8/site-packages"
