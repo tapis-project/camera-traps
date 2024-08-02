@@ -45,7 +45,6 @@ RUN CUDAPKG=$(echo $CUDA | sed 's/\./-/'); \
 
 FROM tapis/camera_traps_py_3.8:$REL as production
 ARG CUDA=10.2
-RUN chmod -R 0777 /* || true
 COPY --from=cuda ./usr/local/cuda/bin ./usr/local/cuda-$CUDA/bin
 COPY --from=cuda ./usr/local/cuda/nvvm ./usr/local/cuda-$CUDA/nvvm
 COPY --from=cuda ./usr/local/cuda/nvvmx ./usr/local/cuda-$CUDA/nvvmx
@@ -108,6 +107,5 @@ ENV NVIDIA_DRIVER_CAPABILITIES all
 
 
 RUN chmod +x /entrypoint.sh
-RUN chmod -R 0777 /example_images /load_test_image_scoring.py /ai4eutils /md_v5a.0.0.pt /camera_traps /yolov5 /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py || true 
 
 ENTRYPOINT ["./entrypoint.sh"]
