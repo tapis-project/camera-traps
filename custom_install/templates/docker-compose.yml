@@ -245,6 +245,9 @@ services:
       - CAMERA_TRAPS_DEVICE_ID={{ device_id }}
       - EXPERIMENT_ID={{ experiment_id }}
       - USER_ID={{ user_id }}
+      - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
+      - POWER_SUMMARY_TOPIC=cameratraps-power-summary
+      - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}      
     networks:
       - cameratraps
 
@@ -255,4 +258,5 @@ services:
 
     volumes:
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/logs
+      - {{ host_output_dir }}/{{ power_output_dir }}:/power_logs
 {% endif %}

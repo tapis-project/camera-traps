@@ -51,5 +51,6 @@ deploy_ckn: false
 ckn_daemon_tag: latest
 ckn_kafka_broker_address: 129.114.35.150
 ckn_kafka_broker_port: 9092
+ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
