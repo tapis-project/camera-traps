@@ -13,6 +13,7 @@ ADD example_input.yml /host/input.yml
 RUN mkdir /defaults 
 ADD defaults.yml /defaults/defaults.yml 
 ADD example_images /defaults/example_images
+ADD ground_truth.csv /defaults/ground_truth.csv
 
 # The installer app itself
 RUN mkdir -p /installer

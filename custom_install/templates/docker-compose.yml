@@ -77,6 +77,8 @@ services:
     {% if use_bundled_example_images %}
       # when using bundled images, we always place them in example_images within the current directory
       - ./example_images:/example_images:ro
+      # for the example images, we also bundle the ground truth file
+      - ./ground_truth.csv:/ground_truth_dir/ground_truth.csv
     {% endif %}
     {% if use_image_directory %}
       # mount the example images directory; this is the source of the images used for
@@ -219,6 +221,7 @@ services:
       - ORACLE_PLUGIN_PORT=6011
       - TRAPS_ORACLE_OUTPUT_PATH=/output
       - DEVICE_ID={{ device_id }}
+      - MODEL_ID={{ model_id }}
     networks:
       - cameratraps
     {% if use_host_pid %}

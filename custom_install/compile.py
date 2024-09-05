@@ -8,7 +8,7 @@ import yaml
 
 def get_defaults():
     """
-    Read the defaults from the 
+    Read the defaults from the defaults file. 
     """
     # Container path to defaults file yaml file and return a Python dictionary. 
     defaults_file_path= "/defaults/defaults.yml"
@@ -32,7 +32,7 @@ def get_inputs():
     try:
         with open(input_file_path, 'r') as f:
             input_data = yaml.safe_load(f)
-            print(f"Got input data: {input_data}")
+            print(f"\nGot input data: {input_data}")
     except Exception as e:
         print(f"ERROR: Could not load input yaml file from path {input_file_path}; error: {e}")
         print("Exiting...")
@@ -47,7 +47,7 @@ def get_inputs():
     input_install_dir = input_data["install_dir"]
     full_install_dir = os.path.join("/host", input_install_dir)
 
-    print(f"Writing output to the following directory: {input_install_dir}")
+    print(f"Output will be written to the following directory: {input_install_dir}")
     if not os.path.exists(full_install_dir):
         try:
             os.makedirs(full_install_dir)
@@ -80,6 +80,15 @@ def get_vars(input_data, default_data):
     if vars.get("power_monitor_backend") == 'powerjoular':
         vars['power_monitor_mount_docker_socket'] = True
     
+    # the model id must be passed if trying to use a different model from the default 
+    if vars.get("use_model_url"):
+        if not vars.get("model_id"):
+            print(f"ERROR: The model_id parameter is required when use_model_url is True (i.e., when using a custom model.)")
+            sys.exit(1)
+        if not vars.get("model_url"):
+            print(f"ERROR: The model_url parameter is required when use_model_url is True")
+            sys.exit(1)
+
     # Add the installer's UID and GID
     vars["uid"] = uid
     vars["gid"] = gid 
@@ -136,6 +145,13 @@ def generate_additional_directories(vars, full_install_dir):
             print("Exiting...")
             sys.exit(1)
         vars["source_image_dir"] = "example_images"
+        # also need to copy the ground truth file
+        try:
+            shutil.copy("/defaults/ground_truth.csv", os.path.join(full_install_dir, "ground_truth.csv"))
+        except Exception as e:
+            print(f"ERROR: Could not copy example images ground_truth.csv; error: {e}")
+            print("Exiting...")
+            sys.exit(1)
         print(f"Using example_images for source_image_dir")
     
     elif vars["use_image_directory"]:
