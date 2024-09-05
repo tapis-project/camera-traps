@@ -144,6 +144,8 @@ users a pre-bundled set of example image. See below:
 * `model_type`: Specify the custom model type to use. Currently supported values are: `1`, `2`, `3`. 
   This is a work in progress, more details coming. 
 
+* `model_id`: Unique identifier for the model to be used. 
+
 * `use_model_url`: Use a URL to a compatible ML model .pt 
   file. Will be downloaded at the start of the scoring plugin execution. If true, must also specify model_url. 
 

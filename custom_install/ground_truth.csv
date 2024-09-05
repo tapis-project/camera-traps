@@ -1,0 +1,13 @@
+ground_truth,image_name
+animal,/example_images/labrador-pup.jpg
+animal,/example_images/baby-red-fox.jpg
+animal,/example_images/panda-cub.jpg
+animal,/example_images/cheetah-baby.jpg
+animal,/example_images/golden-pup.jpg
+animal,/example_images/german-shep-pup.jpg
+unknown,/example_images/APL_Keyset_800x290.jpg
+empty,/example_images/blank02.jpeg
+empty,/example_images/blank01.jpeg
+empty,/example_images/blank04.jpeg
+empty,/example_images/blank03.jpg
+empty,/example_images/blank05.jpeg
