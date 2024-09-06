@@ -24,17 +24,24 @@ if not logger.handlers:
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
 total_images_processed = 0
 total_images_generated = 0
+
 updated_last_decision_to_file = False
 received_terminating_signal = False
+
 uuids_with_errors = []
+
 PORT = int(os.environ.get('ORACLE_PLUGIN_PORT', 6011))
 OUTPUT_DIR = os.environ.get('TRAPS_ORACLE_OUTPUT_PATH', "/output/")
-file_name = "uuid_image_mapping.json"
-final_file = "image_mapping_final.json"
-output_file = os.path.join(OUTPUT_DIR, file_name)
-output_file2 = os.path.join(OUTPUT_DIR, final_file)
+MODEL_ID = os.environ.get("MODEL_ID")
+
+
+# This is the ground truth file
+output_file = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
+# This is the file the oracle plugin actually writes
+output_file2 = os.path.join(OUTPUT_DIR, "image_mapping_final.json")
 SOCKET_TIMEOUT = 2000
 
 def get_socket():

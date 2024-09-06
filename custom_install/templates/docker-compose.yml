@@ -46,6 +46,7 @@ services:
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
       - IMAGE_GENERATING_LOG_LEVEL={{ image_generating_log_level }}
+      - MODEL_ID={{ model_id }}
       {% if image_generating_monitor_power %}
       - MONITOR_POWER=true
       {% endif %}

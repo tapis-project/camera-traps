@@ -16,7 +16,11 @@ import logging
 log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 input_image_path = os.environ.get("INPUT_IMAGE_PATH", "/example_images")
 ground_truth_file = os.environ.get("GROUND_TRUTH_FILE", "/ground_truth_dir/ground_truth.csv")
-model_variant = os.environ.get('MODEL_TYPE', '0')
+
+# The model_variant is only used to specify the ID in the ground_truth file, so we use that environment 
+# variable here. 
+model_variant = os.environ.get('MODEL_ID', '0')
+
 logger = logging.getLogger("Image Generating Plugin")
 if log_level == "DEBUG":
     logger.setLevel(logging.DEBUG)
@@ -82,6 +86,9 @@ def oracle_monitoring_info(track_image_count, image_uuid, image_name):
     file_name = "uuid_image_mapping.json"
     image_mapping_file = os.path.join(OUTPUT_DIR, file_name)
     ground_truth_info = ground_truth.get(image_name, 'unavailable')
+    # A value of 'unavailable' is unexpected, as it means there is a missing entry in the dictionary
+    if ground_truth_info == 'unavailable':
+        logger.error(f"ERROR: Could not determine ground truth value for image {file_name}; no entry in ground_truth dict.")
     image_mapping_dict = {
         "image_count": track_image_count,
         "UUID": image_uuid,
@@ -113,7 +120,7 @@ def get_binary(file_name,binary_img,img_format,track_image_count,total_images):
         oracle_monitoring_info(track_image_count,image_uuid,file_name)
         ctevents.send_new_image_fb_event(socket, image_uuid, img_format, binary_img)     
     except Exception as e:
-        logger.error(f"got exception {e}")
+        logger.error(f"ERROR: got exception {e}")
     if track_image_count>=total_images:
         logger.info(f"Succesfully processed {track_image_count} images and inititated terminating plugin from image generating plugin")
         send_terminating_plugin_fb_event(socket,"ext_image_gen_plugin","d3266646-41ec-11ed-a96f-5391348bab46")
@@ -153,6 +160,10 @@ def extract_from_zipfile(url):
         logger.error(f"Failed to download file from {url}")
 
 def process_image(input_image_path):
+    """
+    Main function that loops through the set of images and processes each one by ultimately sending a 
+    new image event for each. The actual sending of the event happens in get_binary.
+    """
     logger.info(f"The input image path specified by the user:{input_image_path}")
     if input_image_path.endswith(('.zip', '.rar')):
         extract_from_zipfile(input_image_path)
