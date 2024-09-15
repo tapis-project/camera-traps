@@ -2,7 +2,7 @@
 
 FROM python:3.12
 
-RUN pip install Jinja2==3.1.4 pyyaml==6.0.1
+RUN pip install Jinja2==3.1.4 pyyaml==6.0.1 requests
 
 # Directory where host will be mounted 
 RUN mkdir -p /host

@@ -3,6 +3,7 @@ import shutil
 import sys 
 
 from jinja2 import Environment, PackageLoader, select_autoescape
+import requests
 import yaml
 
 
@@ -88,6 +89,7 @@ def get_vars(input_data, default_data):
         if not vars.get("model_url"):
             print(f"ERROR: The model_url parameter is required when use_model_url is True")
             sys.exit(1)
+            
 
     # Add the installer's UID and GID
     vars["uid"] = uid
@@ -99,6 +101,77 @@ def get_vars(input_data, default_data):
     
     print(f"Merged variables: {vars}")
     return vars 
+
+
+def download_model_by_id(vars, full_install_dir):
+    """
+    Download a model based on its id and put it in the install dir.
+    """
+    # download the model .pt file for recognized model id's 
+    model_id = vars.get("model_id")
+    # this model is the default one and does not need to be downloaded
+    if model_id == "4108ed9d-968e-4cfe-9f18-0324e5399a97-model":
+        print("Default model, not downloading...")
+        return
+    model_url = None
+    # this is model "5b"
+    # if model_id == '4108ed9d-968e-4cfe-9f18-0324e5399a97-model':
+    #     model_url = "https://github.com/ICICLE-ai/camera_traps/raw/main/models/md_v5b.0.0.pt"
+    # this is model "5-optimized"
+    # elif model_id == '665e7c60-7244-470d-8e33-a232d5f2a390-model':
+    #     model_url = "https://github.com/ICICLE-ai/camera_traps/raw/main/models/mdv5_optimized.pt"
+    # this is model "5a_ena"
+    # elif model_id == '2e0afb62-349d-46a4-9fc7-5f0c2b9e48a5-model':
+    #     model_url = "https://github.com/ICICLE-ai/camera_traps/blob/main/models/md_v5a.0.0_ena.pt"
+    # # this is model "5c"
+    # elif model_id == '04867339-530b-44b7-b66e-5f7a52ce4d90-model':
+    #     model_url = "URL_TBD"
+    #     print(f"ERROR: Model 5c not yet available. Exiting...")    
+    #     sys.exit(1)
+    # else:
+    # try to look up the model URL from CKN
+    print(f"Checking CKN for the URL to the pt file...")
+    url = f"https://ckn.d2i.tacc.cloud/patra/download_url?model_id={model_id}"
+    try:
+        rsp = requests.get(url)
+        rsp.raise_for_status()
+    except Exception as e:
+        print(f"ERROR: Could not lookup model URL from CKN; details: {e}. exiting...")
+        sys.exit(1)
+    try:
+        data = rsp.json()
+    except Exception as e:
+        print(f"ERROR: Could not parse JSON from CKN response; details: {e}. exiting...")
+        sys.exit(1)
+    print(f"Response from CKN: {data}")
+    error = data.get("error")
+    if error:
+        print(f"ERROR: Got error from CKN response; details: {error}. exiting...")
+        sys.exit(1)
+    try:
+        model_url = rsp.json().get("download_url")
+    except Exception as e:
+        print(f"ERROR: Could not get model URL from CKN response; details: {e}. exiting...")
+        # print(f"Requests path: {requests.__file__}")
+        # print(f"Requests lib contents: {dir(requests)}")
+        sys.exit(1)
+    print(f"Got URL for model from CKN; URL: {model_url}")
+    # if we have a model URL, then we download it so it can be mounted 
+    if model_url:
+        # download model
+        try:
+            rsp = requests.get(model_url)
+            rsp.raise_for_status()
+        except Exception as e:
+            print(f"ERROR: could not download model at URL {model_url}; details: {e}")
+            sys.exit(1)
+        # we always save the file to the same file name, md_v5a.0.0.pt, because this is "hard coded"
+        # within the megadetector Python source code
+        model_file_install_path = os.path.join(full_install_dir, "md_v5a.0.0.pt")
+        # save it to install directory 
+        with open(model_file_install_path, "wb") as f:
+            f.write(rsp.content) 
+        vars["mount_model_pt"] = True   
 
 
 def compile_templates(vars, full_install_dir):
@@ -185,9 +258,7 @@ def generate_additional_directories(vars, full_install_dir):
     power_output_dir = os.path.join(full_install_dir, vars["power_output_dir"])
     if not os.path.exists(power_output_dir):
         os.makedirs(power_output_dir)
-
     
-
 
 def main():
     """ 
@@ -196,6 +267,7 @@ def main():
     default_data = get_defaults()
     input_data, full_install_dir = get_inputs()
     vars = get_vars(input_data, default_data)
+    download_model_by_id(vars, full_install_dir)
     generate_additional_directories(vars, full_install_dir)
     compile_templates(vars, full_install_dir)
     

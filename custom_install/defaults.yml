@@ -26,7 +26,6 @@ image_scoring_crop_images: false
 image_scoring_generate_bounding_boxes: false 
 model_id: 41d3ed40-b836-4a62-b3fb-67cee79f33d9-model
 use_model_url: false
-model_url: 
 
 
 # Image Storing Pluing
