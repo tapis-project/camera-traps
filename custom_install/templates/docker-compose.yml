@@ -145,6 +145,10 @@ services:
       # mount the shared images directory from the host to the container directory specified in the IMAGE_PATH 
       # environment variable above. 
       - {{ host_output_dir }}/{{ images_output_dir }}:/input_images
+      {% if mount_model_pt %}
+      # when the installer downloads a specific pt file, we mount it in as md_v5a.0.0.pt
+      - ./md_v5a.0.0.pt:/md_v5a.0.0.pt
+      {% endif %}
 
   powerMonitorPlugin:
     container_name: power_monitor
