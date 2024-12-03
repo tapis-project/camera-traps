@@ -3,6 +3,9 @@ name: Docker Image CI
 on:
   release:
     types: [released]
+  push:
+    branches:
+      - dev
   workflow_dispatch:
     inputs:
       release_tag:
@@ -19,6 +22,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
