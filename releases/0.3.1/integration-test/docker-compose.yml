@@ -1,0 +1,22 @@
+version: "3.0"
+
+services:
+  # the name `engine` is important here; in general, the sevice name is addressable by other conatiners on the same
+  # docker network. The default "hostname" used by the python plugin library (pyevents) is "engine"
+  engine:
+    container_name: engine
+    image: tapis/camera_traps_engine:0.3.1
+    network_mode: host
+    environment:
+      - TRAPS_CONFIG_FILE=./traps.toml
+    volumes:
+      # mount the traps.toml in the root directory.
+      - ./traps.toml:/traps.toml:ro
+      # mount the log4rs configuration file over the baked into the image.  Comment out
+      # this mount if you want to use the image's default logging configuration.
+      - ../../../resources/log4rs.yml:/resources/log4rs.yml
+      # mount the image output directory from the host to the directory specified in traps.toml
+      # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+      # exist it will be created with root ownership.
+      - /home/${USER}/camera-traps/output:/root/camera-traps/images
+      

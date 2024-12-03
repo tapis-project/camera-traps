@@ -1,0 +1,15 @@
+# This is the camera-traps integration test configuration file.
+# It assumes the current directory is the top-level camera-traps 
+# directory.  See runtest.sh for details.
+
+iterations = 5
+image_input_dir = "releases/common/example_images"
+
+[external_plugin_config] 
+    plugin_name = "ext_image_gen_test_plugin"
+    id = "d3266646-41ec-11ed-a96f-5391348bab46"
+    external_port = 6000
+    subscriptions = [
+        "PluginTerminateEvent"
+    ]
+

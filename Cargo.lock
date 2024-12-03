@@ -43,12 +43,13 @@ checksum = "c1ad822118d20d2c234f427000d5acc36eabe1e29a348c89b63dd60b13f28e5d"
 
 [[package]]
 name = "camera-traps"
-version = "0.3.1"
+version = "0.3.3"
 dependencies = [
  "anyhow",
  "chrono",
  "event-engine",
  "flatbuffers",
+ "glob",
  "lazy_static",
  "log",
  "log4rs",
@@ -169,6 +170,12 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
 ]
+
+[[package]]
+name = "glob"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
 name = "hashbrown"

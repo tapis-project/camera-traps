@@ -258,10 +258,22 @@ impl ImageStorePlugin {
             error!("{}", msg);
             return
         }
-        
-        // Create the image stored event and serialize it.
-        let dest = format!("{:?}", action_taken);
-        let ev = events::ImageStoredEvent::new(uuid, image_format.to_string(), dest);
+
+        // Did we decide to delete or store this image?
+        let ev: Box<dyn Event>;
+        let ev_name: &str;
+        if action_taken == StoreAction::Delete {
+            // Send an image delete event.
+            ev_name = "ImageDeletedEvent";
+            ev = Box::new(events::ImageDeletedEvent::new(uuid, image_format.to_string()));
+        } else {
+            // Create the image stored event and serialize it.
+            let dest = format!("{:?}", action_taken);
+            ev_name = "ImageStoredEvent";
+            ev = Box::new(events::ImageStoredEvent::new(uuid, image_format.to_string(), dest));
+        }
+
+        // Convert to a byte stream.
         let bytes = match ev.to_bytes() {
             Ok(v) => v,
             Err(e) => {
@@ -277,8 +289,7 @@ impl ImageStorePlugin {
             Ok(_) => (),
             Err(e) => {
                 // Log the error and abort if we can't send our start up message.
-                //let msg = format!("{}", Errors::SocketSendError(plugin.get_name().clone(), ev.get_name(), e.to_string()));
-                let msg = format!("{}", Errors::SocketSendError(self.get_name(), ev.get_name(), e.to_string()));
+                let msg = format!("{}", Errors::SocketSendError(self.get_name(), ev_name.to_string(), e.to_string()));
                 error!("{}", msg);
             }
         };

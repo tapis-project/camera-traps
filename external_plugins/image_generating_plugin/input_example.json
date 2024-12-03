@@ -1,5 +1,5 @@
 {
-    "path": "/data/CDB_S1",
+    "path": "https://storage.googleapis.com/public-datasets-lila/ena24/ena24.zip",
     "timestamp": "600",
     "callingFunction": "nextImage",
     "burstQuantity": "5"

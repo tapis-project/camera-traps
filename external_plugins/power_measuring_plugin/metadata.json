@@ -1,0 +1,50 @@
+{
+	"plugins": [
+		{
+			"name": "image_scoring_plugin",
+			"pids": [
+				2437322,
+				3423844,
+				4737228
+			],
+			"devices_measured": [
+				"gpu",
+				"cpu"
+			],
+			"command_line": "/usr/local/bin/python3.8 image_scoring_plugin.py"
+		},
+		{
+			"name": "image_generating_plugin",
+			"pids": [
+				5434722,
+				5428144,
+				5732728
+			],
+			"devices_measured": [
+				"gpu",
+				"cpu"
+			],
+			"command_line": "/usr/local/bin/python3.8 image_generating_plugin.py"
+		}
+	],
+	"tools": {
+		"devices": [
+			{
+				"device_type": "gpu",
+				"tool_name": "jtop",
+				"tool_params": "stdout -t",
+				"power_units": "watts",
+				"measurement_log_path": "/root/output/gpu.json"
+			},
+			{
+				"device_type": "cpu",
+				"tool_name": "jtop",
+				"tool_params": "stdout -t",
+				"power_units": "watts",
+				"measurement_log_path": "/root/output/cpu.json"
+			}
+		]
+	},
+	"start_time": "02/05/2024 03:05:15 PM",
+	"last_update_time": "02/05/2024 03:10:15 PM"
+}

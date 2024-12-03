@@ -1,0 +1,73 @@
+version: "3.0"
+
+networks:
+  cameratraps:
+    driver: bridge
+
+services:
+  # the name `engine` is important here; in general, the sevice name is addressable by other conatiners on the same
+  # docker network. The default "hostname" used by the python plugin library (pyevents) is "engine"
+  engine:
+    container_name: engine
+    image: tapis/camera_traps_engine:0.3.1
+    networks:
+      - cameratraps
+    environment:
+      - TRAPS_CONFIG_FILE=/traps.toml
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./config/traps.toml:/traps.toml:ro
+      # mount the image output directory from the host to the directory specified in traps.toml
+      # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+      # exist it will be created with root ownership.
+      - ./images_output_dir:/root/camera-traps/images
+      # mount the log4rs configuration file over the baked into the image.  Comment out
+      # this mount if you want to use the image's default logging configuration.
+      - ../../resources/log4rs.yml:/resources/log4rs.yml
+
+  imageGeneratingPlugin:
+    container_name: image_generating
+    image: tapis/image_generating_plugin_py:0.3.1
+    networks:
+      - cameratraps
+    depends_on:
+      - engine
+    environment:
+      - IMAGE_GENERATING_PLUGIN_PORT=6000
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./config/traps.toml:/traps.toml:ro
+      # mount the example images directory; this is the source of the images used for
+      # generating NewImage events. The path `/example_images` is the default path
+      # where the plugin looks for images. This can be changed by providing a different
+      # configuration file. 
+      # NOTE: this is NOT the shared images directory!!
+      - ../common/example_images:/example_images:ro
+      # The following is optional but can be used to mount a different configuration file
+      # into the Image Generating plugin. Note that if doing so, values in the configuration
+      # file must match configurations provided in other parts of this file.
+      - ./config/image_gen_config.json:/input.json
+
+  imageScoringPlugin:
+    container_name: image_scoring
+    image: tapis/image_scoring_plugin_py_3.8:0.3.1
+    networks:
+      - cameratraps
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+    environment:
+      - IMAGE_SCORING_PLUGIN_PORT=6001
+      # The IMAGE_PATH variable needs to match what is specified in the vouume mount below for the
+      # container path portion of the shared images directory.
+      - IMAGE_PATH=/input_images
+      # The IMAGE_PATH_PREFIX is optional and needs to agree with the image_file_prefix
+      # variable in the traps.toml file; when not being used, comment the line.
+      # - IMAGE_FILE_PREFIX=
+    volumes:
+      # mount the traps.toml in the current working directory.
+      # NOTE -- not currently used (TODO)
+      - ./traps.toml:/traps.toml:ro
+      # mount the shared images directory from the host to the container directory specified in the
+      # IMAGE_PATH environment variable, above.
+      - ./images_output_dir:/input_images

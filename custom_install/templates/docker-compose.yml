@@ -1,0 +1,270 @@
+version: "3.0"
+
+networks:
+  cameratraps:
+    driver: bridge
+
+services:
+  engine:
+    container_name: engine
+    image: tapis/camera_traps_engine:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    networks:
+      - cameratraps
+    environment:
+      - TRAPS_CONFIG_FILE=/traps.toml
+      - TRAPS_IMAGE_STORE_FILE=/tramps-image-store.toml
+      - TRAPS_LOG4RS_CONFIG_FILE=/log4rs.yml
+
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+      - {{ host_config_dir }}/traps-image-store.toml:/tramps-image-store.toml:ro
+      # mount the image output directory from the host to the directory specified in traps.toml
+      # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+      # exist it will be created with root ownership.
+      - {{ host_output_dir }}/{{ images_output_dir }}:/root/camera-traps/images
+      # mount the log4rs configuration file over the baked into the image.  Comment out
+      # this mount if you want to use the image's default logging configuration.
+      - {{ host_config_dir }}/log4rs.yml:/log4rs.yml
+
+  imageGeneratingPlugin:
+    container_name: image_generating
+    image: tapis/image_generating_plugin_py:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    networks:
+      - cameratraps
+    {% if use_host_pid %}
+    pid: host
+    {% endif %}
+    depends_on:
+      - engine
+    environment:
+      - IMAGE_GENERATING_PLUGIN_PORT=6000
+      - IMAGE_GENERATING_LOG_LEVEL={{ image_generating_log_level }}
+      - MODEL_ID={{ model_id }}
+      {% if image_generating_monitor_power %}
+      - MONITOR_POWER=true
+      {% endif %}
+      {% if use_image_directory or use_bundled_example_images %}
+      # when using a directory of images (whether is the bundled examples or a custom dir), the images are 
+      # always mounted into the container at /example_images
+      - INPUT_IMAGE_PATH=/example_images
+      {% elif use_image_url %}
+      - INPUT_IMAGE_PATH={{ source_image_url }}
+      {% endif %}
+      {% if use_custom_ground_truth_file_url %}
+      - USE_CUSTOM_GROUND_TRUTH_FILE_URL=true
+      - CUSTOM_GROUND_TRUTH_URL={{ custom_ground_truth_file_url }}
+      {% endif %}
+      {% if use_model_url %}
+      # URL to a compatible ML model .pt file. Will be downloaded at the start of the scoring pluging execution.  
+      - MODEL_URL={{ model_url }}
+      {% endif %}
+      {% if use_custom_model_type %}
+      # Specify one of a predefined set of ML models to use for scoring; 
+      # If specified, the model file will be downloaded at the start of the script corresponding to the type passed. 
+      - MODEL_TYPE={{ model_type }}
+      {% endif %}
+      # directory in the container where outputs are written; shouldn't need to change 
+      - TRAPS_MAPPING_OUTPUT_PATH=/output
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+    {% if use_bundled_example_images %}
+      # when using bundled images, we always place them in example_images within the current directory
+      - ./example_images:/example_images:ro
+      # for the example images, we also bundle the ground truth file
+      - ./ground_truth.csv:/ground_truth_dir/ground_truth.csv
+    {% endif %}
+    {% if use_image_directory %}
+      # mount the example images directory; this is the source of the images used for
+      # generating NewImage events. The path `/example_images` is the default path
+      # where the plugin looks for images. This can be changed by providing a different
+      # configuration file. 
+
+      # NOTE: this is NOT the shared images directory!!
+      - {{ source_image_dir }}:/example_images:ro
+      {% endif %}      
+      # mount the directory shared with the oracle plugin 
+      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+
+  imageScoringPlugin:
+    container_name: image_scoring
+    image: {{ image_scoring_plugin_image }}:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    networks:
+      - cameratraps
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+    {% if use_host_pid %}
+    pid: host
+    {% endif %}
+
+    # Whether to use GPUs with the Image Scoring pluging. Note that
+    # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
+    # Docker must be configured to use it. See the README for details.
+
+    {% if use_gpu_in_scoring %}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Use 'all' or specify the number of GPUs you want to use
+              capabilities: [ gpu ]
+    {% endif %}
+
+    environment:
+      - IMAGE_SCORING_PLUGIN_PORT=6001
+      - IMAGE_SCORING_LOG_LEVEL={{ image_scoring_log_level }}
+      # Directory in the container path to shared images directory.
+      - IMAGE_PATH=/input_images
+      - MONITOR_POWER={{ image_scoring_monitor_power }}
+      - CROP_IMAGE={{ image_scoring_crop_images }}
+      - DETECTIONS={{ image_scoring_generate_bounding_boxes }}
+      {% if use_model_url %}
+      # URL to a compatible ML model .pt file. Will be downloaded at the start of the scoring pluging execution.  
+      - MODEL_URL={{ model_url }}
+      {% endif %}
+      {% if use_custom_model_type %}
+      # Specify one of a predefined set of ML models to use for scoring; 
+      # If specified, the model file will be downloaded at the start of the script corresponding to the type passed. 
+      - MODEL_TYPE={{ model_type }}
+      {% endif %}
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+      # mount the shared images directory from the host to the container directory specified in the IMAGE_PATH 
+      # environment variable above. 
+      - {{ host_output_dir }}/{{ images_output_dir }}:/input_images
+      {% if mount_model_pt %}
+      # when the installer downloads a specific pt file, we mount it in as md_v5a.0.0.pt
+      - ./md_v5a.0.0.pt:/md_v5a.0.0.pt
+      {% endif %}
+
+  powerMonitorPlugin:
+    container_name: power_monitor
+    image: tapis/power_measuring_plugin_py:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    networks:
+      - cameratraps
+    # Reading the Intel RAPL (Linux Powercap) interface requires privileges
+    {% if run_power_monitor_privileged %}
+    privileged: true
+    {% endif %}
+    # We also require being in the host namespace (as with all other processes) so we 
+    # can read the proc table for information about their processes
+    {% if use_host_pid %}
+    pid: host
+    {% endif %}
+    # Whether to use GPUs with the Power Monitor pluging. Note that
+    # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
+    # Docker must be configured to use it. See the README for details.
+    {% if use_gpu_in_power_monitoring %}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Use 'all' or specify the number of GPUs you want to use
+              capabilities: [ gpu ]
+    {% endif %}
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+      - imageScoringPlugin
+    environment:
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      # Note: this LOG_PATH is the path in the conatiner, so must match the RHS of the mount below.
+      - TRAPS_POWER_LOG_PATH=/logs
+      # This is the log path on the *host*; It must be an absolute path!
+      # This is needed when using the powerjoular backend, which runs in a separate container
+      - TRAPS_POWER_LOG_HOST_PATH={{ install_host_path }}/{{ install_dir }}/{{ power_output_dir }}
+      - TRAPS_POWER_LOG_LEVEL={{ power_monitor_log_level }}
+      - TRAPS_POWER_BACKEND={{ power_monitor_backend }}
+      {% if power_plugin_monitor_power %}
+       # 1 for debug; Set to 0 when actually use it to measure other plugin's power
+      - TRAPS_TEST_POWER_FUNCTION=1
+      {% endif %}
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+      - {{ host_output_dir }}/{{ power_output_dir }}:/logs # Path for CPU and GPU power logs
+      {% if power_monitor_mount_docker_socket %} 
+      # mount the docker socket for starting powerjoular containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      {% endif %}      
+      {% if power_monitor_backend == "jtop" %}
+      # the jtop backend requires the jtop socket
+      - /run/jtop.sock:/run/jtop.sock
+      {% endif %}
+      # mount the /etc files from host to make sure user exists and sudo works properly
+      {% if run_containers_as_user %}
+      - /etc/passwd:/etc/passwd:ro 
+      - /etc/group:/etc/group:ro
+      - /etc/shadow:/etc/shadow:ro
+      {% endif %}
+
+
+  oraclePlugin:
+    container_name: oracle_monitor
+    image: {{ oracle_plugin_image }}:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    environment:
+      - ORACLE_PLUGIN_PORT=6011
+      - TRAPS_ORACLE_OUTPUT_PATH=/output
+      - DEVICE_ID={{ device_id }}
+      - MODEL_ID={{ model_id }}
+    networks:
+      - cameratraps
+    {% if use_host_pid %}
+    pid: host
+    {% endif %}
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+      - imageScoringPlugin
+
+    volumes:
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+
+{% if deploy_ckn %}
+  cknDaemon:
+    container_name: ckn_daemon
+    image: iud2i/ckn-daemon-cameratraps:{{ ckn_daemon_tag }}
+    environment:
+      - ORACLE_CSV_PATH=/logs/image_mapping_final.json
+      - CKN_LOG_FILE=/logs/ckn.log
+      - CKN_KAFKA_BROKER={{ ckn_kafka_broker_address }}:{{ ckn_kafka_broker_port }}
+      - CKN_KAFKA_TOPIC=oracle-events
+      - CAMERA_TRAPS_DEVICE_ID={{ device_id }}
+      - EXPERIMENT_ID={{ experiment_id }}
+      - USER_ID={{ user_id }}
+      - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
+      - POWER_SUMMARY_TOPIC=cameratraps-power-summary
+      - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}      
+    networks:
+      - cameratraps
+
+    pid: host
+
+    depends_on:
+      - oraclePlugin
+
+    volumes:
+      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/logs
+      - {{ host_output_dir }}/{{ power_output_dir }}:/power_logs
+{% endif %}

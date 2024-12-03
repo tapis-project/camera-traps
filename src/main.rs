@@ -182,7 +182,7 @@ fn init_app(parms: &'static Parms) -> Result<App, Errors>{
 fn init_runtime_context() -> RuntimeCtx {
     // If either of these fail the application aborts.
     let parms = get_parms().expect("FAILED to read configuration file.");
-    let abs_image_dir = init_image_dir(&parms.config.images_dir)
+    let abs_image_dir = init_image_dir(&parms.config.images_output_dir)
                                         .expect("FAILED to initialize image directory.");
     
     // Return the context.

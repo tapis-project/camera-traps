@@ -1,0 +1,177 @@
+version: "3.0"
+
+networks:
+  cameratraps:
+    driver: bridge
+
+services:
+  # the name `engine` is important here; in general, the sevice name is addressable by other conatiners on the same
+  # docker network. The default "hostname" used by the python plugin library (pyevents) is "engine"
+  engine:
+    container_name: engine
+    image: tapis/camera_traps_engine:0.3.3
+    networks:
+      - cameratraps
+    environment:
+      - TRAPS_CONFIG_FILE=/traps.toml
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./config/traps.toml:/traps.toml:ro
+      # mount the image output directory from the host to the directory specified in traps.toml
+      # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+      # exist it will be created with root ownership.
+      - ./images_output_dir:/root/camera-traps/images
+      # mount the log4rs configuration file over the baked into the image.  Comment out
+      # this mount if you want to use the image's default logging configuration.
+      - ../../resources/log4rs.yml:/resources/log4rs.yml
+
+  imageGeneratingPlugin:
+    container_name: image_generating
+    image: tapis/image_generating_plugin_py:0.3.3
+    networks:
+      - cameratraps
+    pid: host
+    depends_on:
+      - engine
+    environment:
+      - IMAGE_GENERATING_PLUGIN_PORT=6000
+      - MONITOR_POWER=true
+      - ORACLE_IMAGE_MAPPING_OUTPUT=/output
+      - INPUT_IMAGE_PATH=/example_images
+      - GROUND_TRUTH_FILE=/ground_truth_dir/ground_truth.csv
+      - MODEL_TYPE=0
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./config/traps.toml:/traps.toml:ro
+      # mount the example images directory; this is the source of the images used for
+      # generating NewImage events. The path `/example_images` is the default path
+      # where the plugin looks for images. This can be changed by providing a different
+      # configuration file. 
+      # NOTE: this is NOT the shared images directory!!
+      - ../common/example_images:/example_images:ro
+      # The following is optional but can be used to mount a different configuration file
+      # into the Image Generating plugin. Note that if doing so, values in the configuration
+      # file must match configurations provided in other parts of this file.
+      - ./config/ground_truth_dir:/ground_truth_dir
+      - ./oracle_plugin_dir:/output
+
+  imageScoringPlugin:
+    container_name: image_scoring
+    image: tapis/image_scoring_plugin_py_3.8:0.3.3
+    networks:
+      - cameratraps
+    pid: host
+    # Uncomment the following line to use GPUs with the Image Scoring pluging. Note that
+    # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
+    # Docker must be configured to use it. See the README for details.
+    #
+    # UNCOMMENT --------------
+    deploy:
+    resources:
+    reservations:
+    devices:
+    - driver: nvidia
+    count: all # Use 'all' or specify the number of GPUs you want to use
+    capabilities: [ gpu ]
+    # --------------------------
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+    environment:
+      - IMAGE_SCORING_PLUGIN_PORT=6001
+      - IMAGE_SCORING_LOG_LEVEL=DEBUG
+      # The IMAGE_PATH variable needs to match what is specified in the vouume mount below for the
+      # container path portion of the shared images directory.
+      - IMAGE_PATH=/input_images
+      # The IMAGE_PATH_PREFIX is optional and needs to agree with the image_file_prefix
+      # variable in the traps.toml file; when not being used, comment the line.
+      # - IMAGE_FILE_PREFIX=
+      - MONITOR_POWER=true
+      - CROP_IMAGE=false
+      - DETECTIONS=false
+      # The type of ML model to use for scoring; comment or set to 0 to use the built in model; otherwise, 
+      # a model file will be downloaded at the start of the script corresponding to the type passed. 
+      - MODEL_TYPE=0
+    volumes:
+      # mount the traps.toml in the current working directory.
+      # NOTE -- not currently used (TODO)
+      - ./config/traps.toml:/traps.toml:ro
+      # mount the shared images directory from the host to the container directory specified in the
+      # IMAGE_PATH environment variable, above.
+      - ./images_output_dir:/input_images
+
+  powerMonitorPlugin:
+    # USAGE Example:
+    # In your plugins, import the necessary:
+    # E.g. Image_scoring_plugin.py:
+    #
+    #   from ctevents.ctevents import send_power_measure_fb_event
+    #   import os
+    #
+    # When trying to measure power:
+    #     my_pids = [os.getpid()] # any pids you want to measure
+    #     monitor_type = [0] # 0 for CPU & GPU, 1 for CPU, 2 for GPU  (TODO: 3 for DRAM)
+    #     monitor_duration = 10 # seconds
+    #     send_power_measure_fb_event(socket, my_pids, monitor_type, monitor_duration)
+    #
+    container_name: power_monitor
+    image: tapis/power_measuring_plugin_py:0.3.3
+    networks:
+      - cameratraps
+    # Reading the Intel RAPL (Linux Powercap) interface requires privileges
+    privileged: true
+    # Ee also require being in the host namespace (as with all other processes) so we 
+    # can read the proc table for information about their processes
+    pid: host
+    # Uncomment the following line to use GPUs with the Power Monitor pluging. Note that
+    # the NVIDIA drivers must be installed, the NVIDIA container toolkit installed, and 
+    # Docker must be configured to use it. See the README for details.
+    # UNCOMMENT --------------    
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all # Use 'all' or specify the number of GPUs you want to use
+    #           capabilities: [ gpu ]
+    # ------------------------
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+      - imageScoringPlugin
+    environment:
+      - POWER_MEASURING_PLUGIN_PORT=6010
+      # Note: this LOG_PATH is the path in the conatiner, so must match the RHS of the mount below.
+      - TRAPS_POWER_LOG_PATH=/logs
+      # This is the log path on the *host*; this is needed when using the powerjoular backend, which 
+      # runs in a separate container
+      - TRAPS_POWER_LOG_HOST_PATH=/home/jstubbs/gits/tapis/camera-traps-main/releases/0.3.3/power_output_dir
+      - TRAPS_POWER_LOG_LEVEL=DEBUG
+      - TRAPS_POWER_BACKEND=powerjoular
+      - TRAPS_TEST_POWER_FUNCTION=1
+      # 1 for debug; Set to 0 when actually use it to measure other plugin's power
+    volumes:
+      # mount the traps.toml in the current working directory.
+      - ./config/traps.toml:/traps.toml:ro
+      - ./power_output_dir:/logs # Path for CPU and GPU power logs
+      # mount the docker socket for starting powerjoular containers
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  oraclePlugin:
+    container_name: oracle_monitor
+    image: tapis/oracle_plugin:0.3.3
+    environment:
+      - ORACLE_PLUGIN_PORT=6011
+      - TRAPS_ORACLE_OUTPUT_PATH=/output
+    networks:
+      - cameratraps
+    pid: host
+
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+      - imageScoringPlugin
+
+    volumes:
+      - ./config/traps.toml:/traps.toml:ro
+      - ./oracle_plugin_dir:/output

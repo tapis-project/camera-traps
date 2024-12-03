@@ -3,7 +3,8 @@
 # namespace: gen_events
 
 class MonitorType(object):
-    ALL = 1
-    CPU = 2
-    GPU = 3
-    DRAM = 4
+    ALL = 0
+    CPU = 1
+    GPU = 2
+    DRAM = 3
+

@@ -9,44 +9,53 @@ services:
   # docker network. The default "hostname" used by the python plugin library (pyevents) is "engine"
   engine:
     container_name: engine
-    image: tapis/camera_traps_engine
+    image: tapis/camera_traps_engine:0.3.2
     networks:
       - cameratraps
     environment:
       - TRAPS_CONFIG_FILE=/traps.toml
     volumes:
       # mount the traps.toml in the current working directory.
-      - ./traps-external.toml:/traps.toml:ro
-      # mount the shared images directory from the host to the directory specified in traps.toml
-      - ./images_dir:/root/camera-traps/images
+      - ./config/traps.toml:/traps.toml:ro
+      # mount the image output directory from the host to the directory specified in traps.toml
+      # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+      # exist it will be created with root ownership.
+      - ./images_output_dir:/root/camera-traps/images
+      # mount the log4rs configuration file over the baked into the image.  Comment out
+      # this mount if you want to use the image's default logging configuration.
+      - ../../resources/log4rs.yml:/resources/log4rs.yml
 
   imageGeneratingPlugin:
     container_name: image_generating
-    image: tapis/image_generating_plugin_py
+    image: tapis/image_generating_plugin_py:0.3.2
     networks:
       - cameratraps
+    depends_on:
+      - engine
     environment:
       - IMAGE_GENERATING_PLUGIN_PORT=6000
     volumes:
       # mount the traps.toml in the current working directory.
-      - ./traps-external.toml:/traps.toml:ro
+      - ./config/traps.toml:/traps.toml:ro
       # mount the example images directory; this is the source of the images used for
       # generating NewImage events. The path `/example_images` is the default path
       # where the plugin looks for images. This can be changed by providing a different
       # configuration file. 
       # NOTE: this is NOT the shared images directory!!
-      # - /data/CDB_S1:/example_images:rw
-      - ../external_plugins/image_generating_plugin/example_images:/example_images:rw
+      - ../common/example_images:/example_images:ro
       # The following is optional but can be used to mount a different configuration file
       # into the Image Generating plugin. Note that if doing so, values in the configuration
       # file must match configurations provided in other parts of this file.
-      - ./image_gen_config.json:/input.json
+      - ./config/image_gen_config.json:/input.json
 
   imageScoringPlugin:
     container_name: image_scoring
-    image: tapis/image_scoring_plugin_py_3.8
+    image: tapis/image_scoring_plugin_py_3.8:0.3.2
     networks:
       - cameratraps
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
     environment:
       - IMAGE_SCORING_PLUGIN_PORT=6001
       # The IMAGE_PATH variable needs to match what is specified in the vouume mount below for the
@@ -58,7 +67,27 @@ services:
     volumes:
       # mount the traps.toml in the current working directory.
       # NOTE -- not currently used (TODO)
-      - ./traps-external.toml:/traps.toml:ro
+      - ./config/traps.toml:/traps.toml:ro
       # mount the shared images directory from the host to the container directory specified in the
       # IMAGE_PATH environment variable, above.
-      - ./images_dir:/input_images
+      - ./images_output_dir:/input_images
+
+  # powerMonitorPlugin:
+  #   container_name: power_monitor
+  #   image: tapis/power_monitor_plugin_py:0.3.2
+  #   networks:
+  #     - cameratraps
+  #   depends_on:
+  #     - engine
+  #     - imageGeneratingPlugin
+  #     - imageScoringPlugin
+  #   environment:
+  #     - IMAGE_GENERATING_PLUGIN_PORT=6010
+  #   volumes:
+  #     # mount the traps.toml in the current working directory.
+  #     - ./config/traps.toml:/traps.toml:ro
+  #     # mount the image output directory from the host to the directory specified in traps.toml
+  #     # Docker compose hijacks $HOME so we use a workaround.  If the source directory doesn't
+  #     # exist it will be created with root ownership.
+  #     - ./images_output_dir:/root/camera-traps/images
+

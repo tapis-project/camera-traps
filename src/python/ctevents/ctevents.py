@@ -3,7 +3,7 @@ import datetime
 import uuid
 from tokenize import String
 import flatbuffers
-from ctevents.gen_events import NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent
+from ctevents.gen_events import NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent, MonitorPowerStartEvent, MonitorPowerStopEvent, MonitorType
 from ctevents.gen_events import Event
 from ctevents.gen_events.EventType import EventType
 
@@ -12,6 +12,17 @@ import zmq
 from pyevents.events import publish_msg
 
 PYPLUGIN_TCP_PORT = 6000
+
+# pub const NEW_IMAGE_PREFIX: [u8; 2] = [0x01, 0x00];
+# pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];
+# pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];
+# pub const IMAGE_STORED_PREFIX:        [u8; 2] = [0x04, 0x00];
+# pub const IMAGE_DELETED_PREFIX:       [u8; 2] = [0x05, 0x00];
+# pub const PLUGIN_STARTED_PREFIX:      [u8; 2] = [0x10, 0x00];
+# pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];
+# pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];
+# pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];
+# pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];
 
 EVENT_TYPE_BYTE_PREFIX = {
     "NEW_IMAGE": b'\x01\x00',
@@ -22,6 +33,8 @@ EVENT_TYPE_BYTE_PREFIX = {
     "PLUGIN_STARTED": b'\x10\x00',
     "PLUGIN_TERMINATING": b'\x11\x00',
     "PLUGIN_TERMINATE": b'\x12\x00',
+    "MONITOR_POWER_START": b'\x20\x00',
+    "MONITOR_POWER_STOP": b'\x21\x00'
 }
 
 
@@ -428,6 +441,67 @@ def send_terminate_plugin_fb_event(socket, target_plugin_name, target_plugin_uui
     fb_data = _generate_terminate_plugin_fb_with_prefix(target_plugin_name, target_plugin_uuid)
     return publish_msg(socket, fb_data)
 
+
+def _generate_monitor_power_start_event(pids: list, monitor_types: list, monitor_seconds: int) -> bytearray:
+    """
+    Create a monitor power start event message
+    """
+    builder = flatbuffers.Builder(1024)
+    
+    # generate a time stamp string formatted  via ISO 8601
+    ts = datetime.datetime.utcnow().isoformat()
+    ts_fb = builder.CreateString(ts)
+    
+    # generate monitor start time stamp
+    monitor_start_ts = datetime.datetime.utcnow().isoformat()
+    monitor_start_ts_fb = builder.CreateString(monitor_start_ts)
+    
+    # Start adding Pids
+    MonitorPowerStartEvent.MonitorPowerStartEventStartPidsVector(builder, len(pids))
+    for pid in reversed(pids): 
+        builder.PrependInt32(pid)
+    pids_fb = builder.EndVector()
+    
+    # Start adding MonitorTypes
+    MonitorPowerStartEvent.MonitorPowerStartEventStartMonitorTypesVector(builder, len(monitor_types))
+    for monitor_type in reversed(monitor_types): 
+        builder.PrependInt8(monitor_type)
+    monitor_types_fb = builder.EndVector()
+    
+    # Start building the MonitorPowerStartEvent
+    MonitorPowerStartEvent.MonitorPowerStartEventStart(builder)
+    MonitorPowerStartEvent.MonitorPowerStartEventAddEventCreateTs(builder, ts_fb)
+    MonitorPowerStartEvent.MonitorPowerStartEventAddPids(builder, pids_fb)
+    MonitorPowerStartEvent.MonitorPowerStartEventAddMonitorTypes(builder, monitor_types_fb)
+    MonitorPowerStartEvent.MonitorPowerStartEventAddMonitorStartTs(builder, monitor_start_ts_fb)
+    MonitorPowerStartEvent.MonitorPowerStartEventAddMonitorSeconds(builder, monitor_seconds)
+    monitor_power_start_event = MonitorPowerStartEvent.MonitorPowerStartEventEnd(builder)
+    
+    # Start building the generic Event
+    Event.EventStart(builder)
+    Event.EventAddEventType(builder, EventType.MonitorPowerStartEvent)
+    Event.EventAddEvent(builder, monitor_power_start_event)
+    root_event = Event.EventEnd(builder)
+
+    builder.Finish(root_event)
+    return builder.Output()
+
+def _generate_monitor_power_start_event_with_prefix(pids: list, monitor_types: list, monitor_seconds: int) -> bytearray:
+    """
+    Create a monitor power start event message with prefix
+    """
+    fb = _generate_monitor_power_start_event(pids, monitor_types, monitor_seconds)
+    return _prepend_event_prefix("MONITOR_POWER_START", fb)
+
+def send_monitor_power_start_fb_event(socket, pids: list, monitor_types: list, monitor_seconds: int) -> str:
+    """
+    Send a monitor power event over the zmq socket
+    TODO: need way to handle multiple pids in future
+    """
+    fb_data = _generate_monitor_power_start_event_with_prefix(pids, monitor_types, monitor_seconds)
+    a = publish_msg(socket, fb_data)
+    return a
+
 def _bytes_to_event(b: bytearray):
     """
     Takes a bytes array, b, (conceptually, this `b` represents a message coming off the zmq socket), and 
@@ -479,6 +553,17 @@ def _event_to_typed_event(event):
         union_plugin_terminate_event = PluginTerminateEvent.PluginTerminateEvent()
         union_plugin_terminate_event.Init(event.Event().Bytes, event.Event().Pos)
         return union_plugin_terminate_event
+
+    if event_type_int == EventType.MonitorPowerStartEvent:
+        union_plugin_terminate_event = MonitorPowerStartEvent.MonitorPowerStartEvent()
+        union_plugin_terminate_event.Init(event.Event().Bytes, event.Event().Pos)
+        return union_plugin_terminate_event
+    
+    if event_type_int == EventType.MonitorPowerStopEvent:
+        union_plugin_terminate_event = MonitorPowerStopEvent.MonitorPowerStopEvent()
+        union_plugin_terminate_event.Init(event.Event().Bytes, event.Event().Pos)
+        return union_plugin_terminate_event
+
     raise Exception(f"Unrecognized event type {event_type_int}")
 
 

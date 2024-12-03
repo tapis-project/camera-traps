@@ -1,0 +1,376 @@
+name: Docker Image CI
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: ''
+        required: true
+        type: string
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push engine
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/camera_traps_engine:${{ env.TRAPS_REL }}
+          build-args: TRAPS_REL=${{ env.TRAPS_REL }}
+
+  pyevents:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push pyevents
+        uses: docker/build-push-action@v5
+        with:
+          context: https://github.com/tapis-project/event-engine.git#:pyevents
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/pyevents
+
+  pyevents_38:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push pyevents:3.8
+        uses: docker/build-push-action@v5
+        with:
+          context: https://github.com/tapis-project/event-engine.git#:pyevents
+          file: https://raw.githubusercontent.com/tapis-project/event-engine/main/pyevents/Dockerfile-3.8
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/pyevents:3.8
+
+  camera_traps_py:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push camera_traps_py
+        uses: docker/build-push-action@v5
+        with:
+          context: src/python
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/camera_traps_py:${{ env.TRAPS_REL }}
+
+  camera_traps_py_38:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push camera_traps_py_3.8
+        uses: docker/build-push-action@v5
+        with:
+          context: src/python
+          file: src/python/Dockerfile-3.8
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/camera_traps_py_3.8:${{ env.TRAPS_REL }}
+
+  image_scoring_plugin_py_38:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Delete extra files
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Build and push general image_scoring_plugin
+        uses: docker/build-push-action@v5
+        with:
+          context: external_plugins/image_scoring_plugin
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/image_scoring_plugin_py_3.8:${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
+          file: external_plugins/image_scoring_plugin/Dockerfile-3.8
+
+  image_scoring_plugin_py_nano_38:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Delete extra files
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Build and push image_scoring_plugin for nano
+        uses: docker/build-push-action@v5
+        with:
+          context: external_plugins/image_scoring_plugin
+          platforms: linux/arm64
+          push: true
+          tags: tapis/image_scoring_plugin_py_nano_3.8:${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
+          file: external_plugins/image_scoring_plugin/Dockerfile-3.8-nano
+
+  image_generating_plugin:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push image_generating_plugin
+        uses: docker/build-push-action@v5
+        with:
+          context: external_plugins/image_generating_plugin
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/image_generating_plugin_py:${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
+
+  power_measuring_plugin:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push power_measuring_plugin
+        uses: docker/build-push-action@v5
+        with:
+          context: external_plugins/power_measuring_plugin
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/power_measuring_plugin_py:${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
+
+  oracle_plugin:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push oracle_plugin
+        uses: docker/build-push-action@v5
+        with:
+          context: external_plugins/oracle_plugin
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/oracle_plugin:${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}
+
+  custom_install:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push camera-traps-installer
+        uses: docker/build-push-action@v5
+        with:
+          context: custom_install
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: tapis/camera-traps-installer:${{ env.TRAPS_REL }}
+          build-args: REL=${{ env.TRAPS_REL }}

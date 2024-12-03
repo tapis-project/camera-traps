@@ -1,14 +1,17 @@
-# This is the camera-traps application configuration file.
+# This is the camera-traps application configuration file for versions 0.1.x of the application.
+# It assumes the use of containers and docker-compose as the deployment mechanism.
 
-title = "Camera-Traps Application Configuration"
+title = "Camera-Traps Application Configuration v0.3.2"
 
 # The event engine's publish and subscribe port used to create the event_engine::App instance.
 publish_port = 5559
 subscribe_port = 5560
 
 # An absolute path to the image directory is required but a file name prefix is optional.  
-# If present the prefix is preprended to generated image file names.
-images_dir = "~/camera-traps/images"
+# If present the prefix is preprended to generated image file names.  This is the directory
+# into which the image_recv_plugin writes incoming images and the image_store_plugin may
+# delete images or output the scores for images.
+images_output_dir = "/root/camera-traps/images"
 # image_file_prefix = ""
 
 # The container for both internal and external plugins.  Internal plugins are written in rust 
@@ -36,21 +39,37 @@ internal_actions = [
 # External plugins require more configuration information than internal plugins.
 # Each plugin must subscribe to PluginTerminateEvent.  
 # 
-# The ext_image_gen_test_plugin is configured to allow the Rust integration_tests.rs
-# program to run.  The ext_image_score_plugin is an example of how an external scoring
-# plugin could be configured. 
+# Note that each plugin must specify the external port to use in TWO PLACES: here as well as
+# in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the
+# docker-compose.yml file. 
 [[plugins.external]]
-    plugin_name = "ext_image_gen_test_plugin"
+    plugin_name = "ext_image_gen_plugin"
     id = "d3266646-41ec-11ed-a96f-5391348bab46"
     external_port = 6000
     subscriptions = [
         "PluginTerminateEvent"
     ]
-#[[plugins.external]]
-#    plugin_name = "ext_image_score_plugin"
-#    id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
-#    external_port = 6001
+[[plugins.external]]
+   plugin_name = "ext_image_score_plugin"
+   id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
+   external_port = 6001
+   subscriptions = [
+       "ImageReceivedEvent",
+       "PluginTerminateEvent"
+   ]
+# [[plugins.external]]
+#    plugin_name = "ext_power_monitor_plugin"
+#    id = "4a0fca25-1935-472a-8674-58f22c3a32b3"
+#    external_port = 6010
 #    subscriptions = [
-#        "ImageReceivedEvent",
+#        "MonitorPowerStartEvent",
+#        "MonitorPowerStopEvent",
+#        "PluginTerminateEvent"
+#    ]
+# [[plugins.external]]
+#    plugin_name = "ext_power_control_plugin"
+#    id = "a59621f2-4db6-4892-bda1-59ecb7ff24ae"
+#    external_port = 6011
+#    subscriptions = [
 #        "PluginTerminateEvent"
 #    ]
