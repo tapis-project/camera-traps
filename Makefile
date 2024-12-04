@@ -43,7 +43,7 @@ build-oracle:
 build-py-plugins: build-camerapy build-scoring build-generating build-power build-oracle
 
 build-installer: 
-	cd custom_install && docker build -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../
+	cd installer && docker build -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../
 
 build: build-engine build-py-plugins build-installer
 
@@ -61,4 +61,4 @@ push-all:
 	cd external_plugins/image_generating_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/image_generating_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 	cd external_plugins/power_measuring_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/power_measuring_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 	cd external_plugins/oracle_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/oracle_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
-	cd custom_install && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../
+	cd installer && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../
