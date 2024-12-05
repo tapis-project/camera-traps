@@ -1,0 +1,17 @@
+name: Test Workflow
+
+on:
+  workflow_dispatch
+
+jobs:
+  getrepoinfo:
+    runs-on: ubuntu-latest
+    environment: main
+    steps:
+      - name: Curl test suite repo
+        run: |
+          curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.TESTSUITE_REPOSITORY_ACCESS_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/repos/ICICLE-ai/ml_workbench_test_suite \
