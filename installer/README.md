@@ -67,7 +67,7 @@ Important Optional Configurations
 * `ct_version`: The release version (i.e., image tag) for 
   the camera traps software container images.
 
-  * Example: 0.3.3
+  * Example: 0.4.0
 
 * `run_containers_as_user`: Whether to run all containers 
   as the user's (i.e., the installer's) UID and GID. (Default: true)
@@ -189,7 +189,7 @@ This is a complete list of all possible configurations.
 
 * `ct_version`: The release version (i.e., image tag) for the camera traps software container images 
 
-  * Example: 0.3.3
+  * Example: 0.4.0
 
 * `host_config_dir`: Path on the host where configuration 
   directory resides. 

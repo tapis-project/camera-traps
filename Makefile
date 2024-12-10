@@ -4,8 +4,8 @@
 # its value will be the tag assigned to all images that get built.
 # For example:
 #
-#    export TRAPS_REL=0.3.3
-#    export TRAPS_REL=0.3.
+#    export TRAPS_REL=0.4.0
+#    export TRAPS_REL=0.4.
 #
 # NOTE: Right now, building with tag `latest` is not supported. Instead,
 #       build a semantic version and then tag the result as latest.
