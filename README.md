@@ -169,17 +169,8 @@ docker run --gpus=all --rm -it ubuntu nvidia-smi
 ```
 The output should be similar to the output from Step 1.
 
-3. *Update the Camera Traps Compose File to Use GPUs*. Starting with release 0.3.3, the official Camera Traps releases docker-compose files include stanzas for making NVIDIA GPUs available to 
-both the Image Scoring and Power Monitoring plugins. At this time, those stanzas must be 
-uncommented; see the [docker-compose.yml](releases/0.3.3/docker-compose.yml) file for more details.
-
-
-## Support for ARM CPUs
-
-*This section is a work in progress...*
-
-We are currently working on support for ARM CPUs, including support for Mac OSX M* hardware. 
-
+3. *Update the Camera Traps Compose File to Use GPUs*. Starting with release 0.4, the installer includes options for making NVIDIA GPUs available to 
+both the Image Scoring and Power Monitoring plugins. See the [Installer README](installer/README.md) for more details.
 
 
 # Developer Information
@@ -239,10 +230,10 @@ The instructions in this section assume [Docker](https://docs.docker.com/get-doc
 From the top-level camera-traps directory, issue the following command to build the application's Docker images:
 
 make build
-See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.  From the [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) directory, navigate to the subdirectory of the specific release you want to run.  Issue the following command to run the application, including the external plugins for which it's configured:
+See [Makefile](https://github.com/tapis-project/camera-traps/blob/main/Makefile) for details.  Use the installer [install script](installer/install.sh) to create a run directory. See the installer [README](installer/README.md) for more details. Then, navigate to the new run directory. Issue the following command to run the application, including the external plugins for which it's configured:
 
 docker-compose up
-See [docker-compose.yaml](https://github.com/tapis-project/camera-traps/blob/main/releases/0.3.2/docker-compose.yml) for details.  From the same release directory, issue the following command to stop the application:
+See [docker-compose.yaml](installer/templates/docker-compose.yml) for details.  From the same release directory, issue the following command to stop the application:
 
 docker-compose down
 
@@ -273,7 +264,7 @@ When implementing a plugin the choice between internal and external is often tec
 
 ## Release Procedures
 
-When development on a new release begins a launch configuration is created in the new release's own [releases](https://github.com/tapis-project/camera-traps/tree/main/releases) subdirectory.  When development completes and the final version of the release's images are pushed to docker hub, we tag those images with the release number and with the "latest" tag.
+When development on a new release begins, create a new branch. If you would to test your changes, merge into the dev branch. This will trigger the building of docker images with the latest tag and a [suite of tests](https://github.com/ICICLE-ai/ml_workbench_test_suite).  When development completes and the final version of the release's images are pushed to docker hub, we tag those images with the release number.
 
 To be able to rebuild a release at anytime, we also tag the release's source code in github.  The tag is the same as the release version number.  Once confident that the tagged code is stable, release tags can be protected using github [tag protection](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/configuring-tag-protection-rules).
 
