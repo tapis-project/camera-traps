@@ -12,8 +12,10 @@ The event-engine supports *internal* and *external* plugins.  Internal plugins a
 
 To quickly start the application under [Docker](https://docs.docker.com/get-docker/) using docker-compose, follow these steps:
 
-1. cd releases
-2. Follow the directions in the README.md file
+1. ./installer/install.sh $PWD ./installer/example_input.yml
+2. cd test
+3. docker-compose up
+4. docker-compose down
 
 ## Application Configuration
 
