@@ -51,8 +51,8 @@ COPY --from=builder /camera-traps/target/release/camera-traps .
 # copy default configs
 # --build-arg used to pass in the release number
 ARG TRAPS_REL
-COPY releases/$TRAPS_REL/config/traps.toml /root/traps.toml 
-COPY releases/$TRAPS_REL/config/traps-image-store.toml /root/traps-image-store.toml
+#COPY releases/$TRAPS_REL/config/traps.toml /root/traps.toml 
+#COPY releases/$TRAPS_REL/config/traps-image-store.toml /root/traps-image-store.toml
 COPY resources/log4rs.yml /resources/log4rs.yml
 
 RUN chmod -R 0777 /* || true 

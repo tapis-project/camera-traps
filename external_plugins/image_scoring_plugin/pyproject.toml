@@ -54,7 +54,7 @@ traitlets = "5.4.0"
 typing-extensions = "4.4.0"
 urllib3 = "1.26.14"
 wcwidth = "0.2.5"
-tapis-ctevents = "^0.3.1"
+tapis-ctevents = "^0.4.0"
 
 [build-system]
 requires = ["poetry-core"]
