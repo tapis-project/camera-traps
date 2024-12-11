@@ -4,14 +4,14 @@ A python library for working with the Camera Traps events messages. This library
 high-level convenience functions for easily sending and receiving Camera Traps events. 
 
 There are two Docker images associated with this package, tapis/camera_traps_py and tapis/camera_traps_py_3.8; each 
-image provides a tag for each release, for example:  tapis/camera_traps_py:0.3.3 and tapis/camera_traps_py_3.8:0.3.3 
-for the 0.3.3 release. 
+image provides a tag for each release, for example:  tapis/camera_traps_py:0.4.0 and tapis/camera_traps_py_3.8:0.4.0 
+for the 0.4.0 release. 
 
 The images bundle a test file that can be executed directly in the image; for example: 
 
 ```
 # start a container 
-docker run -it --rm --entrypoint=bash tapis/camera_traps_py:0.3.3
+docker run -it --rm --entrypoint=bash tapis/camera_traps_py:0.4.0
 
 # run the tests 
 python test_ctevents.py

@@ -3,6 +3,9 @@ name: Docker Image CI
 on:
   release:
     types: [released]
+  push:
+    branches:
+      - dev
   workflow_dispatch:
     inputs:
       release_tag:
@@ -19,6 +22,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -51,6 +56,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -82,6 +89,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -114,6 +123,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -145,6 +156,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -177,6 +190,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -216,6 +231,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -255,6 +272,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -287,6 +306,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -319,6 +340,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -351,6 +374,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -369,8 +394,28 @@ jobs:
       - name: Build and push camera-traps-installer
         uses: docker/build-push-action@v5
         with:
-          context: custom_install
+          context: installer
           platforms: linux/amd64,linux/arm64
           push: true
           tags: tapis/camera-traps-installer:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
+
+  upload_testinfo:
+    runs-on: ubuntu-latest
+    environment: main
+    steps: 
+      - name: Write to testinfo.txt
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "CTVER=$TRAPS_REL" >> testinfo.txt
+      - name: Upload test info
+        uses: actions/upload-artifact@v4
+        with:
+          name: testinfo
+          path: testinfo.txt

@@ -10,7 +10,7 @@ python = "^3.10"
 pillow = "^9.4.0"
 pyzmq = "^25.0.0"
 tapis-pyevents = "^0.1.0"
-tapis-ctevents = "^0.3.1"
+tapis-ctevents = "^0.4.0"
 
 
 [build-system]

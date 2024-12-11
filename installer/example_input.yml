@@ -1,0 +1,2 @@
+install_dir: test
+use_gpu_in_scoring: false
