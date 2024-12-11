@@ -49,4 +49,10 @@ ADD run_detector_multi.py /run_detector_multi.py
 RUN chmod +x /entrypoint.sh
 RUN chmod -R 0777 /example_images /load_test_image_scoring.py /ai4eutils /md_v5a.0.0.pt /camera_traps /yolov5 /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py /image_scoring_plugin.py || true 
 
+# Adding for Triton E2E Example
+# Install http only version of Triton Client
+RUN pip install "tritonclient[http]"
+# Replace modified MegaDetector file (Just has code to call Yolov5 on Triton).
+ADD pytorch_detector.py /camera_traps_MD/pytorch_detector.py 
+
 ENTRYPOINT ["./entrypoint.sh"]
