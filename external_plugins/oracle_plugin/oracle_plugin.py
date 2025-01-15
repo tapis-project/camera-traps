@@ -7,6 +7,8 @@ import time
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event
 from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, ImageReceivedEvent, PluginTerminatingEvent
+from filelock import FileLock
+
 
 log_level = os.environ.get("ORACLE_LOG_LEVEL", "INFO")
 logger = logging.getLogger("Oracle Monitor")
@@ -97,6 +99,7 @@ def update_json(uuid, updated_data):
     """
     global total_images_processed, total_images_generated
     
+    lock = FileLock(f'{uuid_image_mapping_path}.lock')
     # load current dictionary from the image_mapping_final file 
     existing_image_mapping_final = {}
     try:
@@ -117,22 +120,23 @@ def update_json(uuid, updated_data):
         logger.info(f"Fetching {uuid} from {uuid_image_mapping_path}")
         uuid_image_mapping = {}
         try:
-            with open(uuid_image_mapping_path, 'r') as file:
-                try:
-                    uuid_image_mapping = json.load(file)
-                    # If we were able to load the uuid_image_mapping file, try to recover any UUID that 
-                    # was previously on the error list 
-                    if uuids_with_errors:
-                        for failed_uuid in uuids_with_errors:
-                            existing_image_mapping_final[failed_uuid] = uuid_image_mapping[failed_uuid]
-                            uuids_with_errors.remove(failed_uuid)
-                
-                # it is possible the image generating plugin was writing to the file at the same time and,
-                # at the moment we read the file, the contents of the file are not valid JSON.
-                except json.JSONDecodeError as e:                    
-                    logger.error(f"JSON loading Error loading uuid_image_mapping.json file while processing uuid: {uuid}; details: {e}")
-                    # we were not able to read the uuid_image_mapping.json file, so add this uuid to the error list
-                    uuids_with_errors.append(uuid)
+            with lock:
+                with open(uuid_image_mapping_path, 'r') as file:
+                    try:
+                        uuid_image_mapping = json.load(file)
+                        # If we were able to load the uuid_image_mapping file, try to recover any UUID that
+                        # was previously on the error list
+                        if uuids_with_errors:
+                            for failed_uuid in uuids_with_errors:
+                                existing_image_mapping_final[failed_uuid] = uuid_image_mapping[failed_uuid]
+                                uuids_with_errors.remove(failed_uuid)
+
+                    # it is possible the image generating plugin was writing to the file at the same time and,
+                    # at the moment we read the file, the contents of the file are not valid JSON.
+                    except json.JSONDecodeError as e:
+                        logger.error(f"JSON loading Error loading uuid_image_mapping.json file while processing uuid: {uuid}; details: {e}")
+                        # we were not able to read the uuid_image_mapping.json file, so add this uuid to the error list
+                        uuids_with_errors.append(uuid)
         except FileNotFoundError:
             # ths uuid_image_mapping file shoud always at least exist
             logger.error(f"File {uuid_image_mapping_path} not found. This is unexpected and represents a bug.")
@@ -157,6 +161,7 @@ def add_terminating_function_json(special_uuid):
     them 
 
     """
+    lock = FileLock(f'{uuid_image_mapping_path}.lock')
     # read the existing output data 
     with open(output_file, "r") as f: 
         existing_image_mapping_final = json.load(f)
@@ -166,11 +171,12 @@ def add_terminating_function_json(special_uuid):
         uuid_image_mapping = {}
         # try to read the mapping file and make the corrections
         try:
-            with open(uuid_image_mapping_path, 'r') as file:
-                try:
-                    uuid_image_mapping = json.load(file)
-                except Exception as e:
-                    logger.error(f"Could not load JSON from uuid_image_mapping file at the very end; details: {e}")
+            with lock:
+                with open(uuid_image_mapping_path, 'r') as file:
+                    try:
+                        uuid_image_mapping = json.load(file)
+                    except Exception as e:
+                        logger.error(f"Could not load JSON from uuid_image_mapping file at the very end; details: {e}")
         except Exception as e:
             logger.error(f"Got exception trying to open the uuid_image_mapping file at the very end; details: {e}")
         if uuid_image_mapping:
@@ -257,12 +263,12 @@ def main():
                 global received_terminating_signal
                 received_terminating_signal = True
                 total_images_generated = compute_total_images_generated()
-                logger.info(f"Total images processed: {total_images_generated}")         
+                logger.info(f"Total images processed: {total_images_generated}")
         
         # Once we have received the terminating signal, we compute total_images_processed 
         if received_terminating_signal:
             total_images_processed = compute_total_images_processed()
-            logger.info(f"Oracle has processed: {total_images_processed} out of {total_images_generated}")       
+            logger.info(f"Oracle has processed: {total_images_processed} out of {total_images_generated}")
             if total_images_generated < 0:
                 total_images_generated = compute_total_images_generated()
        
