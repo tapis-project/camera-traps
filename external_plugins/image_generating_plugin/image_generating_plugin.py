@@ -12,6 +12,7 @@ import requests
 import zipfile
 from io import BytesIO
 import logging
+from filelock import FileLock
 
 log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 input_image_path = os.environ.get("INPUT_IMAGE_PATH", "/example_images")
@@ -118,19 +119,21 @@ def oracle_monitoring_info(track_image_count, image_uuid, image_name, ground_tru
     # Read the uuid image mapping file to build the current map:
     mapping = {}
     image_mapping_file = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
-    if os.path.exists(image_mapping_file):
-        with open(image_mapping_file, 'r') as file:
-            try:
-                mapping = json.load(file)
-            except json.JSONDecodeError as e:
-                logger.error("Failed to decode JSON, exception:", e)
+    lock = FileLock(f'{image_mapping_file}.lock')
+    with lock:
+        if os.path.exists(image_mapping_file):
+            with open(image_mapping_file, 'r') as file:
+                try:
+                    mapping = json.load(file)
+                except json.JSONDecodeError as e:
+                    logger.error("Failed to decode JSON, exception:", e)
    
-    # Insert the new image into the map
-    mapping[image_uuid] = image_mapping_dict
-    
-    # Write the updated map back to the file
-    with open(image_mapping_file, 'w') as file:
-        json.dump(mapping, file, indent=2)
+        # Insert the new image into the map
+        mapping[image_uuid] = image_mapping_dict
+        
+        # Write the updated map back to the file
+        with open(image_mapping_file, 'w') as file:
+            json.dump(mapping, file, indent=2)
 
 
 def get_binary(file_name, binary_img, img_format, track_image_count, total_images, ground_truth):
