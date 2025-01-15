@@ -16,9 +16,6 @@
 # 2. Issue make with one of the build targets.  
 #    Example: 'make build' builds all targets.
 
-clean:
-	cd releases/${TRAPS_REL}; rm -rf power_output_dir/*; rm -rf images_output_dir/*; rm -rf oracle_plugin_dir/*; 
-
 build-engine:
 	docker build -t tapis/camera_traps_engine:${TRAPS_REL} --build-arg TRAPS_REL=${TRAPS_REL} .
 
