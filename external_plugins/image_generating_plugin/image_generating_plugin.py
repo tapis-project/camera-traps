@@ -12,12 +12,9 @@ import requests
 import zipfile
 from io import BytesIO
 import logging
-from filelock import FileLock
 
 log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 input_image_path = os.environ.get("INPUT_IMAGE_PATH", "/example_images")
-use_ground_truth_url = os.environ.get("USE_CUSTOM_GROUND_TRUTH_FILE_URL", False)
-ground_truth_url = os.environ.get("CUSTOM_GROUND_TRUTH_URL")
 ground_truth_file = os.environ.get("GROUND_TRUTH_FILE", "/ground_truth_dir/ground_truth.csv")
 
 # The model_variant is only used to specify the ID in the ground_truth file, so we use that environment 
@@ -62,21 +59,11 @@ def load_ground_truth():
     logger.info("Retrieving the ground truth file in image generating plugin")
     ground_truth_data = {}
     try:
-        if use_ground_truth_url:
-            logger.info(f"Retrieving custom ground truth file: {ground_truth_url}")
-            response = requests.get(ground_truth_url)
-            if response.status_code == 200:
-                csv_content = response.content.decode('utf-8').splitlines()
-                reader = csv.DictReader(csv_content)
-                for row in reader:
-                    image_name = row['image_name']
-                    ground_truth_data[image_name] = row['ground_truth']
-        else:
-            with open(ground_truth_file, mode='r') as ground_truth:
-                reader = csv.DictReader(ground_truth)
-                for row in reader:
-                    image_name = row['image_name']
-                    ground_truth_data[image_name] = row['ground_truth']
+        with open(ground_truth_file, mode='r') as ground_truth:
+            reader = csv.DictReader(ground_truth)
+            for row in reader:
+                image_name = row['image_name']
+                ground_truth_data[image_name] = row['ground_truth']
     except FileNotFoundError:
         logger.error(f"File not found: {ground_truth_file}")
     except KeyError as e:
@@ -119,21 +106,19 @@ def oracle_monitoring_info(track_image_count, image_uuid, image_name, ground_tru
     # Read the uuid image mapping file to build the current map:
     mapping = {}
     image_mapping_file = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
-    lock = FileLock(f'{image_mapping_file}.lock')
-    with lock:
-        if os.path.exists(image_mapping_file):
-            with open(image_mapping_file, 'r') as file:
-                try:
-                    mapping = json.load(file)
-                except json.JSONDecodeError as e:
-                    logger.error("Failed to decode JSON, exception:", e)
+    if os.path.exists(image_mapping_file):
+        with open(image_mapping_file, 'r') as file:
+            try:
+                mapping = json.load(file)
+            except json.JSONDecodeError as e:
+                logger.error("Failed to decode JSON, exception:", e)
    
-        # Insert the new image into the map
-        mapping[image_uuid] = image_mapping_dict
-        
-        # Write the updated map back to the file
-        with open(image_mapping_file, 'w') as file:
-            json.dump(mapping, file, indent=2)
+    # Insert the new image into the map
+    mapping[image_uuid] = image_mapping_dict
+    
+    # Write the updated map back to the file
+    with open(image_mapping_file, 'w') as file:
+        json.dump(mapping, file, indent=2)
 
 
 def get_binary(file_name, binary_img, img_format, track_image_count, total_images, ground_truth):
@@ -202,26 +187,25 @@ def process_images(input_image_path, ground_truth):
     logger.info(f"The input image path specified by the user:{input_image_path}")
     if input_image_path.endswith(('.zip', '.rar')):
         extract_from_zipfile(input_image_path, ground_truth)
-    else:
-        track_image_count = 0
-        # NOTE: this just counts the total number of files (not including subdirectories) in the path; later, we check for the
-        #       file extension and only process supported types, so this could be an issue.
-        total_images = len([name for name in os.listdir(input_image_path) if os.path.isfile(os.path.join(input_image_path, name))])
+    track_image_count = 0
+    # NOTE: this just counts the total number of files (not including subdirectories) in the path; later, we check for the
+    #       file extension and only process supported types, so this could be an issue.
+    total_images = len([name for name in os.listdir(input_image_path) if os.path.isfile(os.path.join(input_image_path, name))])
+    
+    # Iterate through the input image directory and process each file of a supported extension.
+    for image_file in os.listdir(input_image_path):
+        file_name = os.path.join(input_image_path, image_file)
         
-        # Iterate through the input image directory and process each file of a supported extension.
-        for image_file in os.listdir(input_image_path):
-            file_name = os.path.join(input_image_path, image_file)
-            
-            # check if the file is supported
-            if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
-                track_image_count += 1
-                # read the binary contents of the file and determine the format officially
-                with open(file_name, "rb") as f:
-                    binary_img = f.read()            
-                img = Image.open(file_name)
-                img_format = img.format
-                # get_binary does the main processing for each image
-                get_binary(file_name, binary_img, img_format, track_image_count, total_images, ground_truth)
+        # check if the file is supported
+        if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            track_image_count += 1
+            # read the binary contents of the file and determine the format officially
+            with open(file_name, "rb") as f:
+                binary_img = f.read()            
+            img = Image.open(file_name)
+            img_format = img.format
+            # get_binary does the main processing for each image
+            get_binary(file_name, binary_img, img_format, track_image_count, total_images, ground_truth)
 
 
 def main():

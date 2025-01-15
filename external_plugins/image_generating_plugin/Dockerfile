@@ -25,7 +25,7 @@ RUN chmod -R 0777 /* || true
 
 RUN pip install opencv-contrib-python-headless 
 RUN pip install PILLOW
-RUN pip install requests filelock
+RUN pip install requests
 ADD input_example.json /input.json
 ADD image_generating_plugin.py /image_generating_plugin.py
 
