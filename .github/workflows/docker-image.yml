@@ -129,7 +129,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: pyevents
-          file: Dockerfile-3.8
+          file: pyevents/Dockerfile-3.8
           platforms: linux/amd64,linux/arm64
           push: true
           tags: tapis/pyevents:3.8
