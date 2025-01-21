@@ -3,6 +3,9 @@ name: Docker Image CI
 on:
   release:
     types: [released]
+  pull_request:
+    branches:
+      - master
   push:
     branches:
       - dev
@@ -28,6 +31,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -63,6 +68,9 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
             PYEVENTS_BRANCH=${{ inputs.pyevents_branch }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+            PYEVENTS_BRANCH=main
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
             PYEVENTS_BRANCH=main
           else
@@ -105,6 +113,9 @@ jobs:
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
             PYEVENTS_BRANCH=main
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
+            PYEVENTS_BRANCH=main
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
             PYEVENTS_BRANCH=main
@@ -145,6 +156,8 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -178,6 +191,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -213,6 +228,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -256,6 +273,8 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -298,6 +317,8 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -332,6 +353,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -368,6 +391,8 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -402,6 +427,8 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -435,6 +462,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
