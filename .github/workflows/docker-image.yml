@@ -3,6 +3,9 @@ name: Docker Image CI
 on:
   release:
     types: [released]
+  pull_request:
+    branches:
+      - master
   push:
     branches:
       - dev
@@ -11,6 +14,11 @@ on:
       release_tag:
         description: ''
         required: true
+        type: string
+      pyevents_branch:
+        default: 'main'
+        description: ''
+        required: false
         type: string
 
 jobs:
@@ -23,6 +31,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -56,14 +66,24 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+            PYEVENTS_BRANCH=${{ inputs.pyevents_branch }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+            PYEVENTS_BRANCH=main
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
+            PYEVENTS_BRANCH=main
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
+            PYEVENTS_BRANCH=main
           fi
           echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+          echo "PYEVENTS_BRANCH=$PYEVENTS_BRANCH" >> "$GITHUB_ENV"
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          repository: tapis-project/event-engine
+          ref: ${{ env.PYEVENTS_BRANCH }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -76,7 +96,7 @@ jobs:
       - name: Build and push pyevents
         uses: docker/build-push-action@v5
         with:
-          context: https://github.com/tapis-project/event-engine.git#:pyevents
+          context: pyevents
           platforms: linux/amd64,linux/arm64
           push: true
           tags: tapis/pyevents
@@ -89,14 +109,24 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
+            PYEVENTS_BRANCH=${{ inputs.pyevents_branch }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+            PYEVENTS_BRANCH=main
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
+            PYEVENTS_BRANCH=main
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
+            PYEVENTS_BRANCH=main
           fi
           echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+          echo "PYEVENTS_BRANCH=$PYEVENTS_BRANCH" >> "$GITHUB_ENV"
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          repository: tapis-project/event-engine
+          ref: ${{ env.PYEVENTS_BRANCH }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -109,8 +139,8 @@ jobs:
       - name: Build and push pyevents:3.8
         uses: docker/build-push-action@v5
         with:
-          context: https://github.com/tapis-project/event-engine.git#:pyevents
-          file: https://raw.githubusercontent.com/tapis-project/event-engine/main/pyevents/Dockerfile-3.8
+          context: pyevents
+          file: pyevents/Dockerfile-3.8
           platforms: linux/amd64,linux/arm64
           push: true
           tags: tapis/pyevents:3.8
@@ -118,12 +148,15 @@ jobs:
   camera_traps_py:
     runs-on: ubuntu-latest
     environment: main
+    needs: [pyevents, pyevents_38]
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -151,12 +184,15 @@ jobs:
   camera_traps_py_38:
     runs-on: ubuntu-latest
     environment: main
+    needs: [pyevents, pyevents_38]
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -185,12 +221,15 @@ jobs:
   image_scoring_plugin_py_38:
     runs-on: ubuntu-latest
     environment: main
+    needs: camera_traps_py_38
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -226,12 +265,15 @@ jobs:
   image_scoring_plugin_py_nano_38:
     runs-on: ubuntu-latest
     environment: main
+    needs: camera_traps_py_38
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -267,12 +309,15 @@ jobs:
   image_generating_plugin:
     runs-on: ubuntu-latest
     environment: main
+    needs: camera_traps_py
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -301,12 +346,15 @@ jobs:
   power_measuring_plugin:
     runs-on: ubuntu-latest
     environment: main
+    needs: camera_traps_py
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -335,12 +383,15 @@ jobs:
   oracle_plugin:
     runs-on: ubuntu-latest
     environment: main
+    needs: camera_traps_py
     steps:
       - name: Set TRAPS_REL
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
@@ -376,6 +427,8 @@ jobs:
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
           fi
@@ -409,6 +462,8 @@ jobs:
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             TRAPS_REL=${{ inputs.release_tag }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
             TRAPS_REL=latest
           else
             TRAPS_REL=${{ github.event.release.tag_name }}
