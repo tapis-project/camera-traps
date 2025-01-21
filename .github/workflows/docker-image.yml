@@ -74,7 +74,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: khsa1/event-engine
+          repository: tapis-project/event-engine
           ref: ${{ env.PYEVENTS_BRANCH }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -114,7 +114,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: khsa1/event-engine
+          repository: tapis-project/event-engine
           ref: ${{ env.PYEVENTS_BRANCH }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
