@@ -38,8 +38,6 @@ ADD validate_schemas.py /validate_schemas.py
 ADD powerjoular_backend.py /powerjoular_backend.py 
 
 RUN chmod -R 0777 /power_measuring_plugin.py /jtop_backend.py /scaphandre_backend.py /generate_power_summary.py /validate_schemas.py /powerjoular_backend.py /logs || true 
-# increase timeout for jtop library
-RUN sed -i 's/^TIMEOUT_GAIN = 3/TIMEOUT_GAIN = 15/' /usr/local/lib/python3.8/site-packages/jtop/jtop.py
 
 ENV TRAPS_TEST_POWER_FUNCTION=1
 
