@@ -27,9 +27,11 @@ RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/dow
 
 RUN pip install --upgrade pip
 ADD requirements.txt /requirements.txt
+ADD ultralytics.patch /ultralytics.patch
 RUN pip install -r requirements.txt
 
 RUN git clone https://github.com/ICICLE-ai/camera_traps -b inference \
+    && cd camera_traps && git apply ultralytics.patch && rm ultralytics.patch && cd .. \
     && git clone https://github.com/microsoft/ai4eutils \
     && git clone https://github.com/ultralytics/yolov5/ \
     && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
