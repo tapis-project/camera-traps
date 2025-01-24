@@ -20,6 +20,10 @@ on:
         description: ''
         required: false
         type: string
+      run_tests:
+        description: 'trigger test suite'
+        type: boolean
+        default: false
 
 jobs:
   engine:
@@ -474,3 +478,16 @@ jobs:
         with:
           name: testinfo
           path: testinfo.txt
+
+  trigger_tests:
+    runs-on: ubuntu-latest
+    environment: main
+    needs: [engine, image_scoring_plugin_py_38, image_scoring_plugin_py_nano_38, image_generating_plugin, power_measuring_plugin, oracle_plugin, custom_install]
+    steps:
+      - name: Check if tests are disabled
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == false ]]
+          then
+            echo "Tests are disabled"
+            exit 1
+          fi
