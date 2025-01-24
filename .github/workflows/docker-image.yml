@@ -482,7 +482,7 @@ jobs:
   trigger_tests:
     runs-on: ubuntu-latest
     environment: main
-    needs: [image_scoring_plugin_py_38, image_scoring_plugin_py_nano_38, image_generating_plugin, power_measuring_plugin, oracle_plugin, custom_install]
+    needs: [engine, image_scoring_plugin_py_38, image_scoring_plugin_py_nano_38, image_generating_plugin, power_measuring_plugin, oracle_plugin, custom_install]
     steps:
       - name: Check if tests are disabled
         run: |
