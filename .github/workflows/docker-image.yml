@@ -486,7 +486,7 @@ jobs:
     steps:
       - name: Check if tests are disabled
         run: |
-          if [[ ${{ github.event_name == 'workflow_dispatch' }} == false ]]
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]] && [ "${{ inputs.run_tests }}" == "false" ];
           then
             echo "Tests are disabled"
             exit 1
