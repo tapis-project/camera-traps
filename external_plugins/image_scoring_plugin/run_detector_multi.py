@@ -42,46 +42,6 @@ DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.005
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
 
-# Label mapping for MegaDetector
-model_variant = os.environ.get('MODEL_TYPE', '0')
-if model_variant == "2":
-# Label mapping for MegaDetector
-    DEFAULT_DETECTOR_LABEL_MAP = {
-        "1": "bird",
-        "2": "eastern gray squirrel",
-        "3": "eastern chipmunk",
-        "4": "woodchuck",
-        "5": "wild turkey",
-        "6": "white-tailed deer",
-        "7": "virginia opossum",
-        "8": "eastern cottontail",
-        "9": "empty",
-        "10": "vehicle",
-        "11": "striped skunk",
-        "12": "red fox",
-        "13": "eastern fox squirrel",
-        "14": "northern raccoon",
-        "15": "grey fox",
-        "16": "horse",
-        "17": "dog",
-        "18": "american crow",
-        "19": "chicken",
-        "20": "domestic cat",
-        "21": "coyote",
-        "22": "bobcat",
-        "23": "american black bear",
-        # available in megadetector v4+
-    }
-else:
-    DEFAULT_DETECTOR_LABEL_MAP = {
-        '1': 'animal',
-        '2': 'person',
-        '3': 'vehicle',
-        '4': 'empty',
-        # available in megadetector v4+
-    }
-    
-
 FAILURE_IMAGE_OPEN = 'Failure image access'
 
 
@@ -174,7 +134,7 @@ def load_detector(model_file, force_cpu=False):
     return detector
 
 
-def run_detector(detector, image_file_names, output_dir,
+def run_detector(detector, image_file_names, output_dir, label_map,
                  render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
                  crop_images=False, detections = False, box_thickness=DEFAULT_BOX_THICKNESS, 
                  box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
@@ -284,7 +244,7 @@ def run_detector(detector, image_file_names, output_dir,
 
                 # Image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
-                                                          label_map=DEFAULT_DETECTOR_LABEL_MAP,
+                                                          label_map,
                                                           confidence_threshold=render_confidence_threshold,
                                                           thickness=box_thickness, expansion=box_expansion)
                 output_full_path = input_file_to_detection_file(im_file)
@@ -310,8 +270,6 @@ def run_detector(detector, image_file_names, output_dir,
     print('- inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
                                                       std_dev_time_infer))
     # print(f"{result['max_detection_conf']} {type(result['max_detection_conf'])}")
-    if not result['detections'] and model_variant != "2":
-        result['detections'].append({'category':'4', 'conf': 0})
     return result['detections']
 
 
