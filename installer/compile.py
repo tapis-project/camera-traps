@@ -107,6 +107,8 @@ def get_urls_from_ckn(model_id):
     """
     Given a model card ID, extract the download URL and inference labels URL.
     """
+    if model_id.endswith("-model"):
+        model_id = model_id[:-6]
     patra_download_endpoint = f"https://ckn.d2i.tacc.cloud/patra/download_mc?id={model_id}"
 
     response = requests.get(patra_download_endpoint)

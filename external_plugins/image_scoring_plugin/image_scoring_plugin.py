@@ -1,6 +1,5 @@
 import json
 import os
-import requests
 from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event,send_terminate_plugin_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from ctevents import PluginTerminateEvent, ImageReceivedEvent
