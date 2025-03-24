@@ -47,8 +47,9 @@ ADD entrypoint.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
 ADD load_test_image_scoring.py /load_test_image_scoring.py
 ADD run_detector_multi.py /run_detector_multi.py
+ADD label_mapping.json /label_mapping_default.json
 
 RUN chmod +x /entrypoint.sh
-RUN chmod -R 0777 /example_images /load_test_image_scoring.py /ai4eutils /md_v5a.0.0.pt /camera_traps /yolov5 /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py /image_scoring_plugin.py || true 
+RUN chmod -R 0777 /example_images /load_test_image_scoring.py /ai4eutils /md_v5a.0.0.pt /camera_traps /yolov5 /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py /image_scoring_plugin.py /label_mapping_default.json || true 
 
 ENTRYPOINT ["./entrypoint.sh"]

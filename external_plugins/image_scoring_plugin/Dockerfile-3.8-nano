@@ -84,6 +84,7 @@ ADD entrypoint-nano.sh /entrypoint.sh
 ADD image_scoring_plugin.py /image_scoring_plugin.py
 ADD load_test_image_scoring.py /load_test_image_scoring.py
 ADD run_detector_multi.py /run_detector_multi.py
+ADD label_mapping.json /label_mapping_default.json
 
 ### Add Nano drivers
 

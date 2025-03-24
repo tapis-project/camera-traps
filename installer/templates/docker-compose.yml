@@ -149,6 +149,9 @@ services:
       # when the installer downloads a specific pt file, we mount it in as md_v5a.0.0.pt
       - ./md_v5a.0.0.pt:/md_v5a.0.0.pt
       {% endif %}
+      {% if mount_labels %}
+      - ./label_mapping.json:/label_mapping.json
+      {% endif %}
 
   powerMonitorPlugin:
     container_name: power_monitor
