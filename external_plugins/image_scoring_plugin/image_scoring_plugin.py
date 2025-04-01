@@ -1,5 +1,10 @@
 import json
 import os
+import cv2
+import base64
+import numpy as np
+import requests
+from io import BytesIO
 from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event,send_terminate_plugin_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from ctevents import PluginTerminateEvent, ImageReceivedEvent
@@ -97,8 +102,6 @@ def main():
     monitor_scoring_power(socket)
     done = False
     total_messages = 0
-    if MODE == DEFAULT_MODE:
-        detector = load_detector(model_file="md_v5a.0.0.pt")
 
     label_map = load_label_map()
 
@@ -129,30 +132,15 @@ def main():
         image_file_path = get_image_file_path(image_uuid, image_format)                
         # score the image
         logger.debug(f"Scoring image: {image_file_path}")
-        if MODE == DEFAULT_MODE:
-            results= run_detector(detector=detector,
-                                image_file_names=[image_file_path],
-                                output_dir=f"{base_path}/{image_path_prefix}",
-                                label_map=label_map,
-                                render_confidence_threshold=0.1,
-                                box_thickness=DEFAULT_BOX_THICKNESS,
-                                box_expansion=DEFAULT_BOX_EXPANSION,                          
-                                crop_images=CROP_IMAGE, detections = DETECTIONS,
-                                image_size=IMAGE_SIZE)
-
-        # NOTE: we already have the run_detector.py file (https://github.com/microsoft/CameraTraps/blob/main/detection/run_detector.py)
-        # in the image, and we just need to call load_and_run_detector(), which is defined in that same file, 
-        # in the same way that it is called in the file
-        else:
-         results= load_and_run_detector(model_file="md_v5a.0.0.pt",
-                                          image_file_names=[image_file_path],
-                                          output_dir=f"{base_path}/{image_path_prefix}",
-                                          render_confidence_threshold=0.1,
-                                          box_thickness=DEFAULT_BOX_THICKNESS,
-                                          box_expansion=DEFAULT_BOX_EXPANSION,                          
-                                          crop_images=CROP_IMAGE, detections = DETECTIONS,
-                                          image_size=IMAGE_SIZE)
-        # create and send an image scored event with the probability scores:
+        img = cv2.imread(image_file_path)
+        _, buffer = cv2.imencode(".jpg", img)
+        img_bytes = base64.b64encode(buffer).decode("utf-8")
+        draw_boxes = False
+        payload = {"image_data": img_bytes, "draw_boxes": draw_boxes, "stride": 64, "image_scale_size": (1280,1280)}
+        response = requests.post("http://MDServer:8000/predict", json=payload)
+        if response.status_code == 200:
+            data = response.json()
+            results = data["confidences"]
         scores = []
         
         if not results:

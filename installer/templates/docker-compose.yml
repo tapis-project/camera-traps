@@ -271,3 +271,25 @@ services:
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/logs
       - {{ host_output_dir }}/{{ power_output_dir }}:/power_logs
 {% endif %}
+
+{% if inference_server %}
+  MDServer:
+    container_name: md_server
+    image: megadetector-server:{{ md_server_tag }}
+    networks:
+      - cameratraps
+    ports:
+      - "8000:8000"
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    pid: host
+    volumes:
+      - ./md_v5a.0.0.pt:/md_v5a.0.0.pt:ro
+    healthcheck:
+      test: ["CMD", "curl", "-X", "GET", "http://0.0.0.0:8000/health"]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 10s
+{% endif %}

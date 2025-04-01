@@ -55,3 +55,7 @@ ckn_kafka_broker_port: 9092
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
+
+# inference server
+inference_server: true
+md_server_tag: latest
