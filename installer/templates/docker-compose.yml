@@ -102,8 +102,17 @@ services:
     networks:
       - cameratraps
     depends_on:
+    {% if inference_server %}
+      MDServer:
+        condition: service_healthy
+      engine:
+        condition: service_started
+      imageGeneratingPlugin:
+        condition: service_started
+    {% else %}
       - engine
       - imageGeneratingPlugin
+    {% endif %}
     {% if use_host_pid %}
     pid: host
     {% endif %}
