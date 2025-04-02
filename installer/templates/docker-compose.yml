@@ -284,7 +284,7 @@ services:
 {% if inference_server %}
   MDServer:
     container_name: md_server
-    image: megadetector-server:{{ md_server_tag }}
+    image: tapis/megadetector-server:{{ md_server_tag }}
     networks:
       - cameratraps
     ports:

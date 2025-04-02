@@ -134,9 +134,10 @@ def download_model_by_id(vars, full_install_dir):
     # download the model .pt file for recognized model id's 
     model_id = vars.get("model_id")
     # this model is the default one and does not need to be downloaded
-    if model_id == "41d3ed40-b836-4a62-b3fb-67cee79f33d9-model":
-        print("Default model, not downloading...")
-        return
+    # download for inference server even if default
+    #if model_id == "41d3ed40-b836-4a62-b3fb-67cee79f33d9-model":
+    #    print("Default model, not downloading...")
+    #    return
     model_url = None
     label_url = None
     print(f"Checking CKN for the URL to the pt file...")
