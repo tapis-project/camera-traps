@@ -37,8 +37,6 @@ DETECTIONS = (os.getenv('DETECTIONS') == 'true')
 # Whether to force image resizing to a (square) integer size (not recommended to change this)
 # None means no resizing.
 IMAGE_SIZE = None
-from camera_traps.run_detector import load_and_run_detector
-from run_detector_multi import load_detector, run_detector
 
 
 PORT = os.environ.get('IMAGE_SCORING_PLUGIN_PORT', 6000)
