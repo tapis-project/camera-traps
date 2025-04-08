@@ -244,6 +244,34 @@ services:
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
 
+{% if deploy_reporter %}
+  DetectionReporterPlugin:
+    container_name: detection_reporter
+    image: {{ detection_reporter_plugin_image }}:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    environment:
+      - DETECTION_REPORTER_PLUGIN_PORT=6012
+      - TRAPS_DETECTION_REPORTER_OUTPUT_PATH=/output
+      - TRAPS_DETECTION_FILE=/traps-detection.toml
+    networks:
+      - cameratraps
+    {% if use_host_pid %}
+    pid: host
+    {% endif %}
+    depends_on:
+      - engine
+      - imageGeneratingPlugin
+      - imageScoringPlugin
+
+    volumes:
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+      - {{ host_config_dir }}/traps-detection.toml:/traps-detection.toml:ro
+      - {{ host_output_dir }}/{{ detection_reporter_plugin_output_dir }}:/output
+{% endif %}
+
+
 {% if deploy_ckn %}
   cknDaemon:
     container_name: ckn_daemon

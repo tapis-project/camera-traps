@@ -64,3 +64,13 @@ subscriptions = [
     "PluginTerminateEvent",
     "PluginTerminatingEvent",
 ]
+[[plugins.external]]
+plugin_name = "ext_detection_reporter_plugin"
+id = "dfdcd2aa-1906-4153-bffb-45d85bc9a9ea"
+external_port = 6012
+subscriptions = [
+    "ImageScoredEvent",
+    "ImageStoredEvent",
+    "ImageDeletedEvent",
+    "ImageReceivedEvent",
+]
