@@ -42,7 +42,6 @@ IMAGE_SIZE = None
 PORT = os.environ.get('IMAGE_SCORING_PLUGIN_PORT', 6000)
 base_path = os.environ.get('IMAGE_PATH')
 image_path_prefix = os.environ.get('IMAGE_FILE_PREFIX', '')
-mapping_file = os.environ.get('MAPPING_FILE', 'label_mapping_default.json')
 
 # whether to cache the detector or to use the old method "load_and_run_detector()" method on each image
 # export any other value to use the old method.
@@ -68,21 +67,6 @@ def get_image_file_path(image_uuid, image_format):
    image_format = image_format.lower()
    return f"{base_path}/{image_path_prefix}{image_uuid}.{image_format}"
 
-def load_label_map():
-    logger.info("Retrieving the label map in image scoring plugin")
-    try:
-        with open(mapping_file, 'r') as f:
-            label_map = json.load(f)
-    except:
-        logger.info(f'Label mapping file could not be opened using default mapping.')
-        try:
-            with open('label_mapping_default.json', 'r') as f:
-                label_map = json.load(f)
-        except:
-            label_map = {"1": "animal", "2": "human", "3": "vehicle", "4": "empty"}
-    return label_map
-
-
 def monitor_scoring_power(socket):
     monitor_flag = os.getenv('MONITOR_POWER')
     pid = [os.getpid()]
@@ -100,8 +84,6 @@ def main():
     monitor_scoring_power(socket)
     done = False
     total_messages = 0
-
-    label_map = load_label_map()
 
     while not done:
         # get the next message
@@ -133,12 +115,15 @@ def main():
         img = cv2.imread(image_file_path)
         _, buffer = cv2.imencode(".jpg", img)
         img_bytes = base64.b64encode(buffer).decode("utf-8")
-        draw_boxes = False
-        payload = {"image_data": img_bytes, "draw_boxes": draw_boxes, "stride": 64, "image_scale_size": (1280,1280)}
+        payload = {
+            "image": img_bytes,
+        }
         response = requests.post("http://MDServer:8000/predict", json=payload)
         if response.status_code == 200:
             data = response.json()
-            results = data["confidences"]
+            results = data["detections"]
+        else:
+            results = None
         scores = []
         
         if not results:
@@ -148,9 +133,8 @@ def main():
                 # Each score object should have the format: 
                 #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
                 # Each result returned from detector is a dictionary with `category` and `conf`
-                label = label_map.get(str(r['category']), "unknown")
-                #If an image contains multiple detection, we need to append muplitple label and probability for each image.
-                scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+                # If an image contains multiple detection, we need to append muplitple label and probability for each image.
+                scores.append({"image_uuid": image_uuid, "label": r['category'], "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 
         send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        
