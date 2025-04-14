@@ -56,7 +56,7 @@ and you should also see logs indicating that the Image Receive plugin received t
 
 ```
 engine           | 2025-04-13T23:51:40.416177778Z DEBUG [ImageReceivePlugin] src/plugins/image_recv_plugin.rs:75 - 
-```
+engine           |   -> ImageReceivePlugin received event NewImageEvent```
 
 # Running Manually
 
