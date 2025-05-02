@@ -112,52 +112,14 @@ def main():
 
         elif isinstance(event, ImageStoredEvent):
             uuid = event.ImageUuid().decode('utf-8')
-            #timestamp = event.EventCreateTs().decode('utf-8')
+            ext = event.ImageFormat().decode('utf-8')
+            timestamp = event.EventCreateTs().decode('utf-8')
             destination = event.Destination().decode('utf-8')
-            image_path = None
-            logger.info(f"Image stored {uuid} {timestamp} {destination}")
+            image_path = f'{uuid}.{ext}'
+            logger.info(f"Image stored {uuid} {timestamp} {destination} {image_path}")
             #update_csv('STORING', uuid, {"image_store_delete_time": timestamp, "image_decision": destination})
             update_csv('STORING', uuid, image_path=image_path, decision=destination)
 
-        if isinstance(event, PluginTerminateEvent):
-            logger.info(f"Received Terminate event * and shutting down image scoring plugin")
-            send_quit_command(socket)
-            sys.exit()
-
-        #elif isinstance(event, PluginTerminatingEvent):
-        #    plugin_name = event.PluginName().decode('utf-8')
-        #    if plugin_name == 'ext_image_gen_plugin':
-        #        logger.info("Received Terminating signal from image generating plugin")
-        #        # at this point, we can compute the total images generated and to be processed from the
-        #        # length of the uuid_image_mapping
-        #        global received_terminating_signal
-        #        received_terminating_signal = True
-        #        total_images_generated = compute_total_images_generated()
-        #        logger.info(f"Total images processed: {total_images_generated}")
-
-        ## Once we have received the terminating signal, we compute total_images_processed 
-        #if received_terminating_signal:
-        #    total_images_processed = compute_total_images_processed()
-        #    logger.info(f"Detection reporter has processed: {total_images_processed} out of {total_images_generated}")
-        #    if total_images_generated < 0:
-        #        total_images_generated = compute_total_images_generated()
-       
-        #if received_terminating_signal \
-        #and total_images_generated > 0 \
-        #and total_images_generated == total_images_processed:
-        #    logger.info("Initiating shut down for all other plugins...")
-        #    add_terminating_function_json("dfdcd2aa-1906-4153-bffb-45d85bc9a9ea")
-        #    send_terminate_plugin_fb_event(socket, "*", "dfdcd2aa-1906-4153-bffb-45d85bc9a9ea")
-        #    logger.info("Sent PluginTerminate * event")
-        #    time.sleep(1)
-        #    send_quit_command(socket)
-        #    logger.info("Sent quit command.")
-        #    sys.exit()
-        #    #Leaving the uuid empty/* throws an error[Unable to parse string 'target_plugin_uuid' into a Uuid: invalid character: expected an optional prefix of `urn:uuid:`]
-        #    #send_terminating_plugin_fb_event(socket,"ext_oracle_monitor_plugin","6e153711-9823-4ee6-b608-58e2e801db51")
-        #else:
-        #    logger.info(event)
-        
 if __name__ == '__main__':
     logger.info("Detection reporter plugin starting...")
     main()
