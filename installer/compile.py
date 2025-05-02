@@ -78,9 +78,29 @@ def get_vars(input_data, default_data):
         print("Exiting...")
         sys.exit(1)
     
+    if vars.get("mode") == 'demo':
+        vars['deploy_image_generating'] = False
+        vars['deploy_image_detecting'] = True
+        vars['deploy_reporter'] = True
+        vars['deploy_ckn'] = False
+        vars['deploy_ckn_mqtt'] = True
+        vars['deploy_power_monitoring'] = False
+        vars['deploy_oracle'] = False
+    elif vars.get("mode") == 'simulation':
+        vars['deploy_image_generating'] = True
+        vars['deploy_image_detecting'] = False
+        vars['deploy_reporter'] = False
+        vars['deploy_ckn'] = True
+        vars['deploy_ckn_mqtt'] = False
+        vars['deploy_oracle'] = True
     # the powerjoular backend requires the docker socket to function:
     if vars.get("power_monitor_backend") == 'powerjoular':
         vars['power_monitor_mount_docker_socket'] = True
+
+    if vars.get("deploy_power_monitoring") == False:
+        vars['image_generating_monitor_power'] = False
+        vars['image_scoring_monitor_power'] = False
+        vars['power_plugin_monitor_power'] = False
     
     # the model id must be passed if trying to use a different model from the default 
     if vars.get("use_model_url"):
