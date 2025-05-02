@@ -96,7 +96,7 @@ services:
 {% endif %}
 
 {% if deploy_image_detecting %}
-  imageDetecting:
+  imageDetectingPlugin:
     container_name: image_detecting
     image: {{ image_detecting_plugin_image}}:{{ ct_version}}
     networks:
@@ -122,7 +122,12 @@ services:
       - cameratraps
     depends_on:
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
     {% if use_host_pid %}
     pid: host
     {% endif %}
@@ -204,7 +209,12 @@ services:
     {% endif %}
     depends_on:
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
       - imageScoringPlugin
     environment:
       - POWER_MEASURING_PLUGIN_PORT=6010
@@ -259,7 +269,12 @@ services:
     {% endif %}
     depends_on:
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
       - imageScoringPlugin
 
     volumes:
@@ -285,7 +300,12 @@ services:
     {% endif %}
     depends_on:
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
       - imageScoringPlugin
 
     volumes:
