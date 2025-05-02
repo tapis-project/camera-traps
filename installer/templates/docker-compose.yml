@@ -30,6 +30,7 @@ services:
       # this mount if you want to use the image's default logging configuration.
       - {{ host_config_dir }}/log4rs.yml:/log4rs.yml
 
+{% if deploy_image_generating %}
   imageGeneratingPlugin:
     container_name: image_generating
     image: tapis/image_generating_plugin_py:{{ ct_version }}
@@ -92,6 +93,24 @@ services:
       {% endif %}      
       # mount the directory shared with the oracle plugin 
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+{% endif %}
+
+{% if deploy_image_detecting %}
+  imageDetecting:
+    container_name: image_detecting
+    image: {{ image_detecting_plugin_image}}:{{ ct_version}}
+    networks:
+      - cameratraps
+    pid: host
+    {% if run_image_detecting_privileged %}
+    privileged: true 
+    {% endif %}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    depends_on:
+      - engine
+{% endif %}
 
   imageScoringPlugin:
     container_name: image_scoring

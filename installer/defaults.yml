@@ -6,6 +6,7 @@ run_containers_as_user: true
 host_output_dir: .
 
 # Image Generating Plugin
+deploy_image_generating: true
 image_generating_monitor_power: true
 use_bundled_example_images: true
 use_image_directory: false
@@ -17,6 +18,11 @@ custom_ground_truth_file_url:
 use_gpu_in_scoring: false 
 images_output_dir: images_output_dir 
 image_generating_log_level: DEBUG 
+
+# image detecting plugin
+deploy_image_detecting: false
+image_detecting_plugin_image: tapis/image_detecting_plugin
+run_image_detecting_privileged: true
 
 # Image Scoring Plugin 
 image_scoring_plugin_image: tapis/image_scoring_plugin_py_3.8
