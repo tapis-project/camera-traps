@@ -33,6 +33,7 @@ image_store_save_threshold: 0.7
 image_store_reduce_save_threshold: 0.4
 
 # Power Monitor Plugin
+deploy_power_monitoring: true
 run_power_monitor_privileged: true 
 use_gpu_in_power_monitoring: false 
 power_monitor_log_level: DEBUG 
@@ -43,6 +44,7 @@ power_monitor_mount_docker_socket: false
 
 
 # Oracle Plugin 
+deploy_oracle: true
 oracle_plugin_image: tapis/oracle_plugin
 oracle_plugin_output_dir: oracle_output_dir
 device_id: AAAAAAAAAAAAAAAAAAAA
@@ -60,3 +62,10 @@ ckn_kafka_broker_port: 9092
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
+
+deploy_ckn_mqtt: false
+ckn_mqtt_tag: latest
+ckn_mqtt_broker: host.docker.internal
+ckn_mqtt_broker_port: 1883
+ckn_mqtt_image_dir: 
+ckn_mqtt_detected_events_file: 

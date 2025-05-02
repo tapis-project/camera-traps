@@ -73,4 +73,5 @@ subscriptions = [
     "ImageStoredEvent",
     "ImageDeletedEvent",
     "ImageReceivedEvent",
+    "PluginTerminateEvent",
 ]
