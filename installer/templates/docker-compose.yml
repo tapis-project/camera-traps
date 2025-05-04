@@ -105,9 +105,6 @@ services:
     {% if run_image_detecting_privileged %}
     privileged: true 
     {% endif %}
-    {% if run_containers_as_user %}
-    user: "{{ uid }}:{{ gid }}"
-    {% endif %}
     depends_on:
       - engine
 {% endif %}
