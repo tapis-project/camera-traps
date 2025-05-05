@@ -37,7 +37,13 @@ build-power:
 build-oracle:
 	cd external_plugins/oracle_plugin/ && docker build -t tapis/oracle_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
-build-py-plugins: build-camerapy build-scoring build-generating build-power build-oracle
+build-detection:
+	cd external_plugins/detection_reporter_plugin && docker build -t tapis/detection_reporter_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
+
+build-detecting:
+	cd external_plugins/image_detecting_plugin && docker build -t tapis/image_detecting_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
+
+build-py-plugins: build-camerapy build-scoring build-generating build-power build-oracle build-detection
 
 build-installer: 
 	cd installer && docker build -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../

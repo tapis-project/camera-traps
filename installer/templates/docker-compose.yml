@@ -30,6 +30,7 @@ services:
       # this mount if you want to use the image's default logging configuration.
       - {{ host_config_dir }}/log4rs.yml:/log4rs.yml
 
+{% if deploy_image_generating %}
   imageGeneratingPlugin:
     container_name: image_generating
     image: tapis/image_generating_plugin_py:{{ ct_version }}
@@ -92,6 +93,21 @@ services:
       {% endif %}      
       # mount the directory shared with the oracle plugin 
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+{% endif %}
+
+{% if deploy_image_detecting %}
+  imageDetectingPlugin:
+    container_name: image_detecting
+    image: {{ image_detecting_plugin_image}}:{{ ct_version}}
+    networks:
+      - cameratraps
+    pid: host
+    {% if run_image_detecting_privileged %}
+    privileged: true 
+    {% endif %}
+    depends_on:
+      - engine
+{% endif %}
 
   imageScoringPlugin:
     container_name: image_scoring
@@ -111,8 +127,12 @@ services:
         condition: service_started
     {% else %}
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
-    {% endif %}
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
     {% if use_host_pid %}
     pid: host
     {% endif %}
@@ -162,6 +182,7 @@ services:
       - ./label_mapping.json:/label_mapping.json
       {% endif %}
 
+{% if deploy_power_monitoring %}
   powerMonitorPlugin:
     container_name: power_monitor
     image: tapis/power_measuring_plugin_py:{{ ct_version }}
@@ -193,7 +214,12 @@ services:
     {% endif %}
     depends_on:
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
       - imageScoringPlugin
     environment:
       - POWER_MEASURING_PLUGIN_PORT=6010
@@ -226,8 +252,10 @@ services:
       - /etc/group:/etc/group:ro
       - /etc/shadow:/etc/shadow:ro
       {% endif %}
+{% endif %}
 
 
+{% if deploy_oracle %}
   oraclePlugin:
     container_name: oracle_monitor
     image: {{ oracle_plugin_image }}:{{ ct_version }}
@@ -246,12 +274,51 @@ services:
     {% endif %}
     depends_on:
       - engine
+      {% if deploy_image_generating %}
       - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
       - imageScoringPlugin
 
     volumes:
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+{% endif %}
+
+{% if deploy_reporter %}
+  DetectionReporterPlugin:
+    container_name: detection_reporter
+    image: {{ detection_reporter_plugin_image }}:{{ ct_version }}
+    {% if run_containers_as_user %}
+    user: "{{ uid }}:{{ gid }}"
+    {% endif %}
+    environment:
+      - DETECTION_REPORTER_PLUGIN_PORT=6012
+      - TRAPS_DETECTION_REPORTER_OUTPUT_PATH=/output
+      - TRAPS_DETECTION_FILE=/traps-detection.toml
+    networks:
+      - cameratraps
+    {% if use_host_pid %}
+    pid: host
+    {% endif %}
+    depends_on:
+      - engine
+      {% if deploy_image_generating %}
+      - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
+      - imageScoringPlugin
+
+    volumes:
+      - {{ host_config_dir }}/traps.toml:/traps.toml:ro
+      - {{ host_config_dir }}/traps-detection.toml:/traps-detection.toml:ro
+      - {{ host_output_dir }}/{{ detection_reporter_plugin_output_dir }}:/output
+{% endif %}
+
 
 {% if deploy_ckn %}
   cknDaemon:
@@ -301,4 +368,29 @@ services:
       retries: 3
       start_period: 10s
       timeout: 10s
+{% endif %}
+
+{% if deploy_ckn_mqtt %}
+  cknMQTT:
+    container_name: ckn_mqtt
+    image: iud2i/ckn-mqtt-cameratraps:{{ ckn_mqtt_tag }}
+    environment:
+      - CAMERA_TRAP_ID={{ device_id }}
+      - MQTT_BROKER={{ ckn_mqtt_broker }}
+      - MQTT_PORT={{ ckn_mqtt_broker_port }}
+      - EVENTS_TOPIC=cameratrap/events
+      - IMAGES_TOPIC=cameratrap/images
+      - DETECTED_EVENTS_FILE=/logs/detections.csv
+      - IMAGE_DIR=/images
+    networks:
+      - cameratraps
+
+    pid: host
+
+    depends_on:
+     - DetectionReporterPlugin
+
+    volumes:
+      - {{ host_output_dir }}/{{ detection_reporter_plugin_output_dir }}:/logs
+      - {{ host_output_dir }}/{{ images_output_dir }}:/images
 {% endif %}
