@@ -91,8 +91,10 @@ services:
       # NOTE: this is NOT the shared images directory!!
       - {{ source_image_dir }}:/example_images:ro
       {% endif %}      
+      {% if deploy_oracle %}
       # mount the directory shared with the oracle plugin 
       - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+      {% endif %}
 {% endif %}
 
 {% if deploy_image_detecting %}
