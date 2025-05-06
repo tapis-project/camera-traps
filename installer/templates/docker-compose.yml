@@ -171,6 +171,10 @@ services:
       # If specified, the model file will be downloaded at the start of the script corresponding to the type passed. 
       - MODEL_TYPE={{ model_type }}
       {% endif %}
+      {% if inference_server %}
+      - SERVER_HOST=http://MDServer
+      - SERVER_PORT=8000
+      {% endif %}
     volumes:
       # mount the traps.toml in the current working directory.
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro

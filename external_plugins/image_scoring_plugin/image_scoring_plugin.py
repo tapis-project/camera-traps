@@ -48,6 +48,9 @@ image_path_prefix = os.environ.get('IMAGE_FILE_PREFIX', '')
 DEFAULT_MODE = 'cache_detector'
 MODE = os.environ.get('MODE', DEFAULT_MODE)
 
+SERVER_HOST = os.environ.get('SERVER_HOST', 'localhost')
+SERVER_PORT = os.environ.get('SERVER_PORT', '8000')
+
 
 def get_socket():
     # create the zmq context object
@@ -118,7 +121,7 @@ def main():
         payload = {
             "image": img_bytes,
         }
-        response = requests.post("http://MDServer:8000/predict", json=payload)
+        response = requests.post(f"{SERVER_HOST}:{SERVER_PORT}/predict", json=payload)
         if response.status_code == 200:
             data = response.json()
             results = data["detections"]
