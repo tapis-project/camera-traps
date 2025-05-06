@@ -74,8 +74,8 @@ deploy_ckn_mqtt: false
 ckn_mqtt_tag: latest
 ckn_mqtt_broker: host.docker.internal
 ckn_mqtt_broker_port: 1883
-ckn_mqtt_image_dir: 
-ckn_mqtt_detected_events_file: 
+ckn_mqtt_image_dir: /images
+ckn_mqtt_detected_events_file: /logs/detections.csv
 
 # inference server
 inference_server: true
