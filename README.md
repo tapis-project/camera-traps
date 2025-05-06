@@ -264,6 +264,35 @@ Another reason for introducing a new plugin would be to also service new events.
 
 When implementing a plugin the choice between internal and external is often technology driven.  Do we want to write a plugin in Rust and compile it into the application (internal) or do we want to write it in some other language and start it up in its own container (external)?  Considerations as to which approach to take include performance, resource usage, and availability of domain-specific libraries.
 
+## Using an MQTT Broker
+
+If running configuring a run directory using the installer with `mode: demo`,
+the `docker-compose.yml` file will be configured with to send detection events
+to an MQTT broker. By default, it is expected that the broker is already
+running on your local machine, although that can be changed in your configure
+YAML file.
+
+On linux, you can install and run with
+
+```
+sudo apt-get install mosquitto mosquitto-clients -y
+sudo systemctl start mosquitto
+```
+
+On MacOS, it can be installed and run with HomeBrew with:
+
+```
+brew install mosquitto
+brew services run mosquitto
+```
+
+To verify that detection events are flowing to the MQTT broker, you should be able to run
+
+```
+mosquitto_sub -t cameratrap/images -t cameratrap/events
+```
+on the same machine as the broker and see the events being printed to stdout.
+
 ## Release Procedures
 
 When development on a new release begins, create a new branch. If you would to test your changes, merge into the dev branch. This will trigger the building of docker images with the latest tag and a [suite of tests](https://github.com/ICICLE-ai/ml_workbench_test_suite).  When development completes and the final version of the release's images are pushed to docker hub, we tag those images with the release number.
