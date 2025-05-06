@@ -1,0 +1,4 @@
+install_dir: test_demo
+use_gpu_in_scoring: false
+mode: demo
+model_id: 3af93d49ba57e22ac4cb406c26c0622c759aa36b6b46d122db3c15f867a1eb68-model
