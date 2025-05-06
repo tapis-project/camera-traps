@@ -78,23 +78,27 @@ def get_vars(input_data, default_data):
         print("Exiting...")
         sys.exit(1)
     
+    demo_defaults = {'deploy_image_generating': False,
+                     'deploy_image_detecting': True,
+                     'deploy_reporter': True,
+                     'deploy_ckn': False,
+                     'deploy_ckn_mqtt': True,
+                     'deploy_power_monitoring': False,
+                     'deploy_oracle': False,
+                     'inference_server': True}
+    simulation_defaults = {'deploy_image_generating': True,
+                           'deploy_image_detecting': False,
+                           'deploy_reporter': False,
+                           'deploy_ckn': True,
+                           'deploy_ckn_mqtt': False,
+                           'deploy_oracle': True,
+                           'inference_server': False}
+
     if vars.get("mode") == 'demo':
-        vars['deploy_image_generating'] = False
-        vars['deploy_image_detecting'] = True
-        vars['deploy_reporter'] = True
-        vars['deploy_ckn'] = False
-        vars['deploy_ckn_mqtt'] = True
-        vars['deploy_power_monitoring'] = False
-        vars['deploy_oracle'] = False
-        vars['inference_server'] = True
+        vars = { **default_data, **demo_defaults, **input_data }
     elif vars.get("mode") == 'simulation':
-        vars['deploy_image_generating'] = True
-        vars['deploy_image_detecting'] = False
-        vars['deploy_reporter'] = False
-        vars['deploy_ckn'] = True
-        vars['deploy_ckn_mqtt'] = False
-        vars['deploy_oracle'] = True
-        vars['inference_server'] = False
+        vars = { **default_data, **simulation_defaults, **input_data }
+
     # the powerjoular backend requires the docker socket to function:
     if vars.get("power_monitor_backend") == 'powerjoular':
         vars['power_monitor_mount_docker_socket'] = True
