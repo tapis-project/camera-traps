@@ -133,6 +133,7 @@ services:
       {% if deploy_image_detecting %}
       - imageDetectingPlugin
       {% endif %}
+    {% endif %}
     {% if use_host_pid %}
     pid: host
     {% endif %}
@@ -360,8 +361,13 @@ services:
     user: "{{ uid }}:{{ gid }}"
     {% endif %}
     pid: host
+    environment:
+      - PATRA_ENDPOINT={{ patra_endpoint }}
+      - MODEL_ID={{ model_id }}
+    {% if mount_model_pt %}
     volumes:
       - ./md_v5a.0.0.pt:/md_v5a.0.0.pt:ro
+    {% endif %}
     healthcheck:
       test: ["CMD", "curl", "-X", "GET", "http://0.0.0.0:8000/health"]
       interval: 30s

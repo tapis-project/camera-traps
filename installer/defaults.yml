@@ -68,6 +68,7 @@ ckn_kafka_broker_port: 9092
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
+patra_endpoint: https://ckn.d2i.tacc.cloud/patra/download_mc
 
 deploy_ckn_mqtt: false
 ckn_mqtt_tag: latest

@@ -86,6 +86,7 @@ def get_vars(input_data, default_data):
         vars['deploy_ckn_mqtt'] = True
         vars['deploy_power_monitoring'] = False
         vars['deploy_oracle'] = False
+        vars['inference_server'] = True
     elif vars.get("mode") == 'simulation':
         vars['deploy_image_generating'] = True
         vars['deploy_image_detecting'] = False
@@ -93,6 +94,7 @@ def get_vars(input_data, default_data):
         vars['deploy_ckn'] = True
         vars['deploy_ckn_mqtt'] = False
         vars['deploy_oracle'] = True
+        vars['inference_server'] = False
     # the powerjoular backend requires the docker socket to function:
     if vars.get("power_monitor_backend") == 'powerjoular':
         vars['power_monitor_mount_docker_socket'] = True
@@ -151,6 +153,8 @@ def download_model_by_id(vars, full_install_dir):
     """
     Download a model based on its id and put it in the install dir.
     """
+    if vars.get("inference_server") == True:
+        return
     # download the model .pt file for recognized model id's 
     model_id = vars.get("model_id")
     # this model is the default one and does not need to be downloaded
