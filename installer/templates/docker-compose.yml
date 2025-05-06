@@ -388,7 +388,7 @@ services:
       - MQTT_PORT={{ ckn_mqtt_broker_port }}
       - EVENTS_TOPIC=cameratrap/events
       - IMAGES_TOPIC=cameratrap/images
-      - DETECTED_EVENTS_FILE= {{ ckn_mqtt_detected_events_file }}
+      - DETECTED_EVENTS_FILE={{ ckn_mqtt_detected_events_file }}
       - IMAGE_DIR={{ ckn_mqtt_image_dir }}
     networks:
       - cameratraps
