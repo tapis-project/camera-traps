@@ -40,9 +40,10 @@ uuids_with_errors = []
 
 PORT = int(os.environ.get('DETECTION_REPORTER_PLUGIN_PORT', 6012))
 OUTPUT_DIR = os.environ.get('TRAPS_DETECTION_REPORTER_OUTPUT_PATH', "/output/")
+EVENTS_FILE = os.environ.get('TRAPS_DETECTED_EVENTS_FILE', 'detections.csv')
 DETECTION_FILE = os.environ.get('TRAPS_DETECTION_FILE', '/traps-detection.toml')
 
-output_file = os.path.join(OUTPUT_DIR, "detections.csv")
+output_file = os.path.join(OUTPUT_DIR, EVENTS_FILE)
 
 SOCKET_TIMEOUT = 2000
 

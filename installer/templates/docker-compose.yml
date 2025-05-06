@@ -300,6 +300,7 @@ services:
     environment:
       - DETECTION_REPORTER_PLUGIN_PORT=6012
       - TRAPS_DETECTION_REPORTER_OUTPUT_PATH=/output
+      - TRAPS_DETECTED_EVENTS_FILE={{ detected_events_file }}
       - TRAPS_DETECTION_FILE=/traps-detection.toml
     networks:
       - cameratraps
@@ -388,7 +389,7 @@ services:
       - MQTT_PORT={{ ckn_mqtt_broker_port }}
       - EVENTS_TOPIC=cameratrap/events
       - IMAGES_TOPIC=cameratrap/images
-      - DETECTED_EVENTS_FILE={{ ckn_mqtt_detected_events_file }}
+      - DETECTED_EVENTS_FILE=/logs/{{ detected_events_file }}
       - IMAGE_DIR={{ ckn_mqtt_image_dir }}
     networks:
       - cameratraps
