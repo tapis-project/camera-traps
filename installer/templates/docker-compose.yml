@@ -125,8 +125,14 @@ services:
         condition: service_healthy
       engine:
         condition: service_started
+      {% if deploy_image_generating %}
       imageGeneratingPlugin:
         condition: service_started
+      {% endif %}
+      {% if deploy_image_detecting %}
+      imageDetectingPlugin:
+        condition: service_started
+      {% endif %}
     {% else %}
       - engine
       {% if deploy_image_generating %}
