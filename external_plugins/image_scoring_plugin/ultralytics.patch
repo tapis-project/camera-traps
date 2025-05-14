@@ -1,0 +1,49 @@
+diff --git a/pytorch_detector.py b/pytorch_detector.py
+index 3eb2285..328f1ef 100644
+--- a/pytorch_detector.py
++++ b/pytorch_detector.py
+@@ -14,14 +14,19 @@ import ct_utils
+ 
+ try:
+     # import pre- and post-processing functions from the YOLOv5 repo https://github.com/ultralytics/yolov5
+-    from utils.general import non_max_suppression, xyxy2xywh
+-    from utils.augmentations import letterbox
+-    
++    #from utils.general import non_max_suppression, xyxy2xywh
++    #from utils.augmentations import letterbox
++    from ultralytics.utils.ops import non_max_suppression, xyxy2xywh
++    from ultralytics.data.augment import LetterBox
++
+     # scale_coords() became scale_boxes() in later YOLOv5 versions
++
+     try:
+-        from utils.general import scale_coords
+-    except ImportError:        
+-        from utils.general import scale_boxes as scale_coords
++        #from utils.general import scale_coords
++        from ultralytics.utils.ops import scale_coords
++    except ImportError:
++        #from utils.general import scale_boxes as scale_coords
++        from ultralytics.utils.ops import scale_boxes as scale_coords
+ except ModuleNotFoundError:
+     raise ModuleNotFoundError('Could not import YOLOv5 functions.')
+ 
+@@ -120,12 +125,13 @@ class PTDetector:
+             else:
+                 
+                 self.printed_image_size_warning = False
+-                
++
+             # ...if the caller has specified an image size
+-            
+-            img = letterbox(img_original, new_shape=target_size,
+-                                 stride=PTDetector.STRIDE, auto=True)[0]  # JIT requires auto=False
+-            
++
++            letterbox = LetterBox(new_shape=target_size,
++                                 stride=PTDetector.STRIDE, auto=True)  # JIT requires auto=False
++            img = letterbox(image=img_original)
++
+             img = img.transpose((2, 0, 1))  # HWC to CHW; PIL Image is RGB already
+             img = np.ascontiguousarray(img)
+             img = torch.from_numpy(img)
