@@ -22,8 +22,14 @@ build-engine:
 build-camerapy:
 	cd src/python && docker pull tapis/pyevents; docker pull tapis/pyevents:3.8; docker build -t tapis/camera_traps_py:${TRAPS_REL} . && docker build -t tapis/camera_traps_py_3.8:${TRAPS_REL} -f Dockerfile-3.8 .; cd ../../
 
-build-scoring:
-	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8 .; cd ../..
+build-scoring-server:
+	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_py_server_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-server .; cd ../..
+
+build-scoring-ultralytics:
+	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_py_ultralytics_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-ultralytics .; cd ../..
+
+build-scoring-yolov5:
+	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_py_yolov5_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-yolov5 .; cd ../..
 
 build-scoring-nano:
 	cd external_plugins/image_scoring_plugin/ && docker build --platform linux/arm64 -t tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-nano .; cd ../..
@@ -43,7 +49,7 @@ build-detection:
 build-detecting:
 	cd external_plugins/image_detecting_plugin && docker build -t tapis/image_detecting_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
-build-py-plugins: build-camerapy build-scoring build-generating build-power build-oracle build-detection
+build-py-plugins: build-camerapy build-scoring-server build-generating build-power build-oracle build-detection
 
 build-installer: 
 	cd installer && docker build -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../
