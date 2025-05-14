@@ -32,9 +32,10 @@ image_scoring_crop_images: false
 image_scoring_generate_bounding_boxes: false 
 model_id: 41d3ed40-b836-4a62-b3fb-67cee79f33d9-model
 use_model_url: false
+use_ultralytics: true
 
 
-# Image Storing Pluing
+# Image Storing Plugin
 image_store_save_threshold: 0.7
 image_store_reduce_save_threshold: 0.4
 
