@@ -42,7 +42,7 @@ ENV output_file_path='/example_images/detections.json'
 
 ADD example_images /example_images
 ADD entrypoint.sh /entrypoint.sh
-ADD image_scoring_plugin_inference.py /image_scoring_plugin.py
+ADD image_scoring_plugin_server.py /image_scoring_plugin.py
 ADD load_test_image_scoring.py /load_test_image_scoring.py
 ADD run_detector_multi.py /run_detector_multi.py
 ADD label_mapping.json /label_mapping_default.json

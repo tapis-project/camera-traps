@@ -23,10 +23,10 @@ ARG REL=use-build-arg
 FROM tapis/camera_traps_py_3.8:$REL
 RUN chmod -R 0777 /* || true
 
-RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
+RUN wget -O /md_v5a.0.0.pt https://github.com/ICICLE-ai/camera_traps/raw/refs/heads/dev/models/MDV6b-yolov9c.pt
 
 RUN pip install --upgrade pip
-ADD requirements.txt /requirements.txt
+ADD requirements-ultralytics.txt /requirements.txt
 ADD ultralytics.patch /ultralytics.patch
 RUN pip install -r requirements.txt
 
