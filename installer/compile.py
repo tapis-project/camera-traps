@@ -286,6 +286,10 @@ def generate_additional_directories(vars, full_install_dir):
     power_output_dir = os.path.join(full_install_dir, vars["power_output_dir"])
     if not os.path.exists(power_output_dir):
         os.makedirs(power_output_dir)
+
+    detection_output_dir = os.path.join(full_install_dir, vars["detection_reporter_plugin_output_dir"])
+    if not os.path.exists(detection_output_dir):
+        os.makedirs(detection_output_dir)
     
 
 def main():
