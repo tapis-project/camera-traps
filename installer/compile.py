@@ -217,6 +217,8 @@ def compile_templates(vars, full_install_dir):
     # create the jinja environment object
     env = Environment(
         loader=PackageLoader("installer"),
+        trim_blocks=True,
+        lstrip_blocks=True,
         autoescape=select_autoescape()
     )
 

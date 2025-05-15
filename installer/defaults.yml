@@ -61,6 +61,8 @@ deploy_reporter: true
 detection_reporter_plugin_image: tapis/detection_reporter_plugin
 detection_reporter_plugin_output_dir: detection_output_dir
 detected_events_file: detections.csv
+detection_thresholds: 
+  animal: 0.5
 
 # CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true

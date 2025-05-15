@@ -441,6 +441,12 @@ This is a complete list of all possible configurations.
 
   * Example: detection_output_dir
 
+* `detection_thresholds`: a list of key-value pairs, where the key is the label and the value is the threshold for detection to be used for detecting an object of interest (Default: animal: 0.5)
+
+  * Example:
+      animal: 0.6
+      human: 0.8
+
 * `ckn_daemon_tag`: The tag to use for the CKN daemon image. Default: latest.
 
   * Example: 1.0
