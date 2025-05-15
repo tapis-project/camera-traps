@@ -1,2 +1,4 @@
 [thresholds]
-animal = 0.5
+{% for key, value in detection_thresholds.items() %}
+{{ key }} = {{ value }}
+{% endfor %}
