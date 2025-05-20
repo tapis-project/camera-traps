@@ -34,6 +34,10 @@ build-scoring-yolov5:
 build-scoring-nano:
 	cd external_plugins/image_scoring_plugin/ && docker build --platform linux/arm64 -t tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-nano .; cd ../..
 
+build-scoring-nano-ultralytics:
+	cd external_plugins/image_scoring_plugin/ && docker build --platform linux/arm64 -t tapis/image_scoring_plugin_py_nano_ultralytics_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-nano-ultralytics .; cd ../..
+
+
 build-generating:
 	cd external_plugins/image_generating_plugin/ && docker build -t tapis/image_generating_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
