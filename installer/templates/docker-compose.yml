@@ -384,7 +384,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-X", "GET", "http://0.0.0.0:8000/health"]
       interval: 30s
-      retries: 3
+      retries: 5
       start_period: 10s
       timeout: 10s
 {% endif %}
