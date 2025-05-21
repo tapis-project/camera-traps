@@ -1,4 +1,4 @@
-import json
+external_plugins/image_scoring_plugin/image_scoring_plugin.pyimport json
 import os
 from ctevents.ctevents import socket_message_to_typed_event, send_image_scored_fb_event, send_monitor_power_start_fb_event,send_terminate_plugin_fb_event
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
@@ -108,8 +108,8 @@ def main():
         m = get_next_msg(socket)
         e = socket_message_to_typed_event(m)
 
-        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         total_messages += 1
+        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         # TODO: we could check if e is not an image_received event, skip it....
         
         # - find the image on the file system, (the image path)

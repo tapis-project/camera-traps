@@ -94,8 +94,8 @@ def main():
         m = get_next_msg(socket)
         e = socket_message_to_typed_event(m)
 
-        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         total_messages += 1
+        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         # TODO: we could check if e is not an image_received event, skip it....
         
         # - find the image on the file system, (the image path)
