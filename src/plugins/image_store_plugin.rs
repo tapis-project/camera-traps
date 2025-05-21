@@ -270,7 +270,7 @@ impl ImageStorePlugin {
             // Create the image stored event and serialize it.
             let dest = format!("{:?}", action_taken);
             ev_name = "ImageStoredEvent";
-            ev = Box::new(events::ImageStoredEvent::new(uuid, image_format.to_string(), dest));
+            ev = Box::new(events::ImageStoredEvent::new(uuid, image_format.to_lowercase().to_string(), dest));
         }
 
         // Convert to a byte stream.
