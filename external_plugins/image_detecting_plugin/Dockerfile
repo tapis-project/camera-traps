@@ -1,7 +1,7 @@
 # Image: tapis/image_detecting_plugin
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py:$REL
-RUN chmod -R 0777 /* || true
+RUN find / -path /proc -prune -o -path /sys -prune -o -path /dev -prune -o -writable -print0 | xargs -0 -P $(nproc) -I {} chmod 0777 {} || true
 
 # Package dependencies 
 RUN apt update && apt install -y motion 
