@@ -1,5 +1,5 @@
 diff --git a/pytorch_detector.py b/pytorch_detector.py
-index 3eb2285..328f1ef 100644
+index 26d9dd5..70b34ea 100644
 --- a/pytorch_detector.py
 +++ b/pytorch_detector.py
 @@ -14,14 +14,19 @@ import ct_utils
@@ -28,7 +28,16 @@ index 3eb2285..328f1ef 100644
  except ModuleNotFoundError:
      raise ModuleNotFoundError('Could not import YOLOv5 functions.')
  
-@@ -120,12 +125,13 @@ class PTDetector:
+@@ -59,7 +64,7 @@ class PTDetector:
+             if type(m) is torch.nn.Upsample:
+                 m.recompute_scale_factor = None
+         torch.save(checkpoint, model_pt_path)
+-        model = checkpoint['model'].float().fuse().eval()  # FP32 model
++        model = checkpoint['model'].float().eval()  # FP32 model
+         return model
+ 
+     def generate_detections_one_image(self, img_original, image_id, detection_threshold, image_size=None):
+@@ -105,12 +110,13 @@ class PTDetector:
              else:
                  
                  self.printed_image_size_warning = False
