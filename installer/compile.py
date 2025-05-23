@@ -107,6 +107,9 @@ def get_vars(input_data, default_data):
         vars['image_generating_monitor_power'] = False
         vars['image_scoring_monitor_power'] = False
         vars['power_plugin_monitor_power'] = False
+
+    if not vars.get('download_model'):
+        vars['download_model'] = not vars.get('inference_server')
     
     # the model id must be passed if trying to use a different model from the default 
     if vars.get("use_model_url"):
@@ -129,6 +132,16 @@ def get_vars(input_data, default_data):
     # Add the installer's UID and GID
     vars["uid"] = uid
     vars["gid"] = gid 
+
+    # Determine operating system
+    if sys.platform.startswith('linux'):
+        vars['OS'] = 'linux'
+    elif sys.platform.startswith('darwin'):
+        vars['OS'] = 'macos'
+    elif sys.platform.startswith('nt'):
+        vars['OS'] = 'windows'
+    else:
+        vars['OS'] = 'unknown'
 
     # Add the host install path 
     install_host_path = os.environ.get("INSTALL_HOST_PATH")
@@ -165,7 +178,7 @@ def download_model_by_id(vars, full_install_dir):
     """
     Download a model based on its id and put it in the install dir.
     """
-    if vars.get("inference_server") == True:
+    if vars.get("download_model") == False:
         return
     # download the model .pt file for recognized model id's 
     model_id = vars.get("model_id")

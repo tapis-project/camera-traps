@@ -4,6 +4,7 @@ host_config_dir: ./config
 use_host_pid: true
 run_containers_as_user: true 
 host_output_dir: .
+download_model: 
 
 # Image Generating Plugin
 deploy_image_generating: true
