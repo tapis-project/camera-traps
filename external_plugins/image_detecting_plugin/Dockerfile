@@ -4,7 +4,7 @@ FROM tapis/camera_traps_py:$REL
 RUN find / -path /proc -prune -o -path /sys -prune -o -path /dev -prune -o -writable -print0 | xargs -0 -P $(nproc) -I {} chmod 0777 {} || true
 
 # Package dependencies 
-RUN apt update && apt install -y motion 
+RUN apt update && apt install -y motion vim
 RUN pip install watchdog
 RUN pip install PILLOW
 
