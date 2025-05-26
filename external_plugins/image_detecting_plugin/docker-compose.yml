@@ -28,5 +28,7 @@ services:
       - cameratraps
     pid: host
     privileged: true 
+    volumes:
+      - ./image_data:/var/lib/motion
     depends_on:
       - engine
