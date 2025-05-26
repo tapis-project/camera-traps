@@ -15,7 +15,7 @@ docker build --build-arg REL=0.4.0 -t tapis/image_detecting_plugin .
 # Running with Motion
 
 By default, an Image Detecting container starts up both the Linux Motion
-package and the Image Detecting plugin. It requires the `privilged` flag
+package and the Image Detecting plugin. It requires the `privileged` flag
 for access to the video device which it assumes to be `/dev/video0`. 
 This is configured in the `motion.conf` file included in the repo. 
 Eventually, we will update the installer to parameterize this value. 
