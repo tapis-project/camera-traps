@@ -80,9 +80,9 @@ class NewFileHandler(FileSystemEventHandler):
     For now, we are only interested in *new* files, hence, we implement
     on_create.
     """
-    def on_created(self, event):
+    def on_closed(self, event):
         """
-        Watch th directory for new files (not directories), and trigger the 
+        Watch the directory for new files (not directories), and trigger the 
         process_file function on such events. 
         """
         if not event.is_directory:
