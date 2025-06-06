@@ -20,13 +20,13 @@ build-engine:
 	docker build -t tapis/camera_traps_engine:${TRAPS_REL} --build-arg TRAPS_REL=${TRAPS_REL} .
 
 build-camerapy:
-	cd src/python && docker pull tapis/pyevents; docker pull tapis/pyevents:3.8; docker build -t tapis/camera_traps_py:${TRAPS_REL} . && docker build -t tapis/camera_traps_py_3.8:${TRAPS_REL} -f Dockerfile-3.8 .; cd ../../
+	cd src/python && docker pull tapis/pyevents; docker pull tapis/pyevents:3.8; docker pull tapis/pyevents:3.13; docker build -t tapis/camera_traps_py:${TRAPS_REL} . && docker build -t tapis/camera_traps_py_3.8:${TRAPS_REL} -f Dockerfile-3.8 . && docker build -t tapis/camera_traps_py_3.13:${TRAPS_REL} -f Dockerfile-3.13 .; cd ../../
 
 build-scoring-server:
-	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_server_py_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-server .; cd ../..
+	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_server_py_3.13:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.13-server .; cd ../..
 
 build-scoring-ultralytics:
-	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_ultralytics_py_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-ultralytics .; cd ../..
+	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_ultralytics_py_3.13:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.13-ultralytics .; cd ../..
 
 build-scoring-yolov5:
 	cd external_plugins/image_scoring_plugin/ && docker build -t tapis/image_scoring_plugin_yolov5_py_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-yolov5 .; cd ../..

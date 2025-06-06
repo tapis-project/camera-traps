@@ -1,4 +1,4 @@
-# Image: tapis/image_scoring_plugin_py_3.8
+# Image: tapis/image_scoring_plugin_py_3.13
 #
 # Initial version of the Camera Traps Image Scoring Plugin, in Python.
 # This image is usually built by executing the top-level Makefile.  See
@@ -25,9 +25,10 @@ RUN find / -path /proc -prune -o -path /sys -prune -o -path /dev -prune -o -writ
 
 RUN wget -O /md_v5a.0.0.pt https://github.com/ICICLE-ai/camera_traps/raw/refs/heads/dev/models/MDV6b-yolov9c.pt
 
-RUN pip install --upgrade pip
-ADD requirements-ultralytics.txt /requirements.txt
-RUN pip install -r requirements.txt
+RUN python -m ensurepip --upgrade
+RUN python -m pip install --upgrade pip setuptools
+ADD requirements-3.13-ultralytics.txt /requirements.txt
+RUN python -m pip install -r requirements.txt
 
 RUN git clone https://github.com/ICICLE-ai/camera_traps -b ultralytics_inference
 

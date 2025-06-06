@@ -19,7 +19,7 @@
 #    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
 #
 ARG REL=use-build-arg
-FROM tapis/camera_traps_py:$REL
+FROM tapis/camera_traps_py_3.13:$REL
 RUN mkdir /output
 RUN find / -path /proc -prune -o -path /sys -prune -o -path /dev -prune -o -writable -print0 | xargs -0 -P $(nproc) -I {} chmod 0777 {} || true
 
