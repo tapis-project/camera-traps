@@ -526,7 +526,7 @@ jobs:
   image_generating_plugin:
     runs-on: ubuntu-latest
     environment: main
-    needs: camera_traps_py
+    needs: camera_traps_py_313
     steps:
       - name: Set TRAPS_REL
         run: |
@@ -563,7 +563,7 @@ jobs:
   image_detecting_plugin:
     runs-on: ubuntu-latest
     environment: main
-    needs: camera_traps_py
+    needs: camera_traps_py_313
     steps:
       - name: Set TRAPS_REL
         run: |
@@ -600,7 +600,7 @@ jobs:
   power_measuring_plugin:
     runs-on: ubuntu-latest
     environment: main
-    needs: camera_traps_py
+    needs: camera_traps_py_313
     steps:
       - name: Set TRAPS_REL
         run: |
@@ -637,7 +637,7 @@ jobs:
   oracle_plugin:
     runs-on: ubuntu-latest
     environment: main
-    needs: camera_traps_py
+    needs: camera_traps_py_313
     steps:
       - name: Set TRAPS_REL
         run: |
@@ -674,7 +674,7 @@ jobs:
   detection_reporter_plugin:
     runs-on: ubuntu-latest
     environment: main
-    needs: camera_traps_py
+    needs: camera_traps_py_313
     steps:
       - name: Set TRAPS_REL
         run: |
