@@ -293,6 +293,14 @@ mosquitto_sub -t cameratrap/images -t cameratrap/events
 ```
 on the same machine as the broker and see the events being printed to stdout.
 
+Note: you may need to add the following mosquitto config file in order for the docker image to able to publish to the mqtt broker:
+
+```
+cat /etc/mosquitto/conf.d/my.conf
+listener 1883 0.0.0.0
+allow_anonymous true
+```
+
 ## Release Procedures
 
 When development on a new release begins, create a new branch. If you would to test your changes, merge into the dev branch. This will trigger the building of docker images with the latest tag and a [suite of tests](https://github.com/ICICLE-ai/ml_workbench_test_suite).  When development completes and the final version of the release's images are pushed to docker hub, we tag those images with the release number.
