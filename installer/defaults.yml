@@ -24,6 +24,14 @@ image_generating_log_level: DEBUG
 deploy_image_detecting: false
 image_detecting_plugin_image: tapis/image_detecting_plugin
 run_image_detecting_privileged: true
+motion_video_device: /dev/video0
+motion_framerate: 1
+motion_minimum_frame_time: 10
+motion_event_gap: 1
+motion_threshold: 1500
+motion_width: 640
+motion_height: 480
+
 
 # Image Scoring Plugin 
 image_scoring_plugin_image: tapis/image_scoring_plugin_py_3.8
