@@ -191,7 +191,7 @@ services:
       - {{ host_output_dir }}/{{ images_output_dir }}:/input_images
       {% if mount_model_pt and not inference_server %}
       # when the installer downloads a specific pt file, we mount it in as md_v5a.0.0.pt
-      - ./md_v5a.0.0.pt:/md_v5a.0.0.pt
+      - {{ local_model_path }}:/md_v5a.0.0.pt
       {% endif %}
       {% if mount_labels and not inference_server %}
       - ./label_mapping.json:/label_mapping.json
@@ -387,7 +387,7 @@ services:
     {% if mount_model_pt %}
       - MODEL_PATH=/md_v5a.0.0.pt
     volumes:
-      - ./md_v5a.0.0.pt:/md_v5a.0.0.pt:ro
+      - {{ local_model_path }}:/md_v5a.0.0.pt:ro
     {% endif %}
       {% if mount_labels %}
       - ./label_mapping.json:/label_mapping.json

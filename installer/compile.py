@@ -119,6 +119,12 @@ def get_vars(input_data, default_data):
         if not vars.get("model_url"):
             print(f"ERROR: The model_url parameter is required when use_model_url is True")
             sys.exit(1)
+        vars['local_model_path'] = './md_v5a.0.0.pt'
+    elif vars.get("local_model_path"):
+        vars['download_model'] = False
+        vars['mount_model_pt'] = True
+    elif vars.get("model_id"):
+        vars['local_model_path'] = './md_v5a.0.0.pt'
             
 
     # get the correct image scoring plugin image name
