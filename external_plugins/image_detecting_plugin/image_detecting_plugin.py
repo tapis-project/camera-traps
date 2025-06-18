@@ -24,7 +24,7 @@ def get_socket():
     for the port configured for this plugin.
     """
     # get the port assigned to the Image Generating plugin
-    PORT = os.environ.get('IMAGE_GENERATING_PLUGIN_PORT', 6000)
+    PORT = os.environ.get('IMAGE_DETECTING_PLUGIN_PORT', 6000)
     # create the zmq context object
     context = zmq.Context()
     socket = get_plugin_socket(context, PORT)

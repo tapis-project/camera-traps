@@ -104,6 +104,8 @@ services:
     networks:
       - cameratraps
     pid: host
+    environment:
+      - IMAGE_DETECTING_PLUGIN_PORT=6002
     volumes:
       - {{ host_config_dir }}/motion.conf:/etc/motion/motion.conf:ro
     {% if run_image_detecting_privileged %}
