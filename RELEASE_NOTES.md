@@ -5,7 +5,7 @@ This major release expands the camera-traps application with a new functional mo
 Unlike the original simulation mode,
 when operated in `demo` mode, the software relies on a 
 real camera mounted and accessible as a Linux device. It
-uses motion detection to generate drive the camera and
+uses motion detection to drive the camera and
 generate new images. 
 
 Additionally, when running in demo mode, the software has support for detecting a specific object and notifying a downstream process via an MQTT message. In particular, this approach supports integrations with drones which can fly to a particular camera that has spotted an object of interest.
