@@ -32,8 +32,8 @@ In general, plugins can also depend on their own environment variables and/or co
 | -------------------------- | ------------------------------- | -------------------------- | ----------------------------------- |
 | camera-traps application | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter |
 | image_gen_plugin         |                               | /input.json              |                                   |
-| image_detecting_plugin   |                               | /etc/motion/motion.conf |
-| detection_reporter_plugin| TRAPS_DETECTION_REPORTER_*    |                         |
+| image_detecting_plugin   |                               | /etc/motion/motion.conf  |
+| detection_reporter_plugin| TRAPS_DETECTION_REPORTER_*    | /traps-detection.toml    |
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
 | power_measure_plugin     | TRAPS_POWER_LOG_PATH          | ~/logs                   |                                   |
 | oracle_monitor_plugin    | TRAPS_ORACLE_OUTPUT_PATH      | ~/output                 |                                   |
