@@ -256,8 +256,14 @@ def run_detector(detector, image_file_names, output_dir, label_map,
 
     # ...for each image
 
-    ave_time_load = statistics.mean(time_load)
-    ave_time_infer = statistics.mean(time_infer)
+    if len(time_load) > 0:
+        ave_time_load = statistics.mean(time_load)
+    else:
+        ave_time_load = 'not available'
+    if len(time_infer) > 0:
+        ave_time_infer = statistics.mean(time_infer)
+    else:
+        ave_time_infer = 'not available'
     if len(time_load) > 1 and len(time_infer) > 1:
         std_dev_time_load = humanfriendly.format_timespan(statistics.stdev(time_load))
         std_dev_time_infer = humanfriendly.format_timespan(statistics.stdev(time_infer))

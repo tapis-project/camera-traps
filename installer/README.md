@@ -69,6 +69,13 @@ Important Optional Configurations
 
   * Example: 0.4.0
 
+* `mode`: a top-level option describing the mode in which the software is
+  running (i.e. demo or simulation modes). This option will define other
+  optional parameters for the user, ensuring that the appropriate containers
+  are deployed.
+
+  * Example: demo
+
 * `run_containers_as_user`: Whether to run all containers 
   as the user's (i.e., the installer's) UID and GID. (Default: true)
 
@@ -158,10 +165,6 @@ users a pre-bundled set of example image. See below:
 
 **Integrating with CKN**
 
-* `deploy_ckn`: Whether to deploy the CKN capture daemon; required for integration with CKN. Default is false.
-
-  * Example: true
-
 * `ckn_kafka_broker_address`: The remote address of the CKN Kafka broker. 
   
   * Example: `129.114.35.150`
@@ -175,6 +178,56 @@ users a pre-bundled set of example image. See below:
 
 * `user_id`: The user id of the owner of the experiment. By default, this variable is set to none.
 
+**Integrating with CKN MQTT Broker**
+
+* `ckn_mqtt_broker`: The address of the MQTT broker to use for the CKN MQTT daemon. Default: host.docker.internal.
+
+  * Example: mqtt.example.com
+
+**Enabling/disabling optional plugins**
+
+* `deploy_ckn`: Whether to deploy the CKN capture daemon; required for integration with CKN. Default is true.
+
+  * Example: true
+
+* `deploy_ckn_mqtt`: whether to deploy the CKN MQTT capture daemon. Default is false.
+
+  * Example: true
+
+* `deploy_image_generating`: Whether to deploy the image generating plugin. Default: true.
+
+  * Example: false
+
+* `deploy_image_detecting`: Whether to deploy the image detecting plugin. Default: false.
+
+  * Example: true
+
+* `deploy_power_monitoring`: Whether to deploy the power monitoring plugin. Default: true.
+
+  * Example: false
+
+* `deploy_oracle`: Whether to deploy the oracle plugin. Default: true.
+
+  * Example: false
+
+* `deploy_reporter`: Whether to deploy the detection reporter plugin. Default: true.
+
+  * Example: false
+
+* `inference_server`: Whether to deploy the inference server. Default: true.
+
+  * Example: false
+
+This table shows which plugins are enabled and disabled by default and for each mode:
+| Plugin           | Default | Demo Mode | Simulation Mode |
+| -----            | :-----: | :-------: | :-------------: |
+| Image generating | Y | N | Y |
+| Image detecting  | N | Y | N |
+| Oracle           | Y | N | Y |
+| CKN              | Y | N | Y |
+| CKN MQTT         | N | Y | N |
+| Power monitoring | Y | N | Y |
+| Inference Server | Y | Y | N |
 
 All Configurations 
 ------------------
@@ -360,7 +413,108 @@ This is a complete list of all possible configurations.
 
   * Example: false
 
-* `oracle_plugin_image`: The image to use for the oracle 
-  plugin, not including the tag. (Default: tapis/oracle_plugin)
+* `image_detecting_plugin_image`: The image to use for the image detecting plugin, not including the tag.
+
+  * Example: tapis/image_detecting_plugin
+
+* `run_image_detecting_privileged`: Whether to run the image detecting plugin container in privileged mode. Default: true.
+
+  * Example: false
+
+* `oracle_plugin_image`: The image to use for the oracle plugin, not including the tag. Default: tapis/oracle_plugin.
 
   * Example: tapis/oracle_plugin
+
+* `oracle_plugin_output_dir`: Host directory within the host_output_dir where
+  the output of the oracle plugin will be written. (Relative to
+  `host_output_dir`)
+
+  * Example: oracle_output_dir
+
+* `detection_reporter_plugin_image`: The image to use for the detection reporter plugin, not including the tag.
+
+  * Example: tapis/detection_reporter_plugin
+
+* `detection_reporter_plugin_output_dir`: Host directory within the
+  host_output_dir where the output of the detection reporter plugin outputs
+  will be written. (Relative to `host_output_dir`)
+
+  * Example: detection_output_dir
+
+* `detection_thresholds`: a list of key-value pairs, where the key is the label and the value is the threshold for detection to be used for detecting an object of interest (Default: animal: 0.5)
+
+  * Example:
+      animal: 0.6
+      human: 0.8
+
+* `ckn_daemon_tag`: The tag to use for the CKN daemon image. Default: latest.
+
+  * Example: 1.0
+
+* `ckn_enable_power_monitoring`: Whether to enable power monitoring in the CKN daemon. Default: true.
+
+  * Example: false
+
+* `patra_endpoint`: The endpoint to use for Patra. Default: https://ckn.d2i.tacc.cloud/patra/download_mc.
+
+  * Example: https://example.com/patra/download_mc
+
+* `ckn_mqtt_tag`: The tag to use for the CKN MQTT daemon image. Default: latest.
+
+  * Example: 1.0
+
+* `ckn_mqtt_broker_port`: The port of the MQTT broker to send data from the CKN MQTT daemon. Default: 1883.
+
+  * Example: 8883
+
+* `ckn_mqtt_image_dir`: The directory where the CKN MQTT daemon should look for images to send. Default: /images
+
+  * Example: /images
+
+* `detected_events_file`: The file to use for storing detected events in the detection reporter plugin. Default: detections.csv
+
+  * Example: detectioned_events.csv
+
+* `md_server_tag`: The tag to use for the inference server image. Default: latest.
+
+  * Example: 1.0
+
+* `motion_video_device`: The device mount location for the camera. Default: /dev/video0
+
+  * Example: /dev/video8
+
+* `motion_framerate`: Maximum number of frames to to capture per second. Default: 1
+
+  * Example: 15
+
+* `motion_minimum_frame_time`: Minimum time in seconds between capturing images from the camera. Default: 3
+
+  * Example: 10
+
+* `motion_event_gap`: The number of seconds of no motion that triggers the end of an event. Default: 1
+
+  * Example: 60
+
+* `motion_threshold`: The threshold of number of pixels that need to be changed in order to declare motion. Default: 1500
+
+  * Example: 2000
+
+* `motion_width`: The width in pixels of each frame. Default: 640 
+
+  * Example: 1920
+
+* `motion_height`: The height in pixels of each frame. Default: 480
+
+  * Example: 1080
+
+* `use_ultralytics`: Whether to use the ultralytics package for inference. If not set, then use the legacy megadetector-based infernce code. Default: true
+
+  * Example: false
+
+* `download_model`: Whether to download the inference model file to disk during installation or to just pass the model ID/url to the inference plugin.
+
+  * Example: false
+
+* `local_model-path`: The path on the local file system where the model file is stored. Only used if `mount_model_pt` is set to true.
+
+  * Example: `./md_v5a.0.0.pt`

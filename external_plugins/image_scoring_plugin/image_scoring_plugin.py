@@ -45,6 +45,7 @@ mapping_file = os.environ.get('MAPPING_FILE', 'label_mapping_default.json')
 # export any other value to use the old method.
 DEFAULT_MODE = 'cache_detector'
 MODE = os.environ.get('MODE', DEFAULT_MODE)
+ULTRALYTICS = (os.getenv('ULTRALYTICS') == 'true')
 
 
 def get_socket():
@@ -108,8 +109,8 @@ def main():
         m = get_next_msg(socket)
         e = socket_message_to_typed_event(m)
 
-        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         total_messages += 1
+        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         # TODO: we could check if e is not an image_received event, skip it....
         
         # - find the image on the file system, (the image path)
@@ -162,7 +163,10 @@ def main():
                 # Each score object should have the format: 
                 #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
                 # Each result returned from detector is a dictionary with `category` and `conf`
-                label = label_map.get(str(r['category']), "unknown")
+                if ULTRALYTICS:
+                    label = r.get('category', 'unknown')
+                else:
+                    label = label_map.get(str(r['category']), "unknown")
                 #If an image contains multiple detection, we need to append muplitple label and probability for each image.
                 scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 

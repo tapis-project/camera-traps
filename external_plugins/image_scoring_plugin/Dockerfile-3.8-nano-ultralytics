@@ -1,0 +1,114 @@
+# Image: tapis/image_scoring_plugin_py_3.8
+#
+# Initial version of the Camera Traps Image Scoring Plugin, in Python.
+# This image is usually built by executing the top-level Makefile.  See
+# that file to understand how the --build-arg parameter is used to set the 
+# REL argument, which in turn specifies the generated image's tag.
+#
+# To run this program, you must mount a directory of image files at the mount point 
+# specified in the input.json file. An example input.json file is provided which points to 
+# `/input` in the container for the image directory, so if not changing the input file, mount the 
+# directory of images here.
+# 
+# Examples:
+#
+# 1) If you want to run with the example input.json include with the image:
+#    docker run tapis/image_scoring_plugin_py
+#
+# 2) If you want to specify a different input.json, do the following:
+#    docker run -v /path/to/input.json:/input.json -v /path/to/images:/input/path tapis/image_generating_plugin_py
+# 3) For a specific image directory
+#    docker run -e IMAGE_PATH = /images
+ARG REL=use-build-arg
+FROM tapis/camera_traps_py_3.8:$REL as cuda
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg2 ca-certificates
+
+ADD jetson-ota-public.key /etc/jetson-ota-public.key
+RUN apt-key add /etc/jetson-ota-public.key
+
+ARG CUDA=10.2
+ARG RELEASE=r32.7
+
+RUN echo "deb https://repo.download.nvidia.com/jetson/common $RELEASE main" >> /etc/apt/sources.list
+
+
+RUN CUDAPKG=$(echo $CUDA | sed 's/\./-/'); \
+    apt-get update && apt-get install -y --no-install-recommends \
+	cuda-libraries-$CUDAPKG \
+	cuda-nvtx-$CUDAPKG \
+	cuda-libraries-dev-$CUDAPKG \
+	cuda-minimal-build-$CUDAPKG \
+	cuda-license-$CUDAPKG \
+	cuda-command-line-tools-$CUDAPKG && \
+	ln -s /usr/local/cuda-$CUDA /usr/local/cuda && \
+	rm -rf /var/lib/apt/lists/*
+
+FROM tapis/camera_traps_py_3.8:$REL as production
+ARG CUDA=10.2
+COPY --from=cuda ./usr/local/cuda/bin ./usr/local/cuda-$CUDA/bin
+COPY --from=cuda ./usr/local/cuda/nvvm ./usr/local/cuda-$CUDA/nvvm
+COPY --from=cuda ./usr/local/cuda/nvvmx ./usr/local/cuda-$CUDA/nvvmx
+COPY --from=cuda ./usr/local/cuda/include ./usr/local/cuda-$CUDA/targets/aarch64-linux/include
+COPY --from=cuda ./usr/local/cuda/lib64/stubs ./usr/local/cuda-$CUDA/targets/aarch64-linux/lib/stubs
+COPY --from=cuda ./usr/local/cuda/lib64/libcudadevrt.a ./usr/local/cuda-$CUDA/targets/aarch64-linux/lib/
+COPY --from=cuda ./usr/local/cuda/lib64/libcudart_static.a ./usr/local/cuda-$CUDA/targets/aarch64-linux/lib/
+
+RUN wget -O /md_v5a.0.0.pt https://github.com/ICICLE-ai/camera_traps/raw/refs/heads/dev/models/MDV6b-yolov9c.pt
+
+RUN pip install --upgrade pip
+ADD requirements-nano-ultralytics.txt /requirements.txt
+ADD ultralytics.patch /ultralytics.patch
+RUN pip install -r requirements.txt
+
+RUN wget https://code.osu.edu/khuvis.1/camera-traps-wheels/-/raw/main/torch-1.10.0-cp38-cp38-linux_aarch64.whl \
+    && pip install torch-1.10.0-cp38-cp38-linux_aarch64.whl \
+    && rm torch-1.10.0-cp38-cp38-linux_aarch64.whl
+RUN wget https://code.osu.edu/khuvis.1/camera-traps-wheels/-/raw/main/torchvision-0.11.0-cp38-cp38-linux_aarch64.whl \
+    && pip install torchvision-0.11.0-cp38-cp38-linux_aarch64.whl \
+    && rm torchvision-0.11.0-cp38-cp38-linux_aarch64.whl
+
+RUN git clone https://github.com/ICICLE-ai/camera_traps -b inference \
+    && cd "/camera_traps" && git apply /ultralytics.patch && rm /ultralytics.patch && cd "/" \
+    && git clone https://github.com/microsoft/ai4eutils \
+    && git clone https://github.com/ultralytics/yolov5/ \
+    && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+
+RUN apt-get update && apt-get install libgl1 libomp-dev -y && rm -rf /var/lib/apt/lists/* && apt-get clean
+ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/camera_traps:/yolov5
+
+ENV images_dir='/example_images/' 
+ENV output_file_path='/example_images/detections.json'
+
+ADD example_images /example_images
+ADD entrypoint-nano.sh /entrypoint.sh
+ADD image_scoring_plugin.py /image_scoring_plugin.py
+ADD load_test_image_scoring.py /load_test_image_scoring.py
+ADD run_detector_multi.py /run_detector_multi.py
+ADD label_mapping.json /label_mapping_default.json
+
+### Add Nano drivers
+
+ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
+
+RUN echo "/usr/lib/aarch64-linux-gnu/tegra" >> /etc/ld.so.conf.d/nvidia-tegra.conf && \
+    echo "/usr/lib/aarch64-linux-gnu/tegra-egl" >> /etc/ld.so.conf.d/nvidia-tegra.conf
+
+RUN echo "/usr/local/cuda-10.0/targets/aarch64-linux/lib" >> /etc/ld.so.conf.d/nvidia.conf
+
+
+RUN ln -s /usr/local/cuda-$CUDA /usr/local/cuda && \
+    ln -s /usr/local/cuda-$CUDA/targets/aarch64-linux/include /usr/local/cuda/include && \
+    ln -s /usr/local/cuda-$CUDA/targets/aarch64-linux/lib /usr/local/cuda/lib64
+
+ENV PATH /usr/local/cuda-$CUDA/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/cuda-$CUDA/targets/aarch64-linux/lib:${LD_LIBRARY_PATH}
+
+RUN ldconfig
+
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES all
+
+
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]

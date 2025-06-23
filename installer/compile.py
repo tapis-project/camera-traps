@@ -78,9 +78,38 @@ def get_vars(input_data, default_data):
         print("Exiting...")
         sys.exit(1)
     
+    demo_defaults = {'deploy_image_generating': False,
+                     'deploy_image_detecting': True,
+                     'deploy_reporter': True,
+                     'deploy_ckn': False,
+                     'deploy_ckn_mqtt': True,
+                     'deploy_power_monitoring': False,
+                     'deploy_oracle': False,
+                     'inference_server': True}
+    simulation_defaults = {'deploy_image_generating': True,
+                           'deploy_image_detecting': False,
+                           'deploy_reporter': False,
+                           'deploy_ckn': True,
+                           'deploy_ckn_mqtt': False,
+                           'deploy_oracle': True,
+                           'inference_server': False}
+
+    if vars.get("mode") == 'demo':
+        vars = { **default_data, **demo_defaults, **input_data }
+    elif vars.get("mode") == 'simulation':
+        vars = { **default_data, **simulation_defaults, **input_data }
+
     # the powerjoular backend requires the docker socket to function:
     if vars.get("power_monitor_backend") == 'powerjoular':
         vars['power_monitor_mount_docker_socket'] = True
+
+    if vars.get("deploy_power_monitoring") == False:
+        vars['image_generating_monitor_power'] = False
+        vars['image_scoring_monitor_power'] = False
+        vars['power_plugin_monitor_power'] = False
+
+    if not vars.get('download_model'):
+        vars['download_model'] = not vars.get('inference_server')
     
     # the model id must be passed if trying to use a different model from the default 
     if vars.get("use_model_url"):
@@ -90,11 +119,35 @@ def get_vars(input_data, default_data):
         if not vars.get("model_url"):
             print(f"ERROR: The model_url parameter is required when use_model_url is True")
             sys.exit(1)
+        vars['local_model_path'] = './md_v5a.0.0.pt'
+    elif vars.get("local_model_path"):
+        vars['download_model'] = False
+        vars['mount_model_pt'] = True
+    elif vars.get("model_id"):
+        vars['local_model_path'] = './md_v5a.0.0.pt'
             
+
+    # get the correct image scoring plugin image name
+    if vars.get("inference_server"):
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_server_py_3.8'
+    elif vars.get("use_ultralytics"):
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_ultralytics_py_3.8'
+    else:
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_yolov5_py_3.8'
 
     # Add the installer's UID and GID
     vars["uid"] = uid
     vars["gid"] = gid 
+
+    # Determine operating system
+    if sys.platform.startswith('linux'):
+        vars['OS'] = 'linux'
+    elif sys.platform.startswith('darwin'):
+        vars['OS'] = 'macos'
+    elif sys.platform.startswith('nt'):
+        vars['OS'] = 'windows'
+    else:
+        vars['OS'] = 'unknown'
 
     # Add the host install path 
     install_host_path = os.environ.get("INSTALL_HOST_PATH")
@@ -131,12 +184,15 @@ def download_model_by_id(vars, full_install_dir):
     """
     Download a model based on its id and put it in the install dir.
     """
+    if vars.get("download_model") == False:
+        return
     # download the model .pt file for recognized model id's 
     model_id = vars.get("model_id")
     # this model is the default one and does not need to be downloaded
-    if model_id == "41d3ed40-b836-4a62-b3fb-67cee79f33d9-model":
-        print("Default model, not downloading...")
-        return
+    # download for inference server even if default
+    #if model_id == "41d3ed40-b836-4a62-b3fb-67cee79f33d9-model":
+    #    print("Default model, not downloading...")
+    #    return
     model_url = None
     label_url = None
     print(f"Checking CKN for the URL to the pt file...")
@@ -180,6 +236,8 @@ def compile_templates(vars, full_install_dir):
     # create the jinja environment object
     env = Environment(
         loader=PackageLoader("installer"),
+        trim_blocks=True,
+        lstrip_blocks=True,
         autoescape=select_autoescape()
     )
 
@@ -257,6 +315,10 @@ def generate_additional_directories(vars, full_install_dir):
     power_output_dir = os.path.join(full_install_dir, vars["power_output_dir"])
     if not os.path.exists(power_output_dir):
         os.makedirs(power_output_dir)
+
+    detection_output_dir = os.path.join(full_install_dir, vars["detection_reporter_plugin_output_dir"])
+    if not os.path.exists(detection_output_dir):
+        os.makedirs(detection_output_dir)
     
 
 def main():

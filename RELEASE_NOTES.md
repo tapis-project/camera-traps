@@ -1,5 +1,34 @@
 # Camera Traps Release Notes
 
+## Version 0.5.0
+This major release expands the camera-traps application with a new functional mode, referred to as `demo` mode. 
+Unlike the original simulation mode,
+when operated in `demo` mode, the software relies on a 
+real camera mounted and accessible as a Linux device. It
+uses motion detection to drive the camera and
+generate new images. 
+
+Additionally, when running in demo mode, the software has support for detecting a specific object and notifying a downstream process via an MQTT message. In particular, this approach supports integrations with drones which can fly to a particular camera that has spotted an object of interest.
+
+The major new components for this release include:
+
+1. A new Image Detecting plugin, with Linux Motion software
+for detecting motion and generating new images from a mounted camera.
+
+2. A new Detection Reporter plugin, which determines if the configured object of interest has been detected (up to the configure confidence threshold). Detection Reporter maintains a CSV file of all detections.
+
+3. A new CKN-MQTT Camera Traps container, which reads the 
+output of the Detection Reporter and sends an MQTT message to the CKN broker for each detection. 
+
+There were a number of additional major changes, including:
+
+1. The installer has been substantially expanded to provide support for automatically installing all of the new components mentioned above. Additionally, the installer now recognizes a new configuration, `mode: demo`, to specify running in demo mode versus simulation mode. 
+
+2. A number of improvements have been mode to the image scoring plugin and associated machine learning techniques. Support for a number of new models has been added, including support for ultralytics-based models. There is also support for running an ICICLE Model Commons "inference server" as a separate HTTP server container, aiding with plug-and-play. 
+
+3. A number of quality of life improvements have been made, including reducing build times with better ways of updating file permissions in the container images. 
+
+
 ## Version 0.4.0
 This major release expands the camera-traps application with several new capabilities:
 

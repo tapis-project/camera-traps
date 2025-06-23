@@ -33,16 +33,26 @@ internal_actions = ["image_recv_write_file_action", "image_store_file_action"]
 # Note that each plugin must specify the external port to use in TWO PLACES: here as well as
 # in the docker-compose.yml file. If external_port changes here, it must ALSO be changed in the
 # docker-compose.yml file. 
+{% if deploy_image_generating %}
 [[plugins.external]]
 plugin_name = "ext_image_gen_plugin"
 id = "d3266646-41ec-11ed-a96f-5391348bab46"
 external_port = 6000
 subscriptions = ["PluginTerminateEvent"]
+{% endif %}
 [[plugins.external]]
 plugin_name = "ext_image_score_plugin"
 id = "d6e8e42a-41ec-11ed-a36f-a3dcc1cc761a"
 external_port = 6001
 subscriptions = ["ImageReceivedEvent", "PluginTerminateEvent"]
+{% if deploy_image_detecting %}
+[[plugins.external]]
+plugin_name = "ext_image_detecting_plugin"
+id = "35f20cdd-a404-4436-8df9-d80a9de91147"
+external_port = 6002
+subscriptions = ["PluginTerminateEvent"]
+{% endif %}
+{% if deploy_power_monitoring %}
 [[plugins.external]]
 plugin_name = "ext_power_monitor_plugin"
 id = "4a0fca25-1935-472a-8674-58f22c3a32b3"
@@ -52,6 +62,8 @@ subscriptions = [
     "MonitorPowerStopEvent",
     "PluginTerminateEvent",
 ]
+{% endif %}
+{% if deploy_oracle %}
 [[plugins.external]]
 plugin_name = "ext_oracle_monitor_plugin"
 id = "6e153711-9823-4ee6-b608-58e2e801db51"
@@ -64,3 +76,17 @@ subscriptions = [
     "PluginTerminateEvent",
     "PluginTerminatingEvent",
 ]
+{% endif %}
+{% if deploy_reporter %}
+[[plugins.external]]
+plugin_name = "ext_detection_reporter_plugin"
+id = "dfdcd2aa-1906-4153-bffb-45d85bc9a9ea"
+external_port = 6012
+subscriptions = [
+    "ImageScoredEvent",
+    "ImageStoredEvent",
+    "ImageDeletedEvent",
+    "ImageReceivedEvent",
+    "PluginTerminateEvent",
+]
+{% endif %}
