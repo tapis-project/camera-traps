@@ -478,3 +478,43 @@ This is a complete list of all possible configurations.
 * `md_server_tag`: The tag to use for the inference server image. Default: latest.
 
   * Example: 1.0
+
+* `motion_video_device`: The device mount location for the camera. Default: /dev/video0
+
+  * Example: /dev/video8
+
+* `motion_framerate`: Maximum number of frames to to capture per second. Default: 1
+
+  * Example: 15
+
+* `motion_minimum_frame_time`: Minimum time in seconds between capturing images from the camera. Default: 3
+
+  * Example: 10
+
+* `motion_event_gap`: The number of seconds of no motion that triggers the end of an event. Default: 1
+
+  * Example: 60
+
+* `motion_threshold`: The threshold of number of pixels that need to be changed in order to declare motion. Default: 1500
+
+  * Example: 2000
+
+* `motion_width`: The width in pixels of each frame. Default: 640 
+
+  * Example: 1920
+
+* `motion_height`: The height in pixels of each frame. Default: 480
+
+  * Example: 1080
+
+* `use_ultralytics`: Whether to use the ultralytics package for inference. If not set, then use the legacy megadetector-based infernce code. Default: true
+
+  * Example: false
+
+* `download_model`: Whether to download the inference model file to disk during installation or to just pass the model ID/url to the inference plugin.
+
+  * Example: false
+
+* `local_model-path`: The path on the local file system where the model file is stored. Only used if `mount_model_pt` is set to true.
+
+  * Example: `./md_v5a.0.0.pt`
