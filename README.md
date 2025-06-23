@@ -1,10 +1,14 @@
 # camera-traps
 
-The camera-traps application is both a simulator and an edge device application for classifying images, with the first deployment specializing in wildlife images.  The simulation environment will be implemented first and serve as a test bed for protocols and techniques that optimize storage, execution time, power and accuracy.  The ultimate goal is to deploy a version of this application on camera-trap devices in the wild.
+The Camera Traps application is both a simulator and IoT device software for utilizing machine learning on the edge in field research. The first implementation specializes in applying computer vision (detection and classification) to wildlife images for animal ecology studies. Two operational modes are supported: "simulation" mode and "demo" mode. When executed in simulation mode, the software serves as a test bed for studying ML models, protocols and techniques that optimize storage, execution time, power and accuracy. It requires an input dataset of images to act as the images that would be generated an IoT camera device; it uses these images to drive the simulation. 
+
+Conversely, when run in "demo" mode, the application serves as software that can be deployed onto actual, Linux-based camera trap devices in the wild. In this case, the Camera Traps software relies on a digital camera accessible over a Linux device mount (the default `/dev/video0` location can be re-configured), and it drives the camera directly using the Linux Motion activation software, which comes bundled with the as a plugin with Camera Traps. It includes a detection reporter plugin and MQTT component which coordinate to communicate in real time when a configurable object of interest has been detected (up to a configurable confidence threshold). As a proof of concept of the capabilities of the software, we are producing a demo integration with drone software developed by the Stewart Lab at OSU which enables the Camera Traps software to communicate over a local network to a nearby drone whenever an object of interest is detected. 
+
 
 ## Architectual Overview
+The actual camera-traps software consists of a set of tightly integrated plugins running on the same IoT device as separate containers (and thus, separate OS processes).
 
-This application uses the [event-engine](https://github.com/tapis-project/event-engine) library to implement its plugin architecture and event-driven communication.  The engine uses [zmq](https://zeromq.org/) sockets to deliver events between senders and the subscribers interested in specific events.
+Camera-traps uses the [event-engine](https://github.com/tapis-project/event-engine) library to implement its plugin architecture and event-driven communication.  The engine uses [zmq](https://zeromq.org/) sockets to deliver events between senders and the subscribers interested in specific events.
 
 The event-engine supports *internal* and *external* plugins.  Internal plugins are Rust plugins delivered with camera-traps and run in the camera-traps process.  External plugins are configured by camera-traps to run outside the camera-traps process and use a TCP port to send and receive events.  By using TCP, external plugins can be written in any language that supports the [flatbuffers](https://google.github.io/flatbuffers/) wire protocol.
 
@@ -28,6 +32,8 @@ In general, plugins can also depend on their own environment variables and/or co
 | -------------------------- | ------------------------------- | -------------------------- | ----------------------------------- |
 | camera-traps application | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter |
 | image_gen_plugin         |                               | /input.json              |                                   |
+| image_detecting_plugin   |                               | /etc/motion/motion.conf |
+| detection_reporter_plugin| TRAPS_DETECTION_REPORTER_*    |                         |
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
 | power_measure_plugin     | TRAPS_POWER_LOG_PATH          | ~/logs                   |                                   |
 | oracle_monitor_plugin    | TRAPS_ORACLE_OUTPUT_PATH      | ~/output                 |                                   |
