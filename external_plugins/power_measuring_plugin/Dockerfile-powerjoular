@@ -1,0 +1,18 @@
+FROM ubuntu:24.04
+
+# get the ada compiler
+RUN apt-get update && apt-get install -y gnat gprbuild git
+
+# get the powerjoular source
+RUN git clone https://github.com/joular/powerjoular.git
+
+# compile the code
+WORKDIR /powerjoular
+RUN gprbuild
+
+# copy the binary to bin
+RUN cp obj/powerjoular /usr/bin/powerjoular
+
+# set powerjoular as the entrypoint 
+WORKDIR /
+ENTRYPOINT ["/usr/bin/powerjoular"]
