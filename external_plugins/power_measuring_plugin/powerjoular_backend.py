@@ -10,7 +10,7 @@ log_dir = os.environ['TRAPS_POWER_LOG_PATH']
 logger = logging.getLogger("Power measurement")
 
 
-POWER_JOULAR_IMAGE = "jstubbs/powerjoular"
+POWER_JOULAR_IMAGE = os.environ.get("POWER_JOULAR_IMAGE", "tapis/powerjoular")
 
 log_dir = os.environ['TRAPS_POWER_LOG_PATH']
 
