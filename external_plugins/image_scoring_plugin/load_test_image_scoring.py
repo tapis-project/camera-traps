@@ -26,6 +26,7 @@ IMAGES_DIR_PATH = os.environ.get('IMAGES_DIR_PATH', 'example_images')
 OUTPUT_DIR_PATH = os.environ.get('OUTPUT_DIR_PATH', os.getcwd())
 SLEEP_TIME_PER_IMAGE = int(os.environ.get('SLEEP_TIME_PER_IMAGE', 0))
 MAX_IMAGES_TO_SCORE = int(os.environ.get('MAX_IMAGES_TO_SCORE', 10))
+MAPPING_FILE = os.environ.get('MAPPING_FILE', 'label_mapping_default.json')
 
 # whether to cache the detector or to use the old method "load_and_run_detector()" method on each image
 # export any other value to use the old method.
@@ -71,9 +72,10 @@ def main():
             results= run_detector(detector=detector,
                                 image_file_names=[image_file_path],
                                 output_dir=OUTPUT_DIR_PATH,
+                                label_map=MAPPING_FILE,
                                 render_confidence_threshold=0.1,
                                 box_thickness=DEFAULT_BOX_THICKNESS,
-                                box_expansion=DEFAULT_BOX_EXPANSION,                          
+                                box_expansion=DEFAULT_BOX_EXPANSION,
                                 crop_images=CROP_IMAGE,
                                 image_size=IMAGE_SIZE)
         # otherwise, we use the old load_and_run function which loads the model every time

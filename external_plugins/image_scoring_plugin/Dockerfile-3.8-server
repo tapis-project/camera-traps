@@ -21,32 +21,33 @@
 #    docker run -e IMAGE_PATH = /images
 ARG REL=use-build-arg
 FROM tapis/camera_traps_py_3.8:$REL
-RUN chmod -R 0777 /* || true
+RUN find / -path /proc -prune -o -path /sys -prune -o -path /dev -prune -o -writable -print0 | xargs -0 -P $(nproc) -I {} chmod 0777 {} || true
 
-RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
+#RUN wget -O /md_v5a.0.0.pt https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt
 
 RUN pip install --upgrade pip
 ADD requirements.txt /requirements.txt
 RUN pip install -r requirements.txt
 
-RUN git clone https://github.com/ICICLE-ai/camera_traps -b inference \
-    && git clone https://github.com/microsoft/ai4eutils \
-    && git clone https://github.com/ultralytics/yolov5/ \
-    && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+#RUN git clone https://github.com/ICICLE-ai/camera_traps -b inference \
+#    && git clone https://github.com/microsoft/ai4eutils \
+#    && git clone https://github.com/ultralytics/yolov5/ \
+#    && cd "/yolov5" && git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
 
 RUN apt-get update && apt-get install libgl1 -y
-ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/camera_traps:/yolov5
+#ENV PYTHONPATH=${PYTHONPATH}:/ai4eutils:/camera_traps:/yolov5
 
 ENV images_dir='/example_images/' 
 ENV output_file_path='/example_images/detections.json'
 
 ADD example_images /example_images
 ADD entrypoint.sh /entrypoint.sh
-ADD image_scoring_plugin.py /image_scoring_plugin.py
+ADD image_scoring_plugin_server.py /image_scoring_plugin.py
 ADD load_test_image_scoring.py /load_test_image_scoring.py
 ADD run_detector_multi.py /run_detector_multi.py
+ADD label_mapping.json /label_mapping_default.json
 
 RUN chmod +x /entrypoint.sh
-RUN chmod -R 0777 /example_images /load_test_image_scoring.py /ai4eutils /md_v5a.0.0.pt /camera_traps /yolov5 /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py /image_scoring_plugin.py || true 
+RUN chmod -R 0777 /example_images /load_test_image_scoring.py /run_detector_multi.py /entrypoint.sh /image_scoring_plugin.py /image_scoring_plugin.py /label_mapping_default.json || true 
 
 ENTRYPOINT ["./entrypoint.sh"]

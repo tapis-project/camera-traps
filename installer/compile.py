@@ -1,6 +1,7 @@
 import os 
 import shutil
 import sys 
+import json
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 import requests
@@ -77,9 +78,38 @@ def get_vars(input_data, default_data):
         print("Exiting...")
         sys.exit(1)
     
+    demo_defaults = {'deploy_image_generating': False,
+                     'deploy_image_detecting': True,
+                     'deploy_reporter': True,
+                     'deploy_ckn': False,
+                     'deploy_ckn_mqtt': True,
+                     'deploy_power_monitoring': False,
+                     'deploy_oracle': False,
+                     'inference_server': True}
+    simulation_defaults = {'deploy_image_generating': True,
+                           'deploy_image_detecting': False,
+                           'deploy_reporter': False,
+                           'deploy_ckn': True,
+                           'deploy_ckn_mqtt': False,
+                           'deploy_oracle': True,
+                           'inference_server': False}
+
+    if vars.get("mode") == 'demo':
+        vars = { **default_data, **demo_defaults, **input_data }
+    elif vars.get("mode") == 'simulation':
+        vars = { **default_data, **simulation_defaults, **input_data }
+
     # the powerjoular backend requires the docker socket to function:
     if vars.get("power_monitor_backend") == 'powerjoular':
         vars['power_monitor_mount_docker_socket'] = True
+
+    if vars.get("deploy_power_monitoring") == False:
+        vars['image_generating_monitor_power'] = False
+        vars['image_scoring_monitor_power'] = False
+        vars['power_plugin_monitor_power'] = False
+
+    if not vars.get('download_model'):
+        vars['download_model'] = not vars.get('inference_server')
     
     # the model id must be passed if trying to use a different model from the default 
     if vars.get("use_model_url"):
@@ -89,11 +119,35 @@ def get_vars(input_data, default_data):
         if not vars.get("model_url"):
             print(f"ERROR: The model_url parameter is required when use_model_url is True")
             sys.exit(1)
+        vars['local_model_path'] = './md_v5a.0.0.pt'
+    elif vars.get("local_model_path"):
+        vars['download_model'] = False
+        vars['mount_model_pt'] = True
+    elif vars.get("model_id"):
+        vars['local_model_path'] = './md_v5a.0.0.pt'
             
+
+    # get the correct image scoring plugin image name
+    if vars.get("inference_server"):
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_server_py_3.8'
+    elif vars.get("use_ultralytics"):
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_ultralytics_py_3.8'
+    else:
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_yolov5_py_3.8'
 
     # Add the installer's UID and GID
     vars["uid"] = uid
     vars["gid"] = gid 
+
+    # Determine operating system
+    if sys.platform.startswith('linux'):
+        vars['OS'] = 'linux'
+    elif sys.platform.startswith('darwin'):
+        vars['OS'] = 'macos'
+    elif sys.platform.startswith('nt'):
+        vars['OS'] = 'windows'
+    else:
+        vars['OS'] = 'unknown'
 
     # Add the host install path 
     install_host_path = os.environ.get("INSTALL_HOST_PATH")
@@ -102,60 +156,49 @@ def get_vars(input_data, default_data):
     print(f"Merged variables: {vars}")
     return vars 
 
+def get_urls_from_ckn(model_id):
+    """
+    Given a model card ID, extract the download URL and inference labels URL.
+    """
+    if model_id.endswith("-model"):
+        model_id = model_id[:-6]
+    patra_download_endpoint = f"https://ckn.d2i.tacc.cloud/patra/download_mc?id={model_id}"
+
+    response = requests.get(patra_download_endpoint)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch data. Status code: {response.status_code}")
+
+    try:
+        data = response.json()
+        if isinstance(data, str):
+            data = json.loads(data)
+    except ValueError as e:
+        raise Exception("Error parsing JSON response") from e
+
+    ai_model = data.get("ai_model", {})
+    download_url = ai_model.get("location")
+    inference_labels_url = ai_model.get("inference_labels")
+    return download_url, inference_labels_url
 
 def download_model_by_id(vars, full_install_dir):
     """
     Download a model based on its id and put it in the install dir.
     """
+    if vars.get("download_model") == False:
+        return
     # download the model .pt file for recognized model id's 
     model_id = vars.get("model_id")
     # this model is the default one and does not need to be downloaded
-    if model_id == "41d3ed40-b836-4a62-b3fb-67cee79f33d9-model":
-        print("Default model, not downloading...")
-        return
+    # download for inference server even if default
+    #if model_id == "41d3ed40-b836-4a62-b3fb-67cee79f33d9-model":
+    #    print("Default model, not downloading...")
+    #    return
     model_url = None
-    # this is model "5b"
-    # if model_id == '4108ed9d-968e-4cfe-9f18-0324e5399a97-model':
-    #     model_url = "https://github.com/ICICLE-ai/camera_traps/raw/main/models/md_v5b.0.0.pt"
-    # this is model "5-optimized"
-    # elif model_id == '665e7c60-7244-470d-8e33-a232d5f2a390-model':
-    #     model_url = "https://github.com/ICICLE-ai/camera_traps/raw/main/models/mdv5_optimized.pt"
-    # this is model "5a_ena"
-    # elif model_id == '2e0afb62-349d-46a4-9fc7-5f0c2b9e48a5-model':
-    #     model_url = "https://github.com/ICICLE-ai/camera_traps/blob/main/models/md_v5a.0.0_ena.pt"
-    # # this is model "5c"
-    # elif model_id == '04867339-530b-44b7-b66e-5f7a52ce4d90-model':
-    #     model_url = "URL_TBD"
-    #     print(f"ERROR: Model 5c not yet available. Exiting...")    
-    #     sys.exit(1)
-    # else:
-    # try to look up the model URL from CKN
+    label_url = None
     print(f"Checking CKN for the URL to the pt file...")
-    url = f"https://ckn.d2i.tacc.cloud/patra/download_url?model_id={model_id}"
-    try:
-        rsp = requests.get(url)
-        rsp.raise_for_status()
-    except Exception as e:
-        print(f"ERROR: Could not lookup model URL from CKN; details: {e}. exiting...")
-        sys.exit(1)
-    try:
-        data = rsp.json()
-    except Exception as e:
-        print(f"ERROR: Could not parse JSON from CKN response; details: {e}. exiting...")
-        sys.exit(1)
-    print(f"Response from CKN: {data}")
-    error = data.get("error")
-    if error:
-        print(f"ERROR: Got error from CKN response; details: {error}. exiting...")
-        sys.exit(1)
-    try:
-        model_url = rsp.json().get("download_url")
-    except Exception as e:
-        print(f"ERROR: Could not get model URL from CKN response; details: {e}. exiting...")
-        # print(f"Requests path: {requests.__file__}")
-        # print(f"Requests lib contents: {dir(requests)}")
-        sys.exit(1)
+    model_url, label_url = get_urls_from_ckn(model_id)
     print(f"Got URL for model from CKN; URL: {model_url}")
+    print(f"Got URL for labels from CKN; URL: {label_url}")
     # if we have a model URL, then we download it so it can be mounted 
     if model_url:
         # download model
@@ -172,7 +215,19 @@ def download_model_by_id(vars, full_install_dir):
         with open(model_file_install_path, "wb") as f:
             f.write(rsp.content) 
         vars["mount_model_pt"] = True   
-
+    if label_url:
+        # download labels
+        try:
+            rsp = requests.get(label_url)
+            rsp.raise_for_status()
+        except Exception as e:
+            print(f'Error could not download model labels at URL {label_url}; details: {e}')
+            sys.exit(1)
+        label_file_install_path = os.path.join(full_install_dir, 'label_mapping.json')
+        # save it to install directory
+        with open(label_file_install_path, 'wb') as f:
+            f.write(rsp.content)
+        vars["mount_labels"] = True   
 
 def compile_templates(vars, full_install_dir):
     """
@@ -181,6 +236,8 @@ def compile_templates(vars, full_install_dir):
     # create the jinja environment object
     env = Environment(
         loader=PackageLoader("installer"),
+        trim_blocks=True,
+        lstrip_blocks=True,
         autoescape=select_autoescape()
     )
 
@@ -258,6 +315,10 @@ def generate_additional_directories(vars, full_install_dir):
     power_output_dir = os.path.join(full_install_dir, vars["power_output_dir"])
     if not os.path.exists(power_output_dir):
         os.makedirs(power_output_dir)
+
+    detection_output_dir = os.path.join(full_install_dir, vars["detection_reporter_plugin_output_dir"])
+    if not os.path.exists(detection_output_dir):
+        os.makedirs(detection_output_dir)
     
 
 def main():

@@ -1,0 +1,4 @@
+[thresholds]
+{% for key, value in detection_thresholds.items() %}
+{{ key }} = {{ value }}
+{% endfor %}

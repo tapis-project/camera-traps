@@ -32,7 +32,6 @@ DETECTIONS = (os.getenv('DETECTIONS') == 'true')
 # Whether to force image resizing to a (square) integer size (not recommended to change this)
 # None means no resizing.
 IMAGE_SIZE = None
-model_variant = os.environ.get('MODEL_TYPE', '0')
 from camera_traps.run_detector import load_and_run_detector
 from run_detector_multi import load_detector, run_detector
 
@@ -40,11 +39,13 @@ from run_detector_multi import load_detector, run_detector
 PORT = os.environ.get('IMAGE_SCORING_PLUGIN_PORT', 6000)
 base_path = os.environ.get('IMAGE_PATH')
 image_path_prefix = os.environ.get('IMAGE_FILE_PREFIX', '')
+mapping_file = os.environ.get('MAPPING_FILE', 'label_mapping_default.json')
 
 # whether to cache the detector or to use the old method "load_and_run_detector()" method on each image
 # export any other value to use the old method.
 DEFAULT_MODE = 'cache_detector'
 MODE = os.environ.get('MODE', DEFAULT_MODE)
+ULTRALYTICS = (os.getenv('ULTRALYTICS') == 'true')
 
 
 def get_socket():
@@ -64,6 +65,21 @@ def get_image_file_path(image_uuid, image_format):
    # TODO -- should not have to do this.
    image_format = image_format.lower()
    return f"{base_path}/{image_path_prefix}{image_uuid}.{image_format}"
+
+def load_label_map():
+    logger.info("Retrieving the label map in image scoring plugin")
+    try:
+        with open(mapping_file, 'r') as f:
+            label_map = json.load(f)
+    except:
+        logger.info(f'Label mapping file could not be opened using default mapping.')
+        try:
+            with open('label_mapping_default.json', 'r') as f:
+                label_map = json.load(f)
+        except:
+            label_map = {"1": "animal", "2": "human", "3": "vehicle", "4": "empty"}
+    return label_map
+
 
 def monitor_scoring_power(socket):
     monitor_flag = os.getenv('MONITOR_POWER')
@@ -85,14 +101,16 @@ def main():
     if MODE == DEFAULT_MODE:
         detector = load_detector(model_file="md_v5a.0.0.pt")
 
+    label_map = load_label_map()
+
     while not done:
         # get the next message
         logger.debug(f"waiting on message: {total_messages + 1}")
         m = get_next_msg(socket)
         e = socket_message_to_typed_event(m)
 
-        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         total_messages += 1
+        logger.info(f"just got message {total_messages}; type(e): {type(e)}")
         # TODO: we could check if e is not an image_received event, skip it....
         
         # - find the image on the file system, (the image path)
@@ -116,6 +134,7 @@ def main():
             results= run_detector(detector=detector,
                                 image_file_names=[image_file_path],
                                 output_dir=f"{base_path}/{image_path_prefix}",
+                                label_map=label_map,
                                 render_confidence_threshold=0.1,
                                 box_thickness=DEFAULT_BOX_THICKNESS,
                                 box_expansion=DEFAULT_BOX_EXPANSION,                          
@@ -137,70 +156,19 @@ def main():
         # create and send an image scored event with the probability scores:
         scores = []
         
-        label = "unknown"
-        for r in results:
-           # Each score object should have the format: 
-           #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
-           # Each result returned from detector is a dictionary with `category` and `conf`
-            if model_variant == "2":
-                if r['category'] == "1":
-                    label = "bird"
-                elif r['category'] == "2":
-                    label = "eastern gray squirrel"
-                elif r['category'] == "3":
-                    label = "eastern chipmunk"
-                elif r['category'] == "4":
-                    label = "woodchuck"
-                elif r['category'] == "5":
-                    label = "wild turkey"
-                elif r['category'] == "6":
-                    label = "white-tailed deer"
-                elif r['category'] == "7":
-                    label = "virginia opossum"
-                elif r['category'] == "8":
-                    label = "eastern cottontail"
-                elif r['category'] == "9":
-                    label = "human"
-                elif r['category'] == "10":
-                    label = "vehicle"
-                elif r['category'] == "11":
-                    label = "striped skunk"
-                elif r['category'] == "12":
-                    label = "red fox"
-                elif r['category'] == "13":
-                    label = "eastern fox squirrel"
-                elif r['category'] == "14":
-                    label = "northern raccoon"
-                elif r['category'] == "15":
-                    label = "grey fox"
-                elif r['category'] == "16":
-                    label = "horse"
-                elif r['category'] == "17":
-                    label = "dog"
-                elif r['category'] == "18":
-                    label = "american crow"
-                elif r['category'] == "19":
-                    label = "chicken"
-                elif r['category'] == "20":
-                    label = "domestic cat"
-                elif r['category'] == "21":
-                    label = "coyote"
-                elif r['category'] == "22":
-                    label = "bobcat"
-                elif r['category'] == "23":
-                    label = "american black bear"
-
-            else:
-                if r['category'] == '1':
-                    label = "animal"
-                elif r['category'] == '2':
-                    label = "human"
-                elif r['category'] == '3':
-                    label = "vehicle"
-                elif r['category'] == '4':
-                    label = "empty"
-            #If an image contains multiple detection, we need to append muplitple label and probability for each image.
-            scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+        if not results:
+            scores.append({"image_uuid": image_uuid, "label": "empty", "probability": 0.0})
+        else:
+            for r in results:
+                # Each score object should have the format: 
+                #     {"image_uuid": image_uuid, "label": "animal", "probability": 0.85}
+                # Each result returned from detector is a dictionary with `category` and `conf`
+                if ULTRALYTICS:
+                    label = r.get('category', 'unknown')
+                else:
+                    label = label_map.get(str(r['category']), "unknown")
+                #If an image contains multiple detection, we need to append muplitple label and probability for each image.
+                scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 
         send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        

@@ -1,11 +1,13 @@
 # General 
-ct_version: 0.4.0
+ct_version: 0.5.0
 host_config_dir: ./config
 use_host_pid: true
 run_containers_as_user: true 
 host_output_dir: .
+download_model: 
 
 # Image Generating Plugin
+deploy_image_generating: true
 image_generating_monitor_power: true
 use_bundled_example_images: true
 use_image_directory: false
@@ -18,6 +20,19 @@ use_gpu_in_scoring: false
 images_output_dir: images_output_dir 
 image_generating_log_level: DEBUG 
 
+# image detecting plugin
+deploy_image_detecting: false
+image_detecting_plugin_image: tapis/image_detecting_plugin
+run_image_detecting_privileged: true
+motion_video_device: /dev/video0
+motion_framerate: 1
+motion_minimum_frame_time: 3
+motion_event_gap: 1
+motion_threshold: 1500
+motion_width: 640
+motion_height: 480
+
+
 # Image Scoring Plugin 
 image_scoring_plugin_image: tapis/image_scoring_plugin_py_3.8
 image_scoring_log_level: DEBUG
@@ -26,13 +41,15 @@ image_scoring_crop_images: false
 image_scoring_generate_bounding_boxes: false 
 model_id: 41d3ed40-b836-4a62-b3fb-67cee79f33d9-model
 use_model_url: false
+use_ultralytics: true
 
 
-# Image Storing Pluing
+# Image Storing Plugin
 image_store_save_threshold: 0.7
 image_store_reduce_save_threshold: 0.4
 
 # Power Monitor Plugin
+deploy_power_monitoring: true
 run_power_monitor_privileged: true 
 use_gpu_in_power_monitoring: false 
 power_monitor_log_level: DEBUG 
@@ -43,9 +60,18 @@ power_monitor_mount_docker_socket: false
 
 
 # Oracle Plugin 
+deploy_oracle: true
 oracle_plugin_image: tapis/oracle_plugin
 oracle_plugin_output_dir: oracle_output_dir
 device_id: AAAAAAAAAAAAAAAAAAAA
+
+# Detection Reporter Plugin
+deploy_reporter: true
+detection_reporter_plugin_image: tapis/detection_reporter_plugin
+detection_reporter_plugin_output_dir: detection_output_dir
+detected_events_file: detections.csv
+detection_thresholds: 
+  animal: 0.5
 
 # CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true
@@ -55,3 +81,14 @@ ckn_kafka_broker_port: 9092
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
+patra_endpoint: https://ckn.d2i.tacc.cloud/patra/download_mc
+
+deploy_ckn_mqtt: false
+ckn_mqtt_tag: latest
+ckn_mqtt_broker: host.docker.internal
+ckn_mqtt_broker_port: 1883
+ckn_mqtt_image_dir: /images
+
+# inference server
+inference_server: true
+md_server_tag: latest
