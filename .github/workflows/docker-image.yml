@@ -625,6 +625,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push powerjoular image
+        uses: docker/build-push-action@v5
+        with:
+          context: external_plugins/power_measuring_plugin
+          push: true
+          file: external_plugins/power_measuring_plugin/Dockerfile-powerjoular
+          platforms: linux/amd64,linux/arm64
+          tags: tapis/powerjoular
       - name: Build and push scaphandre image
         uses: docker/build-push-action@v5
         with:
