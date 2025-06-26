@@ -2,7 +2,7 @@ ARG REL=use-build-arg
 #FROM tapis/power_measuring_plugin:0.4.0 as builder
 
 FROM tapis/camera_traps_py:$REL
-COPY --from=scaphandre /scaphandre /scaphandre
+COPY --from=tapis/scaphandre /scaphandre /scaphandre
 # FROM tapis/camera_traps_py_3.8
 
 ARG USER=root

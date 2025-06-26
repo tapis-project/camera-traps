@@ -625,15 +625,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build local scaphandre image
+      - name: Build and scaphandre image
         uses: docker/build-push-action@v5
         with:
           context: external_plugins/power_measuring_plugin
           file: Dockerfile-scaphandre
           platforms: linux/amd64,linux/arm64
-          push: false
-          load: true
-          tags: scaphandre
+          tags: tapis/scaphandre
       - name: Build and push power_measuring_plugin
         uses: docker/build-push-action@v5
         with:
