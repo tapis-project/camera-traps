@@ -276,7 +276,7 @@ def run_detector(detector, image_file_names, output_dir, label_map,
     print('- inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
                                                       std_dev_time_infer))
     # print(f"{result['max_detection_conf']} {type(result['max_detection_conf'])}")
-    return result['detections']
+    return result.get('detections') if result else None
 
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
