@@ -49,6 +49,9 @@ def start_powerjoular(pid):
         "bind": log_dir, "mode": "rw"}
     }
 
+    logger.info(f"Pulling container image for powerjoular: {POWER_JOULAR_IMAGE}")
+    client.images.pull(POWER_JOULAR_IMAGE)
+
     # run the powerjoular container
     logger.info(f"Starting a powerjoular conatiner for PID: {pid}")
     logger.debug(f"powerjoular container args: {powerjoular_args}; image: {POWER_JOULAR_IMAGE}")
