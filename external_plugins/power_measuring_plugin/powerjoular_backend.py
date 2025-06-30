@@ -10,7 +10,7 @@ log_dir = os.environ['TRAPS_POWER_LOG_PATH']
 logger = logging.getLogger("Power measurement")
 
 
-POWER_JOULAR_IMAGE = "jstubbs/powerjoular"
+POWER_JOULAR_IMAGE = os.environ.get("POWER_JOULAR_IMAGE", "tapis/powerjoular")
 
 log_dir = os.environ['TRAPS_POWER_LOG_PATH']
 
@@ -48,6 +48,9 @@ def start_powerjoular(pid):
     volumes = { os.environ.get("TRAPS_POWER_LOG_HOST_PATH"): {
         "bind": log_dir, "mode": "rw"}
     }
+
+    logger.info(f"Pulling container image for powerjoular: {POWER_JOULAR_IMAGE}")
+    client.images.pull(POWER_JOULAR_IMAGE)
 
     # run the powerjoular container
     logger.info(f"Starting a powerjoular conatiner for PID: {pid}")

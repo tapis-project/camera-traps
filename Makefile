@@ -45,7 +45,7 @@ build-generating:
 	cd external_plugins/image_generating_plugin/ && docker build -t tapis/image_generating_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
 build-power:
-	cd external_plugins/power_measuring_plugin/ && docker build -t tapis/power_measuring_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
+	cd external_plugins/power_measuring_plugin/ && docker build -t tapis/powerjoular -f Dockerfile-powerjoular . && docker build -t tapis/scaphandre -f Dockerfile-scaphandre . && docker build -t tapis/power_measuring_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
 build-oracle:
 	cd external_plugins/oracle_plugin/ && docker build -t tapis/oracle_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..

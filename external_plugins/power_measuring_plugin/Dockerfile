@@ -1,6 +1,8 @@
 ARG REL=use-build-arg
-FROM tapis/camera_traps_py:$REL
+#FROM tapis/power_measuring_plugin:0.4.0 as builder
 
+FROM tapis/camera_traps_py:$REL
+COPY --from=tapis/scaphandre /scaphandre /scaphandre
 # FROM tapis/camera_traps_py_3.8
 
 ARG USER=root
@@ -13,8 +15,8 @@ RUN chmod -R 0777 /* || true
 # RUN pip install flatbuffers numpy
 # RUN pip install jetson-stats
 
-RUN cd / && git clone https://github.com/hubblo-org/scaphandre.git
-RUN cd /scaphandre && cargo build --release
+#RUN cd / && git clone https://github.com/hubblo-org/scaphandre.git
+#RUN cd /scaphandre && cargo build --release
 ENV PATH="/scaphandre/target/release:${PATH}"
 
 ADD requirements.txt /requirements.txt

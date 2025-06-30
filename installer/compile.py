@@ -129,9 +129,9 @@ def get_vars(input_data, default_data):
 
     # get the correct image scoring plugin image name
     if vars.get("inference_server"):
-        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_server_py_3.8'
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_server_py_3.13'
     elif vars.get("use_ultralytics"):
-        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_ultralytics_py_3.8'
+        vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_ultralytics_py_3.13'
     else:
         vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_yolov5_py_3.8'
 

@@ -53,7 +53,7 @@ deploy_power_monitoring: true
 run_power_monitor_privileged: true 
 use_gpu_in_power_monitoring: false 
 power_monitor_log_level: DEBUG 
-power_monitor_backend: scaphandre 
+power_monitor_backend: powerjoular
 power_plugin_monitor_power: true 
 power_output_dir: power_output_dir
 power_monitor_mount_docker_socket: false 
