@@ -39,7 +39,7 @@ image_scoring_log_level: DEBUG
 image_scoring_monitor_power: true 
 image_scoring_crop_images: false 
 image_scoring_generate_bounding_boxes: false 
-model_id: 41d3ed40-b836-4a62-b3fb-67cee79f33d9-model
+model_id:
 use_model_url: false
 use_ultralytics: true
 

@@ -125,15 +125,23 @@ def get_vars(input_data, default_data):
         vars['mount_model_pt'] = True
     elif vars.get("model_id"):
         vars['local_model_path'] = './md_v5a.0.0.pt'
+    else:
+        vars['local_model_path'] = './md_v5a.0.0.pt'
             
 
     # get the correct image scoring plugin image name
     if vars.get("inference_server"):
         vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_server_py_3.13'
+        if vars.get("model_id") is None:
+            vars['model_id'] = '9103066540bd614ee580637971ff79ef385b8a9d19c3c99160acf8cc83da0952-model'
     elif vars.get("use_ultralytics"):
         vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_ultralytics_py_3.13'
+        if vars.get("model_id") is None:
+            vars['model_id'] = '9103066540bd614ee580637971ff79ef385b8a9d19c3c99160acf8cc83da0952-model'
     else:
         vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_yolov5_py_3.8'
+        if vars.get("model_id") is None:
+            vars['model_id'] = '41d3ed40-b836-4a62-b3fb-67cee79f33d9-model'
 
     # Add the installer's UID and GID
     vars["uid"] = uid
