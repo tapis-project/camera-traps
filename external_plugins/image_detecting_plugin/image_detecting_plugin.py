@@ -90,6 +90,7 @@ class NewFileHandler(FileSystemEventHandler):
         try:
             # Expected format: 20250714-21:51:49-00.jpg
             if "-" in basename and ":" in basename:
+                logging.info(f"TESTING 1 : {basename}")
                 # Splitting logic
                 parts = basename.split("-")
                 if len(parts) >= 2 and ":" in parts[1]:
@@ -125,6 +126,7 @@ class NewFileHandler(FileSystemEventHandler):
         """
         try:
             current_time = self.extract_timestamp(file_path)
+            logging.info(f"TESTING 2 : {current_time}")            
             if current_time - self.last_image_time < MIN_SECONDS_BETWEEN_IMAGES:
                 logging.info(f"Skipping image (too soon): {file_path}")
                 os.remove(file_path)
