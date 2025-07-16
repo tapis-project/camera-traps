@@ -81,17 +81,24 @@ class NewFileHandler(FileSystemEventHandler):
     on_create.
     """
 
+    def __init__(self):
+        super().__init__()
+        self.last_image_time = 0
+
     def extract_timestamp(self, file_path):
         basename = os.path.basename(file_path)
         try:
-            # Expected format: 20250714-21:51:49-00.jpeg
+            # Expected format: 20250714-21:51:49-00.jpg
             if "-" in basename and ":" in basename:
-                # Splitting to get date and time parts
-                date_part, time_part = basename.split("-")[0], basename.split("-")[1]
-                datetime_str = date_part + time_part.replace(":", "")
-                if len(datetime_str) == 14:
-                    ts = time.strptime(datetime_str, "%Y%m%d%H%M%S")
-                    return time.mktime(ts)
+                # Splitting logic
+                parts = basename.split("-")
+                if len(parts) >= 2 and ":" in parts[1]:
+                    date_part = parts[0]
+                    time_part = parts[1].replace(":", "")
+                    datetime_str = date_part + time_part
+                    if len(datetime_str) == 14:
+                        ts = time.strptime(datetime_str, "%Y%m%d%H%M%S")
+                        return time.mktime(ts)
         except Exception as e:
             logging.warning(f"Filename parsing failed: {basename} — {e}")
 
