@@ -16,7 +16,7 @@ from pyevents.events import get_plugin_socket
 # By default, we set this directory to `/var/lib/motion` in the container, assuming
 # that the Linux Motion package will also be configured and running in the same container.
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
-MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "5.0"))
+MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
 
 def get_socket():
     """
@@ -90,7 +90,6 @@ class NewFileHandler(FileSystemEventHandler):
         try:
             # Expected format: 20250714-21:51:49-00.jpg
             if "-" in basename and ":" in basename:
-                logging.info(f"TESTING 1 : {basename}")
                 # Splitting logic
                 parts = basename.split("-")
                 if len(parts) >= 2 and ":" in parts[1]:
@@ -126,7 +125,6 @@ class NewFileHandler(FileSystemEventHandler):
         """
         try:
             current_time = self.extract_timestamp(file_path)
-            logging.info(f"TESTING 2 : {current_time}")            
             if current_time - self.last_image_time < MIN_SECONDS_BETWEEN_IMAGES:
                 logging.info(f"Skipping image (too soon): {file_path}")
                 os.remove(file_path)
