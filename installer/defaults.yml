@@ -26,9 +26,10 @@ image_detecting_plugin_image: tapis/image_detecting_plugin
 run_image_detecting_privileged: true
 motion_video_device: /dev/video0
 motion_framerate: 1
-motion_minimum_frame_time: 3
+motion_minimum_frame_time: 0
+motion_minimum_motion_frames: 1
 motion_event_gap: 1
-motion_threshold: 1500
+motion_threshold: 100
 motion_width: 640
 motion_height: 480
 
