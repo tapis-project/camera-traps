@@ -16,7 +16,7 @@ from pyevents.events import get_plugin_socket
 # By default, we set this directory to `/var/lib/motion` in the container, assuming
 # that the Linux Motion package will also be configured and running in the same container.
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
-
+MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
 
 def get_socket():
     """
@@ -80,6 +80,35 @@ class NewFileHandler(FileSystemEventHandler):
     For now, we are only interested in *new* files, hence, we implement
     on_create.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.last_image_time = 0
+
+    def extract_timestamp(self, file_path):
+        basename = os.path.basename(file_path)
+        try:
+            # Expected format: 20250714-21:51:49-00.jpg
+            if "-" in basename and ":" in basename:
+                # Splitting logic
+                parts = basename.split("-")
+                if len(parts) >= 2 and ":" in parts[1]:
+                    date_part = parts[0]
+                    time_part = parts[1].replace(":", "")
+                    datetime_str = date_part + time_part
+                    if len(datetime_str) == 14:
+                        ts = time.strptime(datetime_str, "%Y%m%d%H%M%S")
+                        return time.mktime(ts)
+        except Exception as e:
+            logging.warning(f"Filename parsing failed: {basename} — {e}")
+
+        # Fallback
+        try:
+            return os.path.getmtime(file_path)
+        except Exception as e:
+            logging.warning(f"Fallback to time.time(): {file_path} — {e}")
+            return time.time()
+        
     def on_closed(self, event):
         """
         Watch the directory for new files (not directories), and trigger the 
@@ -95,9 +124,17 @@ class NewFileHandler(FileSystemEventHandler):
         Basic processing of a new file event. 
         """
         try:
+            current_time = self.extract_timestamp(file_path)
+            if current_time - self.last_image_time < MIN_SECONDS_BETWEEN_IMAGES:
+                logging.info(f"Skipping image (too soon): {file_path}")
+                os.remove(file_path)
+                return
+
             logging.debug(f"Processing file at path: {file_path}")
             uuid = generate_new_image_event(file_path)
-            logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
+            if uuid:
+                self.last_image_time = current_time
+                logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
         except Exception as e:
             logging.error(f"Error processing {file_path}: {e}")
 

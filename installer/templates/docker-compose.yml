@@ -106,6 +106,7 @@ services:
     pid: host
     environment:
       - IMAGE_DETECTING_PLUGIN_PORT=6002
+      - MIN_SECONDS_BETWEEN_IMAGES={{ min_seconds_between_images }}
     volumes:
       - {{ host_config_dir }}/motion.conf:/etc/motion/motion.conf:ro
     {% if run_image_detecting_privileged %}
