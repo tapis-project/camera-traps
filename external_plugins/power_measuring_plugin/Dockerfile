@@ -1,7 +1,7 @@
 ARG REL=use-build-arg
 #FROM tapis/power_measuring_plugin:0.4.0 as builder
 
-FROM tapis/camera_traps_py:$REL
+FROM tapis/camera_traps_py_3.13:$REL
 COPY --from=tapis/scaphandre /scaphandre /scaphandre
 # FROM tapis/camera_traps_py_3.8
 
@@ -20,16 +20,18 @@ RUN chmod -R 0777 /* || true
 ENV PATH="/scaphandre/target/release:${PATH}"
 
 ADD requirements.txt /requirements.txt
-RUN pip install -r requirements.txt 
+RUN python -m ensurepip --upgrade
+RUN python -m pip install --upgrade pip setuptools
+RUN python -m pip install -r requirements.txt
 
 RUN mkdir /logs
 
 
 RUN echo 'ALL            ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers
 RUN chown root:root /usr/bin/sudo && chmod 4755 /usr/bin/sudo
-RUN chmod 644 /usr/lib/sudo/sudoers.so
+#RUN chmod 644 /usr/lib/sudo/sudoers.so
 RUN chmod 0755 /etc/sudoers
-RUN chown -R root /usr/lib/sudo
+#RUN chown -R root /usr/lib/sudo
 RUN chmod -R a-w /etc/sudoers.d
 
 ADD power_measuring_plugin.py /power_measuring_plugin.py
