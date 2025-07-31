@@ -6,6 +6,11 @@ COPY --from=tapis/scaphandre /scaphandre /scaphandre
 # FROM tapis/camera_traps_py_3.8
 
 ARG USER=root
+
+# debian buster has been archived. add archives to sources.list as workaround but should update OS version
+RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list
+RUN sed -i 's|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g' /etc/apt/sources.list
+
 RUN apt update && apt install -y sudo 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN chmod +x $HOME/.cargo/env
