@@ -187,6 +187,7 @@ def process_images(input_image_path, ground_truth):
     logger.info(f"The input image path specified by the user:{input_image_path}")
     if input_image_path.endswith(('.zip', '.rar')):
         extract_from_zipfile(input_image_path, ground_truth)
+        return
     track_image_count = 0
     # NOTE: this just counts the total number of files (not including subdirectories) in the path; later, we check for the
     #       file extension and only process supported types, so this could be an issue.
