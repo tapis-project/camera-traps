@@ -124,7 +124,10 @@ def update_json(uuid, updated_data):
                     # was previously on the error list 
                     if uuids_with_errors:
                         for failed_uuid in uuids_with_errors:
-                            existing_image_mapping_final[failed_uuid] = uuid_image_mapping[failed_uuid]
+                            if failed_uuid in existing_image_mapping_final:
+                                existing_image_mapping_final[failed_uuid].update(uuid_image_mapping[failed_uuid])
+                            else:
+                               existing_image_mapping_final[failed_uuid] = uuid_image_mapping[failed_uuid]
                             uuids_with_errors.remove(failed_uuid)
                 
                 # it is possible the image generating plugin was writing to the file at the same time and,
