@@ -52,6 +52,13 @@ id = "35f20cdd-a404-4436-8df9-d80a9de91147"
 external_port = 6002
 subscriptions = ["PluginTerminateEvent"]
 {% endif %}
+{% if deploy_video_generating %}
+[[plugins.external]]
+plugin_name = "ext_video_generating_plugin"
+id = "b748d6c1-bf7b-5a90-b5e0-df4dd5ba8b45"
+external_port = 6003
+subscriptions = ["PluginTerminateEvent"]
+{% endif %}
 {% if deploy_power_monitoring %}
 [[plugins.external]]
 plugin_name = "ext_power_monitor_plugin"

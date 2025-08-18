@@ -25,7 +25,7 @@ deploy_image_detecting: false
 image_detecting_plugin_image: tapis/image_detecting_plugin
 run_image_detecting_privileged: true
 min_seconds_between_images: 2
-motion_video_device: /dev/video0
+motion_video_device:
 motion_framerate: 1
 motion_minimum_frame_time: 0
 motion_minimum_motion_frames: 1
@@ -33,6 +33,13 @@ motion_event_gap: 1
 motion_threshold: 100
 motion_width: 640
 motion_height: 480
+
+# video generating plugin
+deploy_video_generating: false
+video_generating_plugin_image: tapis/video_generating_plugin
+video_generating_log_level: DEBUG
+source_video_url:
+generating_video_device:
 
 
 # Image Scoring Plugin 

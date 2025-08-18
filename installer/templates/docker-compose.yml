@@ -97,6 +97,26 @@ services:
       {% endif %}
 {% endif %}
 
+{% if deploy_video_generating %}
+  videoGeneratingPlugin:
+    container_name: video_generating
+    image: {{ video_generating_plugin_image }}:{{ ct_version }}
+    pid: host
+    networks:
+      - cameratraps
+    privileged: true
+    depends_on:
+      - engine
+    environment:
+      - VIDEO_GENERATING_PORT=6003
+      - VIDEO_GENERATING_LOG_LEVEL={{ video_generating_log_level }}
+      {% if video_generating_monitor_power %}
+      - MONITOR_POWER=true
+      {% endif %}
+      - INPUT_VIDEO_PATH=/video.mp4
+      - DEVICE={{ generating_video_device }}
+{% endif %}
+
 {% if deploy_image_detecting %}
   imageDetectingPlugin:
     container_name: image_detecting

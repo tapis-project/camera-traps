@@ -11,12 +11,13 @@ RUN pip install PILLOW
 # Config files
 ADD motion.default /etc/default/motion
 ADD motion.conf /etc/motion/motion.conf
+RUN mkdir /var/log/motion
 
 # Code 
 ADD image_detecting_plugin.py /image_detecting_plugin.py
 ADD entry.sh /entry.sh 
 
-RUN chmod -R 0777 /oracle_plugin.py || true 
+RUN chmod -R 0777 /image_detecting_plugin.py || true
 
 
 ENTRYPOINT [ "/entry.sh" ]

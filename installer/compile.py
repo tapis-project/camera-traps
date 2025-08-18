@@ -85,6 +85,7 @@ def get_vars(input_data, default_data):
                      'deploy_ckn_mqtt': True,
                      'deploy_power_monitoring': False,
                      'deploy_oracle': False,
+                     'motion_video_device': '/dev/video0',
                      'inference_server': True}
     simulation_defaults = {'deploy_image_generating': True,
                            'deploy_image_detecting': False,
@@ -93,11 +94,23 @@ def get_vars(input_data, default_data):
                            'deploy_ckn_mqtt': False,
                            'deploy_oracle': True,
                            'inference_server': False}
+    video_simulation_defaults = {'deploy_image_generating': False,
+                                 'deploy_video_generating': True,
+                                 'deploy_image_detecting': True,
+                                 'deploy_reporter': False,
+                                 'deploy_ckn': True,
+                                 'deploy_ckn_mqtt': False,
+                                 'deploy_oracle': True,
+                                 'motion_video_device': 'http://video_generating:8090',
+                                 'generating_video_device': 'http://0.0.0.0:8090',
+                                 'inference_server': False}
 
     if vars.get("mode") == 'demo':
         vars = { **default_data, **demo_defaults, **input_data }
     elif vars.get("mode") == 'simulation':
         vars = { **default_data, **simulation_defaults, **input_data }
+    elif vars.get("mode") == 'video_simulation':
+        vars = { **default_data, **video_simulation_defaults, **input_data }
 
     # the powerjoular backend requires the docker socket to function:
     if vars.get("power_monitor_backend") == 'powerjoular':
@@ -142,6 +155,13 @@ def get_vars(input_data, default_data):
         vars['image_scoring_plugin_image'] = 'tapis/image_scoring_plugin_yolov5_py_3.8'
         if vars.get("model_id") is None:
             vars['model_id'] = '41d3ed40-b836-4a62-b3fb-67cee79f33d9-model'
+
+    # for video simulations, determine if motion is using device or netcam
+    if vars.get('motion_video_device'):
+        if '/dev' in vars.get('motion_video_device'):
+            vars['motion_video_type'] = 'device'
+        elif '://' in vars.get('motion_video_device'):
+            vars['motion_video_type'] = 'netcam'
 
     # Add the installer's UID and GID
     vars["uid"] = uid

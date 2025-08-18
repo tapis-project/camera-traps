@@ -5,6 +5,7 @@ from PIL import Image
 import time
 import uuid 
 import zmq 
+from subprocess import Popen
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -17,6 +18,7 @@ from pyevents.events import get_plugin_socket
 # that the Linux Motion package will also be configured and running in the same container.
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
 MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
+MODE = os.environ.get("MODE", "demo")
 
 def get_socket():
     """
@@ -73,6 +75,31 @@ def generate_new_image_event(file_path):
     # return the UUID
     return image_uuid
 
+class LogFileHandler(FileSystemEventHandler):
+    """
+    watchdog class to detect updates to the motion.log file and notify when it
+    has connected to a camera.
+    """
+    def __init__(self, observer, log_file_path):
+        super().__init__()
+        self.log_file_path = log_file_path
+        self.observer = observer
+        self.last_pos = 0
+
+    def on_modified(self, event):
+        if event.src_path == self.log_file_path:
+            self.check_for_connection()
+
+    def check_for_connection(self):
+        with open(self.log_file_path, 'r') as f:
+            f.seek(self.last_pos)
+            new_lines = f.readlines()
+            self.last_pos = f.tell()
+
+            for line in new_lines:
+                if 'motion detection Enabled' in line:
+                    self.observer.stop()
+                    return
 
 class NewFileHandler(FileSystemEventHandler):
     """
@@ -126,7 +153,7 @@ class NewFileHandler(FileSystemEventHandler):
         try:
             current_time = self.extract_timestamp(file_path)
             if current_time - self.last_image_time < MIN_SECONDS_BETWEEN_IMAGES:
-                logging.info(f"Skipping image (too soon): {file_path}")
+                logging.info(f"Skipping image (too soon): {file_path}") 
                 os.remove(file_path)
                 return
 
@@ -137,6 +164,24 @@ class NewFileHandler(FileSystemEventHandler):
                 logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
         except Exception as e:
             logging.error(f"Error processing {file_path}: {e}")
+
+def get_duration():
+    if MODE == 'video_simuation':
+        video_info_file = os.environ.get('TRAPS_VIDEO_INFO_PATH', '/video_info/video_info.yaml')
+        while True:
+            if os.path.exists(video_info_file):
+                try:
+                    with open(video_info_file, 'r') as f:
+                        video_info = yaml.safe_load(f)
+                except Exception as e:
+                    logging.error(f'Error processing {video_info_file}: {e}')
+            else:
+                sleep(1)
+
+        if 'duration' not in video_info.keys():
+            logging.error(f'duration value not set in {video_info_file}')
+        else:
+            duration = video_info['duration']
 
 
 if __name__ == "__main__":
@@ -150,6 +195,16 @@ if __name__ == "__main__":
     global socket
     socket = get_socket()
     logging.info(f"Image Detecting Plugin starting, monitoring path: {path}")
+
+    # Startup motion
+    duration = get_duration()
+    motion_proc = Popen(['motion'])
+
+    # make sure motion is connected to camera
+    log_observer = Observer()
+    log_handler = LogFileHandler(log_observer, '/var/log/motion/motion.log')
+    log_observer.schedule(log_handler, '/var/log/motion', recursive=False)
+    log_observer.start()
     
     # instantiate and start the event handler 
     event_handler = NewFileHandler()
@@ -157,10 +212,14 @@ if __name__ == "__main__":
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
 
-    # run until interrupted 
+    # run for specified video duration, or if undefined until interrupted 
     try:
-        while True:
-            time.sleep(1)
+        if duration:
+            time.sleep(duration)
+        else:
+            while True:
+                time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
+    motion_proc.kill()
