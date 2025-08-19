@@ -108,27 +108,50 @@ services:
     depends_on:
       - engine
     environment:
-      - VIDEO_GENERATING_PORT=6003
+      - VIDEO_GENERATING_PLUGIN_PORT=6003
       - VIDEO_GENERATING_LOG_LEVEL={{ video_generating_log_level }}
       {% if video_generating_monitor_power %}
       - MONITOR_POWER=true
       {% endif %}
       - INPUT_VIDEO_PATH=/video.mp4
-      - DEVICE={{ generating_video_device }}
+      {% if motion_video_device  %}
+      - DEVICE={{ motion_video_device }}
+      {% endif %}
+      - MODE={{ motion_video_type }}
+      - TRAPS_VIDEO_OUTPUT_PATH=/video_info
+      {% if use_custom_ground_truth_file_url %}
+      - USE_CUSTOM_GROUND_TRUTH_FILE_URL=true
+      - CUSTOM_GROUND_TRUTH_URL={{ custom_ground_truth_file_url }}
+      {% endif %}
+    volumes:
+      - {{ local_video_path }}:/video.mp4
+      - {{ host_output_dir }}/{{ video_output_dir }}:/video_info
+      - ./ground_truth.yml:/ground_truth.yml
 {% endif %}
 
 {% if deploy_image_detecting %}
   imageDetectingPlugin:
     container_name: image_detecting
-    image: {{ image_detecting_plugin_image}}:{{ ct_version}}
+    image: {{ image_detecting_plugin_image}}:{{ ct_version }}
     networks:
       - cameratraps
     pid: host
     environment:
       - IMAGE_DETECTING_PLUGIN_PORT=6002
       - MIN_SECONDS_BETWEEN_IMAGES={{ min_seconds_between_images }}
+      - IMAGE_DETECTING_LOG_LEVEL={{ image_detecting_log_level }}
+      {% if motion_video_type == 'device' or motion_video_type == 'file' %}
+      - MODE=simulation
+      - TRAPS_VIDEO_INFO_PATH=/video_info/video_info.yaml
+      {% endif %}
     volumes:
       - {{ host_config_dir }}/motion.conf:/etc/motion/motion.conf:ro
+      {% if motion_video_type == 'file' %}
+      - {{ local_video_path }}:/video.mp4
+      {% endif %}
+      {% if deploy_video_generating %}
+      - {{ host_output_dir }}/{{ video_output_dir }}:/video_info
+      {% endif %}
     {% if run_image_detecting_privileged %}
     privileged: true 
     {% endif %}
@@ -305,6 +328,11 @@ services:
       - TRAPS_ORACLE_OUTPUT_PATH=/output
       - DEVICE_ID={{ device_id }}
       - MODEL_ID={{ model_id }}
+      {% if deploy_video_generating %}
+      - MODE=video
+      {% else %}
+      - MODE=image
+      {% endif %}
     networks:
       - cameratraps
     {% if use_host_pid %}

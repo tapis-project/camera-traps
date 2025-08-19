@@ -98,11 +98,10 @@ def get_vars(input_data, default_data):
                                  'deploy_video_generating': True,
                                  'deploy_image_detecting': True,
                                  'deploy_reporter': False,
-                                 'deploy_ckn': True,
+                                 'deploy_ckn': False,
                                  'deploy_ckn_mqtt': False,
-                                 'deploy_oracle': True,
-                                 'motion_video_device': 'http://video_generating:8090',
-                                 'generating_video_device': 'http://0.0.0.0:8090',
+                                 'deploy_oracle': False,
+                                 'use_bundled_example_images': False,
                                  'inference_server': False}
 
     if vars.get("mode") == 'demo':
@@ -157,11 +156,16 @@ def get_vars(input_data, default_data):
             vars['model_id'] = '41d3ed40-b836-4a62-b3fb-67cee79f33d9-model'
 
     # for video simulations, determine if motion is using device or netcam
-    if vars.get('motion_video_device'):
-        if '/dev' in vars.get('motion_video_device'):
+    if vars.get('mode') == 'video_simulation':
+        if vars.get('motion_video_device'):
             vars['motion_video_type'] = 'device'
-        elif '://' in vars.get('motion_video_device'):
-            vars['motion_video_type'] = 'netcam'
+        else:
+            vars['motion_video_type'] = 'file'
+        if vars.get('use_example_video'):
+            vars['local_video_path'] = './video.mp4'
+        else:
+            if not vars.get('local_video_path'):
+                vars['local_video_path'] = './video.mp4'
 
     # Add the installer's UID and GID
     vars["uid"] = uid
@@ -329,6 +333,30 @@ def generate_additional_directories(vars, full_install_dir):
             sys.exit(1)
         print(f"Using URL for images: {vars['source_image_url']}")
 
+    if vars['use_example_video'] == True: 
+        try:
+            shutil.copy("/defaults/example_video/example_video.mp4", os.path.join(full_install_dir, "video.mp4"))
+            shutil.copy("/defaults/example_video/ground_truth.yml", os.path.join(full_install_dir, "ground_truth.yml"))
+        except Exception as e:
+            print(f"ERROR: Could not copy bundled example video; error: {e}")
+            print("Exiting...")
+            sys.exit(1)
+    else:
+        if vars['source_video_url']:
+            try:
+                rsp = requests.get(vars['source_video_url'])
+                rsp.raise_for_status()
+            except Exception as e:
+                print(f'Error: could not download video at URL {source_video_url}; details: {e}')
+                sys.exit(1)
+            video_install_path = os.path.join(full_install_dir, 'video.mp4')
+            with open(video_install_path, 'wb') as f:
+                f.write(rsp.content)
+        elif vars['local_video_path']:
+            full_video_path = os.path.join(full_install_dir, vars.get('local_video_path'))
+            if not os.path.exists(full_video_path):
+                print(f'ERROR: local_video_path must be a relative path to the install directory and must already exist; the computed path ({full_video_dir}) does not exist.\nExiting...')
+                sys.exit(1)
 
     # create output directories if they do not exist     
     images_output_dir = os.path.join(full_install_dir, vars["images_output_dir"])
@@ -347,6 +375,11 @@ def generate_additional_directories(vars, full_install_dir):
     detection_output_dir = os.path.join(full_install_dir, vars["detection_reporter_plugin_output_dir"])
     if not os.path.exists(detection_output_dir):
         os.makedirs(detection_output_dir)
+
+    if vars['deploy_video_generating']:
+        video_output_dir = os.path.join(full_install_dir, vars["video_output_dir"])
+        if not os.path.exists(video_output_dir):
+            os.makedirs(video_output_dir)
     
 
 def main():

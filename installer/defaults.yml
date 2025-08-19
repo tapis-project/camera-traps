@@ -33,13 +33,16 @@ motion_event_gap: 1
 motion_threshold: 100
 motion_width: 640
 motion_height: 480
+image_detecting_log_level: DEBUG
 
 # video generating plugin
 deploy_video_generating: false
 video_generating_plugin_image: tapis/video_generating_plugin
 video_generating_log_level: DEBUG
+video_output_dir: video_output_dir
+use_example_video: true
 source_video_url:
-generating_video_device:
+local_video_path:
 
 
 # Image Scoring Plugin 

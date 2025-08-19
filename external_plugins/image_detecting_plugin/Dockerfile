@@ -7,6 +7,7 @@ RUN find / -path /proc -prune -o -path /sys -prune -o -path /dev -prune -o -writ
 RUN apt update && apt install -y motion vim
 RUN pip install watchdog
 RUN pip install PILLOW
+RUN pip install PyYaml
 
 # Config files
 ADD motion.default /etc/default/motion

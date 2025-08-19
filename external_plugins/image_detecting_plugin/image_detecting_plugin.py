@@ -5,20 +5,40 @@ from PIL import Image
 import time
 import uuid 
 import zmq 
+import yaml
+import logging
 from subprocess import Popen
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from ctevents import ctevents
-from pyevents.events import get_plugin_socket
+from pyevents.events import get_plugin_socket, send_quit_command
+from ctevents.ctevents import send_terminate_plugin_fb_event
 
 # Path to a directory that this plugin "watches" for new image files. 
 # By default, we set this directory to `/var/lib/motion` in the container, assuming
 # that the Linux Motion package will also be configured and running in the same container.
+log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
 MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
 MODE = os.environ.get("MODE", "demo")
+
+logger = logging.getLogger("Image Generating Plugin")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def get_socket():
     """
@@ -166,23 +186,22 @@ class NewFileHandler(FileSystemEventHandler):
             logging.error(f"Error processing {file_path}: {e}")
 
 def get_duration():
-    if MODE == 'video_simuation':
-        video_info_file = os.environ.get('TRAPS_VIDEO_INFO_PATH', '/video_info/video_info.yaml')
-        while True:
-            if os.path.exists(video_info_file):
-                try:
-                    with open(video_info_file, 'r') as f:
-                        video_info = yaml.safe_load(f)
-                except Exception as e:
-                    logging.error(f'Error processing {video_info_file}: {e}')
-            else:
-                sleep(1)
+    if MODE == 'simulation':
+        video_info_file = os.environ.get('TRAPS_VIDEO_INFO_PATH', '/video_info.yaml')
+
+        while not os.path.exists(video_info_file):
+            time.sleep(1)
+
+        try:
+            with open(video_info_file, 'r') as f:
+                video_info = yaml.safe_load(f)
+        except Exception as e:
+            logging.error(f'Error processing {video_info_file}: {e}')
 
         if 'duration' not in video_info.keys():
             logging.error(f'duration value not set in {video_info_file}')
         else:
-            duration = video_info['duration']
-
+            return video_info['duration']
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
@@ -205,6 +224,8 @@ if __name__ == "__main__":
     log_handler = LogFileHandler(log_observer, '/var/log/motion/motion.log')
     log_observer.schedule(log_handler, '/var/log/motion', recursive=False)
     log_observer.start()
+    log_observer.join()
+    logger.info('motion has connected to camera')
     
     # instantiate and start the event handler 
     event_handler = NewFileHandler()
@@ -215,11 +236,17 @@ if __name__ == "__main__":
     # run for specified video duration, or if undefined until interrupted 
     try:
         if duration:
+            logger.info(f'Running motion for {duration} seconds')
             time.sleep(duration)
+            observer.stop()
         else:
+            logger.info('No duration specified. Running motion indefinitely')
             while True:
                 time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
     motion_proc.kill()
+    logger.info('Sending quit command')
+    send_terminate_plugin_fb_event(socket, "*", "35f20cdd-a404-4436-8df9-d80a9de91147")
+    send_quit_command(socket)
