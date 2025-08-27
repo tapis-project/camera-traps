@@ -97,7 +97,7 @@ def get_vars(input_data, default_data):
     video_simulation_defaults = {'deploy_image_generating': False,
                                  'deploy_video_generating': True,
                                  'deploy_image_detecting': True,
-                                 'deploy_reporter': False,
+                                 'deploy_reporter': True,
                                  'deploy_ckn': False,
                                  'deploy_ckn_mqtt': False,
                                  'deploy_oracle': False,
