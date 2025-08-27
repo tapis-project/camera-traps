@@ -186,6 +186,9 @@ services:
       - SERVER_HOST=http://MDServer
       - SERVER_PORT=8000
       {% endif %}
+      {% expanded_metrics %}
+      - EXPANDED_METRICS=true
+      {% endif %}
     volumes:
       # mount the traps.toml in the current working directory.
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro

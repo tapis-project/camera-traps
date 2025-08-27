@@ -92,6 +92,7 @@ def get_vars(input_data, default_data):
                            'deploy_ckn': True,
                            'deploy_ckn_mqtt': False,
                            'deploy_oracle': True,
+                           'expanded_metrics': True,
                            'inference_server': False}
 
     if vars.get("mode") == 'demo':

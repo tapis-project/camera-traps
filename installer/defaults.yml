@@ -44,6 +44,7 @@ image_scoring_generate_bounding_boxes: false
 model_id:
 use_model_url: false
 use_ultralytics: true
+expanded_metrics: false
 
 
 # Image Storing Plugin
