@@ -357,6 +357,7 @@ services:
       - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
       - POWER_SUMMARY_TOPIC=cameratraps-power-summary
       - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}      
+      - SYSTEM_MEASUREMENTS_FILE=/power_logs/system_measurements.csv
     networks:
       - cameratraps
 
