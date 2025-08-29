@@ -155,17 +155,17 @@ def get_vars(input_data, default_data):
         if vars.get("model_id") is None:
             vars['model_id'] = '41d3ed40-b836-4a62-b3fb-67cee79f33d9-model'
 
-    # for video simulations, determine if motion is using device or netcam
     if vars.get('mode') == 'video_simulation':
+        # for video simulations, determine if motion is using device or netcam
         if vars.get('motion_video_device'):
             vars['motion_video_type'] = 'device'
         else:
             vars['motion_video_type'] = 'file'
-        if vars.get('use_example_video'):
+        # determine which of url, local file, and example file are used for the video
+        if vars.get('source_video_url') or vars.get('local_video_path'):
+            vars['use_example_video'] = False
+        else vars.get('use_example_video'):
             vars['local_video_path'] = './video.mp4'
-        else:
-            if not vars.get('local_video_path'):
-                vars['local_video_path'] = './video.mp4'
 
     # Add the installer's UID and GID
     vars["uid"] = uid
