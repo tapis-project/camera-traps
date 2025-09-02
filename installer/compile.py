@@ -164,7 +164,7 @@ def get_vars(input_data, default_data):
         # determine which of url, local file, and example file are used for the video
         if vars.get('source_video_url') or vars.get('local_video_path'):
             vars['use_example_video'] = False
-        else vars.get('use_example_video'):
+        elif vars.get('use_example_video'):
             vars['local_video_path'] = './video.mp4'
 
     # Add the installer's UID and GID
