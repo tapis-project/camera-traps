@@ -2,6 +2,7 @@ import os
 import shutil
 import sys 
 import json
+import time
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 import requests
@@ -197,8 +198,14 @@ def get_urls_from_ckn(endpoint, model_id):
         model_id = model_id[:-6]
     patra_download_endpoint = f"{endpoint}?id={model_id}"
 
-    response = requests.get(patra_download_endpoint)
-    if response.status_code != 200:
+    num_tries = 0
+    while num_tries < 5:
+        num_tries = num_tries + 1
+        response = requests.get(patra_download_endpoint)
+        if response.status_code == 200:
+            break
+        time.sleep(2)
+    else:
         raise Exception(f"Failed to fetch data. Status code: {response.status_code}")
 
     try:
