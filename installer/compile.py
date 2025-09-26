@@ -165,13 +165,13 @@ def get_vars(input_data, default_data):
     print(f"Merged variables: {vars}")
     return vars 
 
-def get_urls_from_ckn(model_id):
+def get_urls_from_ckn(endpoint, model_id):
     """
     Given a model card ID, extract the download URL and inference labels URL.
     """
     if model_id.endswith("-model"):
         model_id = model_id[:-6]
-    patra_download_endpoint = f"https://ckn.d2i.tacc.cloud/patra/download_mc?id={model_id}"
+    patra_download_endpoint = f"{endpoint}?id={model_id}"
 
     response = requests.get(patra_download_endpoint)
     if response.status_code != 200:
@@ -205,7 +205,7 @@ def download_model_by_id(vars, full_install_dir):
     model_url = None
     label_url = None
     print(f"Checking CKN for the URL to the pt file...")
-    model_url, label_url = get_urls_from_ckn(model_id)
+    model_url, label_url = get_urls_from_ckn(vars['patra_endpoint'], model_id)
     print(f"Got URL for model from CKN; URL: {model_url}")
     print(f"Got URL for labels from CKN; URL: {label_url}")
     # if we have a model URL, then we download it so it can be mounted 

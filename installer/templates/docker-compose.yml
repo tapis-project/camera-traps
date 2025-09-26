@@ -186,7 +186,7 @@ services:
       - SERVER_HOST=http://MDServer
       - SERVER_PORT=8000
       {% endif %}
-      {% expanded_metrics %}
+      {% if expanded_metrics %}
       - EXPANDED_METRICS=true
       {% endif %}
     volumes:
