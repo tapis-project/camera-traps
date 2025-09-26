@@ -128,6 +128,11 @@ def main():
             if is_detected_image(uuid):
                 update_csv('STORING', uuid, image_path=image_path, decision=destination)
 
+        elif isinstance(event, PluginTerminateEvent):
+            done = True
+            logger.info(f'Received Terminate event * and shutting down detection reporter plugin')
+            send_quit_command(socket)
+
 if __name__ == '__main__':
     logger.info("Detection reporter plugin starting...")
     main()
