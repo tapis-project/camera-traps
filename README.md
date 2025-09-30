@@ -237,7 +237,8 @@ allow_anonymous true
 
 In-memory representations of events are translated into flatbuffer binary streams plus a leading two byte sequence that identifies the event type.  These statically defined byte sequences are specified in the [events.rs](https://github.com/tapis-project/camera-traps/blob/main/src/events.rs) source file and repeated here for convenience.
 
-// Each event is assigned a binary prefix that zqm uses to route incoming binary streams to all of the event's subscribers.<br>
+Each event is assigned a binary prefix that zqm uses to route incoming binary streams to all of the event's subscribers.<br>
+```
 pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];<br>
 pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];<br>
 pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];<br>
@@ -248,6 +249,7 @@ pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];<br>
 pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];<br>
 pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];<br>
 pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];<br>
+```
 
 Each event sent or received begins with its two byte prefix followed by its serialized form as defined in the camera-traps flatbuffer definition file ([events.fbs](https://github.com/tapis-project/camera-traps/blob/main/resources/events.fbs)).  The following section describes how to generate Rust source code from this definition file, a similar process can be used for any language supported by flatbuffers.
 
