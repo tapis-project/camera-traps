@@ -67,7 +67,7 @@ Important Optional Configurations
 * `ct_version`: The release version (i.e., image tag) for 
   the camera traps software container images.
 
-  * Example: 0.5.0
+  * Example: 0.6.0
 
 * `mode`: a top-level option describing the mode in which the software is
   running (i.e. demo, simulation, or video_simulation modes). This option will define other
@@ -243,7 +243,7 @@ This is a complete list of all possible configurations.
 
 * `ct_version`: The release version (i.e., image tag) for the camera traps software container images 
 
-  * Example: 0.5.0
+  * Example: 0.6.0
 
 * `host_config_dir`: Path on the host where configuration 
   directory resides. 

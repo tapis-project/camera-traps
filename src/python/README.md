@@ -5,14 +5,14 @@ high-level convenience functions for easily sending and receiving Camera Traps e
 
 There are three Docker images associated with this package, tapis/camera_traps_py, tapis/camera_traps_py_3.8, and
 tapis/camera_traps_py_3.13; each image provides a tag for each release, for example:  
-tapis/camera_traps_py:0.5.0, tapis/camera_traps_py_3.8:0.5.0, and tapis/camera_traps_py_3.13:0.5.0
-for the 0.5.0 release. 
+tapis/camera_traps_py:0.6.0, tapis/camera_traps_py_3.8:0.6.0, and tapis/camera_traps_py_3.13:0.6.0
+for the 0.6.0 release. 
 
 The images bundle a test file that can be executed directly in the image; for example: 
 
 ```
 # start a container 
-docker run -it --rm --entrypoint=bash tapis/camera_traps_py:0.5.0
+docker run -it --rm --entrypoint=bash tapis/camera_traps_py:0.6.0
 
 # run the tests 
 python test_ctevents.py

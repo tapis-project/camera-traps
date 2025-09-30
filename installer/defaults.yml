@@ -1,5 +1,5 @@
 # General 
-ct_version: 0.5.0
+ct_version: 0.6.0
 host_config_dir: ./config
 use_host_pid: true
 run_containers_as_user: true 
