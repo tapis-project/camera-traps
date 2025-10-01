@@ -1,6 +1,6 @@
 # camera-traps
 
-The Camera Traps application is both a simulator and IoT device software for utilizing machine learning on the edge in field research. The first implementation specializes in applying computer vision (detection and classification) to wildlife images for animal ecology studies. Two operational modes are supported: "simulation" mode and "demo" mode. When executed in simulation mode, the software serves as a test bed for studying ML models, protocols and techniques that optimize storage, execution time, power and accuracy. It requires an input dataset of images to act as the images that would be generated an IoT camera device; it uses these images to drive the simulation. 
+The Camera Traps application is both a simulator and IoT device software for utilizing machine learning on the edge in field research. The first implementation specializes in applying computer vision (detection and classification) to wildlife images for animal ecology studies. Two operational modes are supported: "simulation" mode and "demo" mode. When executed in simulation mode, the software serves as a test bed for studying ML models, protocols and techniques that optimize storage, execution time, power and accuracy. Simulation mode accepts two different input types: (1) an input dataset of images to act as the images that would be generated an IoT camera device or (2) an input video file that would be captured by a camera which is then processed by an image detecting plugin that saves frames with motion in them; it uses these images to drive the simulation. 
 
 Conversely, when run in "demo" mode, the application serves as software that can be deployed onto actual, Linux-based camera trap devices in the wild. In this case, the Camera Traps software relies on a digital camera accessible over a Linux device mount (the default `/dev/video0` location can be re-configured), and it drives the camera directly using the Linux Motion activation software, which comes bundled with the as a plugin with Camera Traps. It includes a detection reporter plugin and MQTT component which coordinate to communicate in real time when a configurable object of interest has been detected (up to a configurable confidence threshold). As a proof of concept of the capabilities of the software, we are producing a demo integration with drone software developed by the Stewart Lab at OSU which enables the Camera Traps software to communicate over a local network to a nearby drone whenever an object of interest is detected. 
 
@@ -8,6 +8,8 @@ Conversely, when run in "demo" mode, the application serves as software that can
 - Software
 - CI4AI
 - Animal Ecology
+
+---
 
 # Explanation
 
@@ -29,6 +31,7 @@ In general, plugins can also depend on their own environment variables and/or co
 | -------------------------- | ------------------------------- | -------------------------- | ----------------------------------- |
 | camera-traps application | TRAPS_CONFIG_FILE             | ~/traps.toml             | Can be 1st command line parameter |
 | image_gen_plugin         |                               | /input.json              |                                   |
+| video_generating_plugin  | TRAPS_VIDEO_OUTPUT_PATH       |                          |                                   | 
 | image_detecting_plugin   |                               | /etc/motion/motion.conf  |
 | detection_reporter_plugin| TRAPS_DETECTION_REPORTER_*    | /traps-detection.toml    |
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
@@ -159,6 +162,8 @@ When *image_recv_write_file_action* is specifed, the *image_recv_plugin* uses th
 The *image_uuid* and *image_format* are from the NewImageEvent.  The image_file_prefix can be the empty string and the image_format is always lowercased when used in the file name.
 
 
+---
+
 # How-To Guide
 
 ## Quick Start
@@ -232,7 +237,8 @@ allow_anonymous true
 
 In-memory representations of events are translated into flatbuffer binary streams plus a leading two byte sequence that identifies the event type.  These statically defined byte sequences are specified in the [events.rs](https://github.com/tapis-project/camera-traps/blob/main/src/events.rs) source file and repeated here for convenience.
 
-// Each event is assigned a binary prefix that zqm uses to route incoming binary streams to all of the event's subscribers.<br>
+Each event is assigned a binary prefix that zqm uses to route incoming binary streams to all of the event's subscribers.<br>
+```
 pub const NEW_IMAGE_PREFIX:           [u8; 2] = [0x01, 0x00];<br>
 pub const IMAGE_RECEIVED_PREFIX:      [u8; 2] = [0x02, 0x00];<br>
 pub const IMAGE_SCORED_PREFIX:        [u8; 2] = [0x03, 0x00];<br>
@@ -243,6 +249,7 @@ pub const PLUGIN_TERMINATING_PREFIX:  [u8; 2] = [0x11, 0x00];<br>
 pub const PLUGIN_TERMINATE_PREFIX:    [u8; 2] = [0x12, 0x00];<br>
 pub const MONITOR_POWER_START_PREFIX: [u8; 2] = [0x20, 0x00];<br>
 pub const MONITOR_POWER_STOP_PREFIX:  [u8; 2] = [0x21, 0x00];<br>
+```
 
 Each event sent or received begins with its two byte prefix followed by its serialized form as defined in the camera-traps flatbuffer definition file ([events.fbs](https://github.com/tapis-project/camera-traps/blob/main/resources/events.fbs)).  The following section describes how to generate Rust source code from this definition file, a similar process can be used for any language supported by flatbuffers.
 

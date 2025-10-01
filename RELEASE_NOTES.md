@@ -1,5 +1,11 @@
 # Camera Traps Release Notes
 
+## Version 0.6.0
+This release includes three main improvements:
+1. A Video Generating plugin that uses a video file and a v4l2loopback virtual device to simulate a mounted camera stream, to use in conjunction with the Image Detecting plugin.
+2. Improved metric reporting.
+3. Set a minimum time between image events when using the Image Detecting plugin.
+
 ## Version 0.5.0
 This major release expands the camera-traps application with a new functional mode, referred to as `demo` mode. 
 Unlike the original simulation mode,

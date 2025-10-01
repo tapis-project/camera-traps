@@ -1,5 +1,5 @@
 # General 
-ct_version: 0.5.0
+ct_version: 0.6.0
 host_config_dir: ./config
 use_host_pid: true
 run_containers_as_user: true 
@@ -24,13 +24,25 @@ image_generating_log_level: DEBUG
 deploy_image_detecting: false
 image_detecting_plugin_image: tapis/image_detecting_plugin
 run_image_detecting_privileged: true
-motion_video_device: /dev/video0
+min_seconds_between_images: 2
+motion_video_device:
 motion_framerate: 1
-motion_minimum_frame_time: 3
+motion_minimum_frame_time: 0
+motion_minimum_motion_frames: 1
 motion_event_gap: 1
-motion_threshold: 1500
+motion_threshold: 100
 motion_width: 640
 motion_height: 480
+image_detecting_log_level: DEBUG
+
+# video generating plugin
+deploy_video_generating: false
+video_generating_plugin_image: tapis/video_generating_plugin
+video_generating_log_level: DEBUG
+video_output_dir: video_output_dir
+use_example_video: true
+source_video_url:
+local_video_path:
 
 
 # Image Scoring Plugin 
@@ -42,6 +54,7 @@ image_scoring_generate_bounding_boxes: false
 model_id:
 use_model_url: false
 use_ultralytics: true
+expanded_metrics: false
 
 
 # Image Storing Plugin
@@ -76,12 +89,12 @@ detection_thresholds:
 # CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true
 ckn_daemon_tag: latest
-ckn_kafka_broker_address: 129.114.35.150
+ckn_kafka_broker_address: https://cknbroker.pods.icicleai.tapis.io
 ckn_kafka_broker_port: 9092
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
-patra_endpoint: https://ckn.d2i.tacc.cloud/patra/download_mc
+patra_endpoint: https://patraserver.pods.icicleai.tapis.io/download_mc
 
 deploy_ckn_mqtt: false
 ckn_mqtt_tag: latest

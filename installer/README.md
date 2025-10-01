@@ -67,10 +67,10 @@ Important Optional Configurations
 * `ct_version`: The release version (i.e., image tag) for 
   the camera traps software container images.
 
-  * Example: 0.5.0
+  * Example: 0.6.0
 
 * `mode`: a top-level option describing the mode in which the software is
-  running (i.e. demo or simulation modes). This option will define other
+  running (i.e. demo, simulation, or video_simulation modes). This option will define other
   optional parameters for the user, ensuring that the appropriate containers
   are deployed.
 
@@ -219,15 +219,16 @@ users a pre-bundled set of example image. See below:
   * Example: false
 
 This table shows which plugins are enabled and disabled by default and for each mode:
-| Plugin           | Default | Demo Mode | Simulation Mode |
-| -----            | :-----: | :-------: | :-------------: |
-| Image generating | Y | N | Y |
-| Image detecting  | N | Y | N |
-| Oracle           | Y | N | Y |
-| CKN              | Y | N | Y |
-| CKN MQTT         | N | Y | N |
-| Power monitoring | Y | N | Y |
-| Inference Server | Y | Y | N |
+| Plugin           | Default | Demo Mode | Simulation Mode | Video Simulation |
+| -----            | :-----: | :-------: | :-------------: | :---: |
+| Image generating | Y | N | Y | N |
+| Video generating | N | N | N | Y |
+| Image detecting  | N | Y | N | Y |
+| Oracle           | Y | N | Y | N |
+| CKN              | Y | N | Y | N |
+| CKN MQTT         | N | Y | N | N |
+| Power monitoring | Y | N | Y | Y |
+| Inference Server | Y | Y | N | N |
 
 All Configurations 
 ------------------
@@ -242,7 +243,7 @@ This is a complete list of all possible configurations.
 
 * `ct_version`: The release version (i.e., image tag) for the camera traps software container images 
 
-  * Example: 0.5.0
+  * Example: 0.6.0
 
 * `host_config_dir`: Path on the host where configuration 
   directory resides. 
@@ -421,6 +422,9 @@ This is a complete list of all possible configurations.
 
   * Example: false
 
+* `image_detecting_log_level`: Log level for image detecting plugin
+  * Example: DEBUG, INFO
+
 * `oracle_plugin_image`: The image to use for the oracle plugin, not including the tag. Default: tapis/oracle_plugin.
 
   * Example: tapis/oracle_plugin
@@ -479,7 +483,15 @@ This is a complete list of all possible configurations.
 
   * Example: 1.0
 
-* `motion_video_device`: The device mount location for the camera. Default: /dev/video0
+* `motion_minimum_frame_time`: The minimum number of seconds that the image detecting plugin waits between sending image events. Default: 2
+
+  * Example: 5
+
+  `motion_minimum_motion_frames`: The minumum number of consecutive frames containing motion required to trigger a motion event. Default: 1
+
+    * Example: 3
+
+* `motion_video_device`: The device mount location for the camera.
 
   * Example: /dev/video8
 
@@ -511,10 +523,37 @@ This is a complete list of all possible configurations.
 
   * Example: false
 
+* `expanded_metrics`: whether to enable expanded metric logging. Default: false
+
+  * Example: true
+
 * `download_model`: Whether to download the inference model file to disk during installation or to just pass the model ID/url to the inference plugin.
 
   * Example: false
 
-* `local_model-path`: The path on the local file system where the model file is stored. Only used if `mount_model_pt` is set to true.
+* `local_model_path`: The path on the local file system where the model file is stored. Only used if `mount_model_pt` is set to true.
 
   * Example: `./md_v5a.0.0.pt`
+
+* `deploy_video_generating_plugin`: Whether to deploy the video generating plugin. Default is false
+  * Example: true
+
+* `video_generating_plugin_image`: The image to use for the video generating plugin.
+
+  * Example: tapis/video_generating_plugin
+
+* `video_generating_log_level`: Log level for video generating plugin.
+
+  * Example: DEBUG, INFO
+
+* `video_output_dir`: Host directory within the host_output_dir where the output of the video generating plugin will be written (Relative to `host_output_dir`)
+
+  * Example: video_output_dir
+
+* `use_example_video`: Whether to use the bundled video as the source of the input video. Default: true.
+
+* `source_video_url`: URL to a video file to use as the source of the input video.
+
+* `local_video_path`: The path on the local file system where the video file is stored.
+
+  * Example: `./video.mp4`

@@ -30,5 +30,7 @@ services:
     privileged: true 
     volumes:
       - ./image_data:/var/lib/motion
+    environment:
+      - MIN_SECONDS_BETWEEN_IMAGES=2
     depends_on:
       - engine

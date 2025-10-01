@@ -1,5 +1,6 @@
+setuptools==80.9.0
 flatbuffers==24.3.25
-numpy==1.24.4
+numpy==2.2.6
 jetson-stats==4.2.1
 psutil==5.9.8
 jsonschema==4.22.0

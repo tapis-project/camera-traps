@@ -5,18 +5,40 @@ from PIL import Image
 import time
 import uuid 
 import zmq 
+import yaml
+import logging
+from subprocess import Popen
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from ctevents import ctevents
-from pyevents.events import get_plugin_socket
+from pyevents.events import get_plugin_socket, send_quit_command
+from ctevents.ctevents import send_terminate_plugin_fb_event
 
 # Path to a directory that this plugin "watches" for new image files. 
 # By default, we set this directory to `/var/lib/motion` in the container, assuming
 # that the Linux Motion package will also be configured and running in the same container.
+log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
+MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
+MODE = os.environ.get("MODE", "demo")
 
+logger = logging.getLogger("Image Generating Plugin")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 def get_socket():
     """
@@ -73,6 +95,31 @@ def generate_new_image_event(file_path):
     # return the UUID
     return image_uuid
 
+class LogFileHandler(FileSystemEventHandler):
+    """
+    watchdog class to detect updates to the motion.log file and notify when it
+    has connected to a camera.
+    """
+    def __init__(self, observer, log_file_path):
+        super().__init__()
+        self.log_file_path = log_file_path
+        self.observer = observer
+        self.last_pos = 0
+
+    def on_modified(self, event):
+        if event.src_path == self.log_file_path:
+            self.check_for_connection()
+
+    def check_for_connection(self):
+        with open(self.log_file_path, 'r') as f:
+            f.seek(self.last_pos)
+            new_lines = f.readlines()
+            self.last_pos = f.tell()
+
+            for line in new_lines:
+                if 'motion detection Enabled' in line:
+                    self.observer.stop()
+                    return
 
 class NewFileHandler(FileSystemEventHandler):
     """
@@ -80,6 +127,35 @@ class NewFileHandler(FileSystemEventHandler):
     For now, we are only interested in *new* files, hence, we implement
     on_create.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.last_image_time = 0
+
+    def extract_timestamp(self, file_path):
+        basename = os.path.basename(file_path)
+        try:
+            # Expected format: 20250714-21:51:49-00.jpg
+            if "-" in basename and ":" in basename:
+                # Splitting logic
+                parts = basename.split("-")
+                if len(parts) >= 2 and ":" in parts[1]:
+                    date_part = parts[0]
+                    time_part = parts[1].replace(":", "")
+                    datetime_str = date_part + time_part
+                    if len(datetime_str) == 14:
+                        ts = time.strptime(datetime_str, "%Y%m%d%H%M%S")
+                        return time.mktime(ts)
+        except Exception as e:
+            logging.warning(f"Filename parsing failed: {basename} — {e}")
+
+        # Fallback
+        try:
+            return os.path.getmtime(file_path)
+        except Exception as e:
+            logging.warning(f"Fallback to time.time(): {file_path} — {e}")
+            return time.time()
+        
     def on_closed(self, event):
         """
         Watch the directory for new files (not directories), and trigger the 
@@ -95,12 +171,37 @@ class NewFileHandler(FileSystemEventHandler):
         Basic processing of a new file event. 
         """
         try:
+            current_time = self.extract_timestamp(file_path)
+            if current_time - self.last_image_time < MIN_SECONDS_BETWEEN_IMAGES:
+                logging.info(f"Skipping image (too soon): {file_path}") 
+                os.remove(file_path)
+                return
+
             logging.debug(f"Processing file at path: {file_path}")
             uuid = generate_new_image_event(file_path)
-            logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
+            if uuid:
+                self.last_image_time = current_time
+                logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
         except Exception as e:
             logging.error(f"Error processing {file_path}: {e}")
 
+def get_duration():
+    if MODE == 'simulation':
+        video_info_file = os.environ.get('TRAPS_VIDEO_INFO_PATH', '/video_info.yaml')
+
+        while not os.path.exists(video_info_file):
+            time.sleep(1)
+
+        try:
+            with open(video_info_file, 'r') as f:
+                video_info = yaml.safe_load(f)
+        except Exception as e:
+            logging.error(f'Error processing {video_info_file}: {e}')
+
+        if 'duration' not in video_info.keys():
+            logging.error(f'duration value not set in {video_info_file}')
+        else:
+            return video_info['duration']
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
@@ -113,6 +214,18 @@ if __name__ == "__main__":
     global socket
     socket = get_socket()
     logging.info(f"Image Detecting Plugin starting, monitoring path: {path}")
+
+    # Startup motion
+    duration = get_duration()
+    motion_proc = Popen(['motion'])
+
+    # make sure motion is connected to camera
+    log_observer = Observer()
+    log_handler = LogFileHandler(log_observer, '/var/log/motion/motion.log')
+    log_observer.schedule(log_handler, '/var/log/motion', recursive=False)
+    log_observer.start()
+    log_observer.join()
+    logger.info('motion has connected to camera')
     
     # instantiate and start the event handler 
     event_handler = NewFileHandler()
@@ -120,10 +233,20 @@ if __name__ == "__main__":
     observer.schedule(event_handler, path, recursive=False)
     observer.start()
 
-    # run until interrupted 
+    # run for specified video duration, or if undefined until interrupted 
     try:
-        while True:
-            time.sleep(1)
+        if duration:
+            logger.info(f'Running motion for {duration} seconds')
+            time.sleep(duration)
+            observer.stop()
+        else:
+            logger.info('No duration specified. Running motion indefinitely')
+            while True:
+                time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
+    motion_proc.kill()
+    logger.info('Sending quit command')
+    send_terminate_plugin_fb_event(socket, "*", "35f20cdd-a404-4436-8df9-d80a9de91147")
+    send_quit_command(socket)

@@ -29,6 +29,7 @@ DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
 CROP_IMAGE = (os.getenv('CROP_IMAGE') == 'true')
 DETECTIONS = (os.getenv('DETECTIONS') == 'true')
+EXPANDED_METRICS = (os.getenv('EXPANDED_METRICS') == 'true')
 # Whether to force image resizing to a (square) integer size (not recommended to change this)
 # None means no resizing.
 IMAGE_SIZE = None
@@ -157,7 +158,10 @@ def main():
         scores = []
         
         if not results:
-            scores.append({"image_uuid": image_uuid, "label": "empty", "probability": 0.0})
+            if EXPANDED_METRICS:
+                scores.append({"image_uuid": image_uuid, "label": "empty", "probability": 0.0, 'bbox': []})
+            else:
+                scores.append({"image_uuid": image_uuid, "label": "empty", "probability": 0.0})
         else:
             for r in results:
                 # Each score object should have the format: 
@@ -168,7 +172,10 @@ def main():
                 else:
                     label = label_map.get(str(r['category']), "unknown")
                 #If an image contains multiple detection, we need to append muplitple label and probability for each image.
-                scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
+                if EXPANDED_METRICS:
+                    scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf'], 'bbox': r['bbox']})
+                else:
+                    scores.append({"image_uuid": image_uuid, "label": label, "probability": r['conf']})
         logger.info(f"Sending image scored event with the following scores: {scores}") 
         send_image_scored_fb_event(socket, image_uuid, image_format, scores)
         logger.info(f"Image Scoring Plugin processing for message {total_messages} complete.")        
