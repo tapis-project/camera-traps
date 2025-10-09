@@ -157,6 +157,8 @@ services:
     {% endif %}
     depends_on:
       - engine
+    ports:
+      - "8081:8081"
 {% endif %}
 
   imageScoringPlugin:
