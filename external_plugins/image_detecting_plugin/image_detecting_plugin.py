@@ -7,7 +7,8 @@ import uuid
 import zmq 
 import yaml
 import logging
-from subprocess import Popen
+import subprocess
+import sys
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -23,6 +24,7 @@ log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
 MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
 MODE = os.environ.get("MODE", "demo")
+DEVICE=os.environ.get("DEVICE")
 
 logger = logging.getLogger("Image Generating Plugin")
 if log_level == "DEBUG":
@@ -117,7 +119,7 @@ class LogFileHandler(FileSystemEventHandler):
             self.last_pos = f.tell()
 
             for line in new_lines:
-                if 'motion detection Enabled' in line:
+                if 'device_capability' in line:
                     self.observer.stop()
                     return
 
@@ -203,6 +205,24 @@ def get_duration():
         else:
             return video_info['duration']
 
+def test_camera(v4l2_device=None):
+    if v4l2_device:
+        sample_img = '/tmp/sample.png'
+        try:
+            result = subprocess.run(
+                ['ffmpeg', '-f', 'v4l2', '-i', v4l2_device, '-frames', '1', sample_img],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            logging.info(f'Captured sample image')
+        except subprocess.CalledProcessError as e:
+            global socket
+            logging.error(f'Error: Failed to capture image from {v4l2_device}. {e.stderr.decode()}')
+            logger.info('Sending quit command')
+            send_terminate_plugin_fb_event(socket, "*", "35f20cdd-a404-4436-8df9-d80a9de91147")
+            send_quit_command(socket)
+            sys.exit()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
@@ -215,9 +235,12 @@ if __name__ == "__main__":
     socket = get_socket()
     logging.info(f"Image Detecting Plugin starting, monitoring path: {path}")
 
+    # Check camera before starting motion
+    #test_camera(v4l2_device=DEVICE)
+
     # Startup motion
     duration = get_duration()
-    motion_proc = Popen(['motion'])
+    motion_proc = subprocess.Popen(['motion'])
 
     # make sure motion is connected to camera
     log_observer = Observer()
@@ -226,6 +249,8 @@ if __name__ == "__main__":
     log_observer.start()
     log_observer.join()
     logger.info('motion has connected to camera')
+    with open('/tmp/ready', 'w') as f:
+        f.write('Application is ready\n')
     
     # instantiate and start the event handler 
     event_handler = NewFileHandler()

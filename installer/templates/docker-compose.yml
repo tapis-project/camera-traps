@@ -140,9 +140,12 @@ services:
       - IMAGE_DETECTING_PLUGIN_PORT=6002
       - MIN_SECONDS_BETWEEN_IMAGES={{ min_seconds_between_images }}
       - IMAGE_DETECTING_LOG_LEVEL={{ image_detecting_log_level }}
-      {% if motion_video_type == 'device' or motion_video_type == 'file' %}
+      {% if fake_stream %}
       - MODE=simulation
       - TRAPS_VIDEO_INFO_PATH=/video_info/video_info.yaml
+      {% endif %}
+      {% if motion_video_device  %}
+      - DEVICE={{ motion_video_device }}
       {% endif %}
     volumes:
       - {{ host_config_dir }}/motion.conf:/etc/motion/motion.conf:ro
