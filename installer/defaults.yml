@@ -89,8 +89,8 @@ detection_thresholds:
 # CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true
 ckn_daemon_tag: latest
-ckn_kafka_broker_address: https://cknbroker.pods.icicleai.tapis.io
-ckn_kafka_broker_port: 9092
+ckn_kafka_broker_address: cknbroker.pods.icicleai.tapis.io
+ckn_kafka_broker_port: 443
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
