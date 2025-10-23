@@ -1,10 +1,10 @@
-ground_truth,image_name
-animal,/example_images/labrador-pup.jpg
-animal,/example_images/baby-red-fox.jpg
-animal,/example_images/panda-cub.jpg
-animal,/example_images/cheetah-baby.jpg
-animal,/example_images/golden-pup.jpg
-animal,/example_images/german-shep-pup.jpg
+ground_truth,image_name,bbox:x,bbox:y,bbox:w,bbox:h
+animal,/example_images/labrador-pup.jpg,167.0,195.0,813.0,740.0
+animal,/example_images/baby-red-fox.jpg,98.0,10.0,574.0,571.0
+animal,/example_images/panda-cub.jpg,17.0,63.0,302.0,259.0
+animal,/example_images/cheetah-baby.jpg,0.0,2.0,845.0,533.0
+animal,/example_images/golden-pup.jpg,209.0,121.0,947.0,1052.0
+animal,/example_images/german-shep-pup.jpg,143.0,0.0,896.0,1267.0
 empty,/example_images/APL_Keyset_800x290.jpg
 empty,/example_images/blank02.jpeg
 empty,/example_images/blank01.jpeg

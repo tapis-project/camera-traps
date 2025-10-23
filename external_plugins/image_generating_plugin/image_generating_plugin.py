@@ -75,7 +75,19 @@ def load_ground_truth():
                 reader = csv.DictReader(ground_truth)
                 for row in reader:
                     image_name = row['image_name']
-                    ground_truth_data[image_name] = row['ground_truth']
+                    label = row['ground_truth']
+                    try:
+                        xc = float(row.get('bbox:x', None))
+                        yc = float(row.get('bbox:y', None))
+                        width = float(row.get('bbox:w', None))
+                        height = float(row.get('bbox:h', None))
+                        bbox = [{'label': label, 'bounding_box': [xc, yc, width, height]}]
+                    except (TypeError, ValueError):
+                        bbox = None
+                    if bbox:
+                        ground_truth_data[image_name] = {'label': label, 'bbox': bbox}
+                    else:
+                        ground_truth_data[image_name] = {'label': label}
     except FileNotFoundError:
         logger.error(f"File not found: {ground_truth_file}")
     except KeyError as e:
@@ -100,19 +112,22 @@ def oracle_monitoring_info(track_image_count, image_uuid, image_name, ground_tru
     OUTPUT_DIR = os.environ.get('TRAPS_MAPPING_OUTPUT_PATH', "/output/")
 
     # look up the image in the ground_truth dictionary
-    ground_truth_info = ground_truth.get(image_name, 'unavailable')
+    ground_truth_info = ground_truth.get(image_name, {})
     # A value of 'unavailable' is unexpected, as it means there is a missing entry in the dictionary, 
     # but we do not let that stop the entire program, we just log it as an error:
-    if ground_truth_info == 'unavailable':
+    gt_label = ground_truth_info.get('label', 'unavailable')
+    if gt_label == 'unavailable':
         logger.error(f"ERROR: Could not determine ground truth value for image {image_name}; no entry in ground_truth dict.")
+    gt_bbox = ground_truth_info.get('bbox')
     
     # build the mapping dictionary for this image
     image_mapping_dict = {
         "image_count": track_image_count,
         "UUID": image_uuid,
         "image_name": image_name,
-        "ground_truth": ground_truth_info,
+        "ground_truth": gt_label,
         "model_id": model_variant,
+        **({"ground_truth_boxes": gt_bbox} if gt_bbox is not None else {}),
     }
     
     # Read the uuid image mapping file to build the current map:

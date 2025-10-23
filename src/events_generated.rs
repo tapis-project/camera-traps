@@ -496,6 +496,142 @@ impl core::fmt::Debug for ImageReceivedEvent<'_> {
       ds.finish()
   }
 }
+pub enum BoundingBoxOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct BoundingBox<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for BoundingBox<'a> {
+  type Inner = BoundingBox<'a>;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table { buf, loc } }
+  }
+}
+
+impl<'a> BoundingBox<'a> {
+  pub const VT_X_CENTER: flatbuffers::VOffsetT = 4;
+  pub const VT_Y_CENTER: flatbuffers::VOffsetT = 6;
+  pub const VT_WIDTH: flatbuffers::VOffsetT = 8;
+  pub const VT_HEIGHT: flatbuffers::VOffsetT = 10;
+
+  #[inline]
+  pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    BoundingBox { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args BoundingBoxArgs
+  ) -> flatbuffers::WIPOffset<BoundingBox<'bldr>> {
+    let mut builder = BoundingBoxBuilder::new(_fbb);
+    builder.add_height(args.height);
+    builder.add_width(args.width);
+    builder.add_y_center(args.y_center);
+    builder.add_x_center(args.x_center);
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn x_center(&self) -> f32 {
+    self._tab.get::<f32>(BoundingBox::VT_X_CENTER, Some(0.0)).unwrap()
+  }
+  #[inline]
+  pub fn y_center(&self) -> f32 {
+    self._tab.get::<f32>(BoundingBox::VT_Y_CENTER, Some(0.0)).unwrap()
+  }
+  #[inline]
+  pub fn width(&self) -> f32 {
+    self._tab.get::<f32>(BoundingBox::VT_WIDTH, Some(0.0)).unwrap()
+  }
+  #[inline]
+  pub fn height(&self) -> f32 {
+    self._tab.get::<f32>(BoundingBox::VT_HEIGHT, Some(0.0)).unwrap()
+  }
+}
+
+impl flatbuffers::Verifiable for BoundingBox<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<f32>("x_center", Self::VT_X_CENTER, false)?
+     .visit_field::<f32>("y_center", Self::VT_Y_CENTER, false)?
+     .visit_field::<f32>("width", Self::VT_WIDTH, false)?
+     .visit_field::<f32>("height", Self::VT_HEIGHT, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct BoundingBoxArgs {
+    pub x_center: f32,
+    pub y_center: f32,
+    pub width: f32,
+    pub height: f32,
+}
+impl<'a> Default for BoundingBoxArgs {
+  #[inline]
+  fn default() -> Self {
+    BoundingBoxArgs {
+      x_center: 0.0,
+      y_center: 0.0,
+      width: 0.0,
+      height: 0.0,
+    }
+  }
+}
+
+pub struct BoundingBoxBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> BoundingBoxBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_x_center(&mut self, x_center: f32) {
+    self.fbb_.push_slot::<f32>(BoundingBox::VT_X_CENTER, x_center, 0.0);
+  }
+  #[inline]
+  pub fn add_y_center(&mut self, y_center: f32) {
+    self.fbb_.push_slot::<f32>(BoundingBox::VT_Y_CENTER, y_center, 0.0);
+  }
+  #[inline]
+  pub fn add_width(&mut self, width: f32) {
+    self.fbb_.push_slot::<f32>(BoundingBox::VT_WIDTH, width, 0.0);
+  }
+  #[inline]
+  pub fn add_height(&mut self, height: f32) {
+    self.fbb_.push_slot::<f32>(BoundingBox::VT_HEIGHT, height, 0.0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> BoundingBoxBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    BoundingBoxBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<BoundingBox<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for BoundingBox<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("BoundingBox");
+      ds.field("x_center", &self.x_center());
+      ds.field("y_center", &self.y_center());
+      ds.field("width", &self.width());
+      ds.field("height", &self.height());
+      ds.finish()
+  }
+}
 pub enum ImageLabelScoreOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -514,6 +650,7 @@ impl<'a> flatbuffers::Follow<'a> for ImageLabelScore<'a> {
 impl<'a> ImageLabelScore<'a> {
   pub const VT_LABEL: flatbuffers::VOffsetT = 4;
   pub const VT_PROBABILITY: flatbuffers::VOffsetT = 6;
+  pub const VT_BBOX: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -525,6 +662,7 @@ impl<'a> ImageLabelScore<'a> {
     args: &'args ImageLabelScoreArgs<'args>
   ) -> flatbuffers::WIPOffset<ImageLabelScore<'bldr>> {
     let mut builder = ImageLabelScoreBuilder::new(_fbb);
+    if let Some(x) = args.bbox { builder.add_bbox(x); }
     builder.add_probability(args.probability);
     if let Some(x) = args.label { builder.add_label(x); }
     builder.finish()
@@ -539,6 +677,10 @@ impl<'a> ImageLabelScore<'a> {
   pub fn probability(&self) -> f32 {
     self._tab.get::<f32>(ImageLabelScore::VT_PROBABILITY, Some(0.0)).unwrap()
   }
+  #[inline]
+  pub fn bbox(&self) -> Option<BoundingBox<'a>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<BoundingBox>>(ImageLabelScore::VT_BBOX, None)
+  }
 }
 
 impl flatbuffers::Verifiable for ImageLabelScore<'_> {
@@ -550,6 +692,7 @@ impl flatbuffers::Verifiable for ImageLabelScore<'_> {
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<&str>>("label", Self::VT_LABEL, false)?
      .visit_field::<f32>("probability", Self::VT_PROBABILITY, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<BoundingBox>>("bbox", Self::VT_BBOX, false)?
      .finish();
     Ok(())
   }
@@ -557,6 +700,7 @@ impl flatbuffers::Verifiable for ImageLabelScore<'_> {
 pub struct ImageLabelScoreArgs<'a> {
     pub label: Option<flatbuffers::WIPOffset<&'a str>>,
     pub probability: f32,
+    pub bbox: Option<flatbuffers::WIPOffset<BoundingBox<'a>>>,
 }
 impl<'a> Default for ImageLabelScoreArgs<'a> {
   #[inline]
@@ -564,6 +708,7 @@ impl<'a> Default for ImageLabelScoreArgs<'a> {
     ImageLabelScoreArgs {
       label: None,
       probability: 0.0,
+      bbox: None,
     }
   }
 }
@@ -580,6 +725,10 @@ impl<'a: 'b, 'b> ImageLabelScoreBuilder<'a, 'b> {
   #[inline]
   pub fn add_probability(&mut self, probability: f32) {
     self.fbb_.push_slot::<f32>(ImageLabelScore::VT_PROBABILITY, probability, 0.0);
+  }
+  #[inline]
+  pub fn add_bbox(&mut self, bbox: flatbuffers::WIPOffset<BoundingBox<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<BoundingBox>>(ImageLabelScore::VT_BBOX, bbox);
   }
   #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ImageLabelScoreBuilder<'a, 'b> {
@@ -601,6 +750,7 @@ impl core::fmt::Debug for ImageLabelScore<'_> {
     let mut ds = f.debug_struct("ImageLabelScore");
       ds.field("label", &self.label());
       ds.field("probability", &self.probability());
+      ds.field("bbox", &self.bbox());
       ds.finish()
   }
 }
