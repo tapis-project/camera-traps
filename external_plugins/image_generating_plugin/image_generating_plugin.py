@@ -60,6 +60,21 @@ def load_ground_truth():
     """
     logger.info("Retrieving the ground truth file in image generating plugin")
     ground_truth_data = {}
+    def row_update(row: dict, ground_truth_data: dict):
+        image_name = row['image_name']
+        label = row['ground_truth']
+        try:
+            xc = float(row.get('bbox:x', None))
+            yc = float(row.get('bbox:y', None))
+            width = float(row.get('bbox:w', None))
+            height = float(row.get('bbox:h', None))
+            bbox = [{'label': label, 'bounding_box': [xc, yc, width, height]}]
+        except (TypeError, ValueError):
+            bbox = None
+        if bbox:
+            ground_truth_data[image_name] = {'label': label, 'bbox': bbox}
+        else:
+            ground_truth_data[image_name] = {'label': label}
     try:
         if use_ground_truth_url:
             logger.info(f"Retrieving custom ground truth file: {ground_truth_url}")
@@ -68,26 +83,12 @@ def load_ground_truth():
                 csv_content = response.content.decode('utf-8').splitlines()
                 reader = csv.DictReader(csv_content)
                 for row in reader:
-                    image_name = row['image_name']
-                    ground_truth_data[image_name] = row['ground_truth']
+                    row_update(row, ground_truth_data)
         else:
             with open(ground_truth_file, mode='r') as ground_truth:
                 reader = csv.DictReader(ground_truth)
                 for row in reader:
-                    image_name = row['image_name']
-                    label = row['ground_truth']
-                    try:
-                        xc = float(row.get('bbox:x', None))
-                        yc = float(row.get('bbox:y', None))
-                        width = float(row.get('bbox:w', None))
-                        height = float(row.get('bbox:h', None))
-                        bbox = [{'label': label, 'bounding_box': [xc, yc, width, height]}]
-                    except (TypeError, ValueError):
-                        bbox = None
-                    if bbox:
-                        ground_truth_data[image_name] = {'label': label, 'bbox': bbox}
-                    else:
-                        ground_truth_data[image_name] = {'label': label}
+                    row_update(row, ground_truth_data)
     except FileNotFoundError:
         logger.error(f"File not found: {ground_truth_file}")
     except KeyError as e:
