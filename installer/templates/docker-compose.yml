@@ -373,6 +373,7 @@ services:
       - TRAPS_DETECTION_REPORTER_OUTPUT_PATH=/output
       - TRAPS_DETECTED_EVENTS_FILE={{ detected_events_file }}
       - TRAPS_DETECTION_FILE=/traps-detection.toml
+      - TRAPS_VIDEO_INFO_FILE=/video_info/video_info.yaml
     networks:
       - cameratraps
     {% if use_host_pid %}
@@ -392,6 +393,7 @@ services:
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro
       - {{ host_config_dir }}/traps-detection.toml:/traps-detection.toml:ro
       - {{ host_output_dir }}/{{ detection_reporter_plugin_output_dir }}:/output
+      - {{ host_output_dir }}/{{ video_output_dir }}:/video_info
 {% endif %}
 
 

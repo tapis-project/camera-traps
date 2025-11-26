@@ -15,7 +15,7 @@ from watchdog.events import FileSystemEventHandler
 
 from ctevents import ctevents
 from pyevents.events import get_plugin_socket, send_quit_command
-from ctevents.ctevents import send_terminate_plugin_fb_event
+from ctevents.ctevents import send_terminate_plugin_fb_event, send_terminating_plugin_fb_event
 
 # Path to a directory that this plugin "watches" for new image files. 
 # By default, we set this directory to `/var/lib/motion` in the container, assuming
@@ -133,6 +133,7 @@ class NewFileHandler(FileSystemEventHandler):
     def __init__(self):
         super().__init__()
         self.last_image_time = 0
+        self.num_images = 0
 
     def extract_timestamp(self, file_path):
         basename = os.path.basename(file_path)
@@ -184,6 +185,7 @@ class NewFileHandler(FileSystemEventHandler):
             if uuid:
                 self.last_image_time = current_time
                 logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
+                self.num_images = self.num_images + 1
         except Exception as e:
             logging.error(f"Error processing {file_path}: {e}")
 
@@ -222,6 +224,18 @@ def test_camera(v4l2_device=None):
             send_quit_command(socket)
             sys.exit()
 
+def update_video_info(num_images):
+    video_info_file = os.environ.get('TRAPS_VIDEO_INFO_PATH', '/video_info.yaml')
+    video_info = {}
+    if os.path.exists(video_info_file):
+        try:
+            with open(video_info_file, 'r') as f:
+                video_info = yaml.safe_load(f)
+        except Exception as e:
+            logging.error(f'Error processing {video_info_file}: {e}')
+    video_info['num_images'] = num_images
+    with open(video_info_file, 'w') as f:
+        yaml.dump(video_info, f)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
@@ -272,6 +286,7 @@ if __name__ == "__main__":
         observer.stop()
     observer.join()
     motion_proc.kill()
-    logger.info('Sending quit command')
-    send_terminate_plugin_fb_event(socket, "*", "35f20cdd-a404-4436-8df9-d80a9de91147")
+    update_video_info(event_handler.num_images)
+    send_terminating_plugin_fb_event(socket,"ext_image_detecting_plugin","35f20cdd-a404-4436-8df9-d80a9de91147")
     send_quit_command(socket)
+    logger.info("Image Detecting Plugin shutting down...")

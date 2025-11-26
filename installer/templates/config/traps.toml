@@ -95,5 +95,6 @@ subscriptions = [
     "ImageDeletedEvent",
     "ImageReceivedEvent",
     "PluginTerminateEvent",
+    "PluginTerminatingEvent",
 ]
 {% endif %}
