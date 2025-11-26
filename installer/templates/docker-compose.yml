@@ -147,6 +147,9 @@ services:
       {% if motion_video_device  %}
       - DEVICE={{ motion_video_device }}
       {% endif %}
+      {% if image_detecting_monitor_power %}
+      - MONITOR_POWER=true
+      {% endif %}
     volumes:
       - {{ host_config_dir }}/motion.conf:/etc/motion/motion.conf:ro
       {% if motion_video_type == 'file' %}
@@ -374,6 +377,9 @@ services:
       - TRAPS_DETECTED_EVENTS_FILE={{ detected_events_file }}
       - TRAPS_DETECTION_FILE=/traps-detection.toml
       - TRAPS_VIDEO_INFO_FILE=/video_info/video_info.yaml
+      {% if detection_reporter_monitor_power %}
+      - MONITOR_POWER=true
+      {% endif %}
     networks:
       - cameratraps
     {% if use_host_pid %}

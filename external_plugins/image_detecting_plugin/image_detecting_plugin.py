@@ -123,6 +123,19 @@ class LogFileHandler(FileSystemEventHandler):
                     self.observer.stop()
                     return
 
+def monitor_generating_power():
+    """
+    This function is used to initiate the power monitoring event, if the monitoring flag is set.
+    """
+    monitor_flag = os.getenv('MONITOR_POWER')
+    pid = [os.getpid()]
+    monitor_type = [1]
+    monitor_seconds = 0
+    if monitor_flag:
+        ctevents.send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
+        logger.info(f"Monitoring image detecting power")
+
+
 class NewFileHandler(FileSystemEventHandler):
     """
     Basic watchdog class to detect new files in the configured directory. 
@@ -249,8 +262,7 @@ if __name__ == "__main__":
     socket = get_socket()
     logging.info(f"Image Detecting Plugin starting, monitoring path: {path}")
 
-    # Check camera before starting motion
-    #test_camera(v4l2_device=DEVICE)
+    monitor_generating_power()
 
     # Startup motion
     duration = get_duration()
