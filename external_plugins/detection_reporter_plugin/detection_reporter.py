@@ -96,7 +96,7 @@ def main():
         except Exception as e:
             logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
             done = True 
-            logger.info("Oracle monitoring plugin stopping due to timeout limit...")
+            logger.info("Detection reporter plugin stopping due to timeout limit...")
             continue
         if not message:
             logger.info("No message found in get_next_msg")

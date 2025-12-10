@@ -369,8 +369,8 @@ def get_pids_meta(pids, types):
             name = "power_monitor_plugin"
         elif "image_scoring_plugin.py" in command_line:
             name = "image_scoring_plugin"
-        elif "oracle_plugin.py" in command_line:
-            name = "oracle_plugin"
+        elif "ckn_plugin.py" in command_line:
+            name = "ckn_plugin"
 
         logger.debug(f"Found proc for pid {pid}; name: {name}; cmdline: {command_line}")
         procs["name"].append(name)
