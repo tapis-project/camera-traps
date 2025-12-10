@@ -206,7 +206,7 @@ users a pre-bundled set of example image. See below:
 
   * Example: false
 
-* `deploy_oracle`: Whether to deploy the oracle plugin. Default: true.
+* `deploy_ckn`: Whether to deploy the CKN plugin. Default: true.
 
   * Example: false
 
@@ -224,7 +224,7 @@ This table shows which plugins are enabled and disabled by default and for each 
 | Image generating | Y | N | Y | N |
 | Video generating | N | N | N | Y |
 | Image detecting  | N | Y | N | Y |
-| Oracle           | Y | N | Y | N |
+| CKN              | Y | N | Y | N |
 | CKN              | Y | N | Y | N |
 | CKN MQTT         | N | Y | N | N |
 | Power monitoring | Y | N | Y | Y |
@@ -322,10 +322,10 @@ This is a complete list of all possible configurations.
   * Example: 0.4
   
    
-* `oracle_plugin_output_dir`: Host directory within the 
-  host_output_dir where the oracle_plugin's outputs will be written. (Relative to `host_output_dir`)
+* `ckn_plugin_output_dir`: Host directory within the 
+  host_output_dir where the ckn_plugin's outputs will be written. (Relative to `host_output_dir`)
 
-  * Example: oracle_output_dir
+  * Example: ckn_output_dir
 
 * `image_generating_log_level`: Log level for image 
   generating plugin.  
@@ -425,15 +425,15 @@ This is a complete list of all possible configurations.
 * `image_detecting_log_level`: Log level for image detecting plugin
   * Example: DEBUG, INFO
 
-* `oracle_plugin_image`: The image to use for the oracle plugin, not including the tag. Default: tapis/oracle_plugin.
+* `ckn_plugin_image`: The image to use for the CKN plugin, not including the tag. Default: tapis/ckn_plugin.
 
-  * Example: tapis/oracle_plugin
+  * Example: tapis/ckn_plugin
 
-* `oracle_plugin_output_dir`: Host directory within the host_output_dir where
-  the output of the oracle plugin will be written. (Relative to
+* `ckn_plugin_output_dir`: Host directory within the host_output_dir where
+  the output of the CKN plugin will be written. (Relative to
   `host_output_dir`)
 
-  * Example: oracle_output_dir
+  * Example: ckn_output_dir
 
 * `detection_reporter_plugin_image`: The image to use for the detection reporter plugin, not including the tag.
 
