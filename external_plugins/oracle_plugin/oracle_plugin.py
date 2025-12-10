@@ -233,7 +233,12 @@ def main():
             for i in range(event.ScoresLength()):
                 label = event.Scores(i).Label().decode('utf-8')
                 prob = event.Scores(i).Probability()
-                scores.append({"label": label, "probability": prob})
+                bbox = event.Scores(i).Bbox()
+                if bbox:
+                    bbox_list = [bbox.XCenter(), bbox.YCenter(), bbox.Width(), bbox.Height()]
+                    scores.append({"label": label, "probability": prob, "bounding_box": bbox_list})
+                else:
+                    scores.append({"label": label, "probability": prob})
             timestamp = event.EventCreateTs().decode('utf-8')
             logger.info(f"Inside scoring {uuid} {scores} {timestamp}")
             update_json(uuid, {"image_scoring_timestamp": timestamp, "score" : scores})

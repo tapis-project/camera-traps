@@ -86,7 +86,7 @@ def monitor_generating_power():
     monitor_seconds = 0
     if monitor_flag:
         send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
-        logger.info(f"Monitoring image generating power")
+        logger.info(f"Monitoring video generating power")
 
 def is_v4l2loopback_available():
     out = run(['v4l2-ctl', '-d', device, '--all'], capture_output=True)
@@ -112,6 +112,7 @@ def process_video(input_video_path, ground_truth):
 
 def main():
     global socket
+    socket = get_socket()
     ground_truth = load_ground_truth()
     stream_proc = None
     if mode == 'device':
@@ -119,7 +120,6 @@ def main():
         stream_proc = process_video(input_video_path, ground_truth)
     done = False
     while not done:
-        socket = get_socket()
         try:
             message = get_next_msg(socket)
         except zmq.error.Again:
