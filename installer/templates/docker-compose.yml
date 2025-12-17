@@ -347,6 +347,7 @@ services:
       - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}
       - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
       - POWER_SUMMARY_TOPIC=cameratraps-power-summary
+      - TRAPS_VIDEO_INFO_FILE=/video_info/video_info.yam
       {% if deploy_video_generating %}
       - MODE=video
       {% else %}
@@ -371,6 +372,7 @@ services:
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro
       - {{ host_output_dir }}/{{ ckn_plugin_output_dir }}:/output
       - {{ host_output_dir }}/{{ power_output_dir }}:/power_logs
+      - {{ host_output_dir }}/{{ video_output_dir }}:/video_info
 {% endif %}
 
 {% if deploy_reporter %}
