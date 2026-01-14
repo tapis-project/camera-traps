@@ -167,8 +167,11 @@ def get_vars(input_data, default_data):
         else:
             vars['motion_video_type'] = 'file'
         # determine which of url, local file, and example file are used for the video
-        if vars.get('source_video_url') or vars.get('local_video_path'):
+        if vars.get('local_video_path'):
             vars['use_example_video'] = False
+        elif vars.get('source_video_url'):
+            vars['use_example_video'] = False
+            vars['local_video_path'] = './video.mp4'
         elif vars.get('use_example_video'):
             vars['local_video_path'] = './video.mp4'
 
