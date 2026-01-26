@@ -85,7 +85,7 @@ def get_vars(input_data, default_data):
                      'deploy_ckn': False,
                      'deploy_ckn_mqtt': True,
                      'deploy_power_monitoring': False,
-                     'deploy_oracle': False,
+                     'deploy_ckn': False,
                      'motion_video_device': '/dev/video0',
                      'inference_server': True}
     simulation_defaults = {'deploy_image_generating': True,
@@ -93,7 +93,7 @@ def get_vars(input_data, default_data):
                            'deploy_reporter': False,
                            'deploy_ckn': True,
                            'deploy_ckn_mqtt': False,
-                           'deploy_oracle': True,
+                           'deploy_ckn': True,
                            'expanded_metrics': True,
                            'inference_server': False}
     video_simulation_defaults = {'deploy_image_generating': False,
@@ -102,7 +102,7 @@ def get_vars(input_data, default_data):
                                  'deploy_reporter': True,
                                  'deploy_ckn': False,
                                  'deploy_ckn_mqtt': False,
-                                 'deploy_oracle': False,
+                                 'deploy_ckn': False,
                                  'use_bundled_example_images': False,
                                  'inference_server': False}
 
@@ -372,9 +372,9 @@ def generate_additional_directories(vars, full_install_dir):
     if not os.path.exists(images_output_dir):
         os.makedirs(images_output_dir)
     
-    oracle_plugin_output_dir = os.path.join(full_install_dir, vars["oracle_plugin_output_dir"])
-    if not os.path.exists(oracle_plugin_output_dir):
-        os.makedirs(oracle_plugin_output_dir)
+    ckn_plugin_output_dir = os.path.join(full_install_dir, vars["ckn_plugin_output_dir"])
+    if not os.path.exists(ckn_plugin_output_dir):
+        os.makedirs(ckn_plugin_output_dir)
 
     power_output_dir = os.path.join(full_install_dir, vars["power_output_dir"])
     if not os.path.exists(power_output_dir):
