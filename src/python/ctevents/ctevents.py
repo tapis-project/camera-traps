@@ -4,7 +4,7 @@ import uuid
 from tokenize import String
 import flatbuffers
 from ctevents.gen_events import NewImageEvent, ImageReceivedEvent, ImageScoredEvent, ImageStoredEvent, ImageDeletedEvent, ImageLabelScore, PluginStartedEvent, PluginTerminateEvent, PluginTerminatingEvent, MonitorPowerStartEvent, MonitorPowerStopEvent, MonitorType
-from ctevents.gen_events import Event
+from ctevents.gen_events import Event, BoundingBox
 from ctevents.gen_events.EventType import EventType
 
 # zmq and socket helper lib
@@ -88,7 +88,7 @@ def _generate_new_image_fb_event(uuid: String, format: String, image: bytearray)
     #     '''
     for i in reversed(range(len(image))):
         builder.PrependByte(image[i])
-    image_fb = builder.EndVector()
+    image_fb = builder.EndVector(len(image))
 
     # ----- start the new image event, add the individual fields, then call End() -----
     # every time you want o create a Table, you need to follow this pattern:
@@ -178,19 +178,36 @@ def _generate_image_scored_fb_event(image_uuid, image_format, scores: "list(dict
     for score in scores:
         label_fb = builder.CreateString(score['label'])
         prob_fb = score['probability']
-        scores_fb.append({'label': label_fb, 'prob': prob_fb})
+        bbox_list = score.get('bbox')
+        if bbox_list:
+            if isinstance(bbox_list, (list, tuple)) and len(bbox_list) == 4:
+                BoundingBox.Start(builder)
+                BoundingBox.AddXCenter(builder, bbox_list[0])
+                BoundingBox.AddYCenter(builder, bbox_list[1])
+                BoundingBox.AddWidth(builder, bbox_list[2])
+                BoundingBox.AddHeight(builder, bbox_list[3])
+                bbox = BoundingBox.End(builder)
+                scores_fb.append({'label': label_fb, 'prob': prob_fb, 'bbox': bbox})
+            else:
+                print(f'Got invalid bounding box for {image_uuid}: {bbox}, ignoring bbox')
+                scores_fb.append({'label': label_fb, 'prob': prob_fb})
+        else:
+            scores_fb.append({'label': label_fb, 'prob': prob_fb})
     
     image_label_scores = []
     for score in scores_fb:    
         ImageLabelScore.ImageLabelScoreStart(builder)
         ImageLabelScore.AddLabel(builder, score['label'])
         ImageLabelScore.AddProbability(builder, score['prob'])
+        bbox = score.get('bbox')
+        if bbox:
+            ImageLabelScore.AddBbox(builder, bbox)
         image_label_score = ImageLabelScore.ImageLabelScoreEnd(builder)
         image_label_scores.append(image_label_score)
     ImageScoredEvent.ImageScoredEventStartScoresVector(builder, len(image_label_scores))
     for s in reversed(image_label_scores):
         builder.PrependUOffsetTRelative(s)
-    scores_fb_vector = builder.EndVector()
+    scores_fb_vector = builder.EndVector(len(image_label_scores))
     ImageScoredEvent.Start(builder)
     ImageScoredEvent.AddScores(builder, scores_fb_vector)
     ImageScoredEvent.AddEventCreateTs(builder, ts_fb)
@@ -460,13 +477,13 @@ def _generate_monitor_power_start_event(pids: list, monitor_types: list, monitor
     MonitorPowerStartEvent.MonitorPowerStartEventStartPidsVector(builder, len(pids))
     for pid in reversed(pids): 
         builder.PrependInt32(pid)
-    pids_fb = builder.EndVector()
+    pids_fb = builder.EndVector(len(pids))
     
     # Start adding MonitorTypes
     MonitorPowerStartEvent.MonitorPowerStartEventStartMonitorTypesVector(builder, len(monitor_types))
     for monitor_type in reversed(monitor_types): 
         builder.PrependInt8(monitor_type)
-    monitor_types_fb = builder.EndVector()
+    monitor_types_fb = builder.EndVector(len(monitor_types))
     
     # Start building the MonitorPowerStartEvent
     MonitorPowerStartEvent.MonitorPowerStartEventStart(builder)
@@ -508,6 +525,11 @@ def _bytes_to_event(b: bytearray):
     returns the raw Flatbuffers event object associated with it.
     """
     try:
+        if type(b) == bytes:
+            b = bytearray(b)
+        first_two = bytes(b[0:len(EVENT_TYPE_BYTE_PREFIX['NEW_IMAGE'])])
+        if first_two in EVENT_TYPE_BYTE_PREFIX.values():
+            b = _remove_event_prefix(b)
         event = Event.Event.GetRootAs(b, 0)
         return event
     except Exception as e:

@@ -34,6 +34,7 @@ motion_threshold: 100
 motion_width: 640
 motion_height: 480
 image_detecting_log_level: DEBUG
+image_detecting_monitor_power: true
 
 # video generating plugin
 deploy_video_generating: false
@@ -41,6 +42,7 @@ video_generating_plugin_image: tapis/video_generating_plugin
 video_generating_log_level: DEBUG
 video_output_dir: video_output_dir
 use_example_video: true
+video_generating_monitor_power: true
 source_video_url:
 local_video_path:
 
@@ -85,12 +87,13 @@ detection_reporter_plugin_output_dir: detection_output_dir
 detected_events_file: detections.csv
 detection_thresholds: 
   animal: 0.5
+detection_reporter_monitor_power: true
 
 # CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true
 ckn_daemon_tag: latest
-ckn_kafka_broker_address: https://cknbroker.pods.icicleai.tapis.io
-ckn_kafka_broker_port: 9092
+ckn_kafka_broker_address: cknbroker.pods.icicleai.tapis.io
+ckn_kafka_broker_port: 443
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 

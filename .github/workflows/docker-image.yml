@@ -597,23 +597,11 @@ jobs:
           tags: tapis/image_detecting_plugin:${{ env.TRAPS_REL }}
           build-args: REL=${{ env.TRAPS_REL }}
 
-  power_measuring_plugin:
+  power_measuring_plugin_deps:
     runs-on: ubuntu-latest
     environment: main
     needs: camera_traps_py_313
     steps:
-      - name: Set TRAPS_REL
-        run: |
-          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
-            TRAPS_REL=${{ inputs.release_tag }}
-          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
-            TRAPS_REL=latest
-          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
-            TRAPS_REL=latest
-          else
-            TRAPS_REL=${{ github.event.release.tag_name }}
-          fi
-          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up QEMU
@@ -641,6 +629,35 @@ jobs:
           file: external_plugins/power_measuring_plugin/Dockerfile-scaphandre
           platforms: linux/amd64,linux/arm64
           tags: tapis/scaphandre
+
+  power_measuring_plugin:
+    runs-on: ubuntu-latest
+    environment: main
+    needs: power_measuring_plugin_deps
+    steps:
+      - name: Set TRAPS_REL
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
+            TRAPS_REL=${{ inputs.release_tag }}
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
+            TRAPS_REL=latest
+          elif [[ ${{ github.event_name == 'pull_request' }} == true ]]; then
+            TRAPS_REL=latest
+          else
+            TRAPS_REL=${{ github.event.release.tag_name }}
+          fi
+          echo "TRAPS_REL=$TRAPS_REL" >> "$GITHUB_ENV"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push power_measuring_plugin
         uses: docker/build-push-action@v5
         with:
@@ -822,7 +839,7 @@ jobs:
   trigger_tests:
     runs-on: ubuntu-latest
     environment: main
-    needs: [engine, image_scoring_plugin_server_py_313, image_scoring_plugin_ultralytics_py_313, image_scoring_plugin_yolov5_py_38, image_scoring_plugin_py_nano_38, image_generating_plugin, image_detecting_plugin, power_measuring_plugin, oracle_plugin, detection_reporter_plugin, video_generating_plugin, custom_install]
+    needs: [engine, image_scoring_plugin_server_py_313, image_scoring_plugin_ultralytics_py_313, image_scoring_plugin_yolov5_py_38, image_scoring_plugin_py_nano_38, image_generating_plugin, image_detecting_plugin, power_measuring_plugin_deps, power_measuring_plugin, oracle_plugin, detection_reporter_plugin, video_generating_plugin, custom_install]
     steps:
       - name: Check if tests are disabled
         run: |

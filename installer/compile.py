@@ -87,6 +87,8 @@ def get_vars(input_data, default_data):
                      'deploy_power_monitoring': False,
                      'deploy_ckn': False,
                      'motion_video_device': '/dev/video0',
+                     'motion_video_type': 'device',
+                     'use_example_video': False,
                      'inference_server': True}
     simulation_defaults = {'deploy_image_generating': True,
                            'deploy_image_detecting': False,
@@ -158,6 +160,7 @@ def get_vars(input_data, default_data):
             vars['model_id'] = '41d3ed40-b836-4a62-b3fb-67cee79f33d9-model'
 
     if vars.get('mode') == 'video_simulation':
+        vars['fake_stream'] = True
         # for video simulations, determine if motion is using device or netcam
         if vars.get('motion_video_device'):
             vars['motion_video_type'] = 'device'

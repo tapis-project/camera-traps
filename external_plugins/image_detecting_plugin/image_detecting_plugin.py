@@ -7,14 +7,15 @@ import uuid
 import zmq 
 import yaml
 import logging
-from subprocess import Popen
+import subprocess
+import sys
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from ctevents import ctevents
 from pyevents.events import get_plugin_socket, send_quit_command
-from ctevents.ctevents import send_terminate_plugin_fb_event
+from ctevents.ctevents import send_terminate_plugin_fb_event, send_terminating_plugin_fb_event
 
 # Path to a directory that this plugin "watches" for new image files. 
 # By default, we set this directory to `/var/lib/motion` in the container, assuming
@@ -23,6 +24,7 @@ log_level = os.environ.get("IMAGE_GENERATING_LOG_LEVEL", "INFO")
 DATA_MONITORING_PATH = os.environ.get("DATA_MONITORING_PATH", "/var/lib/motion")
 MIN_SECONDS_BETWEEN_IMAGES = float(os.environ.get("MIN_SECONDS_BETWEEN_IMAGES", "2.0"))
 MODE = os.environ.get("MODE", "demo")
+DEVICE=os.environ.get("DEVICE")
 
 logger = logging.getLogger("Image Generating Plugin")
 if log_level == "DEBUG":
@@ -117,9 +119,22 @@ class LogFileHandler(FileSystemEventHandler):
             self.last_pos = f.tell()
 
             for line in new_lines:
-                if 'motion detection Enabled' in line:
+                if 'device_capability' in line:
                     self.observer.stop()
                     return
+
+def monitor_generating_power():
+    """
+    This function is used to initiate the power monitoring event, if the monitoring flag is set.
+    """
+    monitor_flag = os.getenv('MONITOR_POWER')
+    pid = [os.getpid()]
+    monitor_type = [1]
+    monitor_seconds = 0
+    if monitor_flag:
+        ctevents.send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
+        logger.info(f"Monitoring image detecting power")
+
 
 class NewFileHandler(FileSystemEventHandler):
     """
@@ -131,6 +146,7 @@ class NewFileHandler(FileSystemEventHandler):
     def __init__(self):
         super().__init__()
         self.last_image_time = 0
+        self.num_images = 0
 
     def extract_timestamp(self, file_path):
         basename = os.path.basename(file_path)
@@ -182,6 +198,7 @@ class NewFileHandler(FileSystemEventHandler):
             if uuid:
                 self.last_image_time = current_time
                 logging.info(f"Generated uuid ({uuid}) and successfully sent new image event for file: {file_path}")
+                self.num_images = self.num_images + 1
         except Exception as e:
             logging.error(f"Error processing {file_path}: {e}")
 
@@ -203,6 +220,36 @@ def get_duration():
         else:
             return video_info['duration']
 
+def test_camera(v4l2_device=None):
+    if v4l2_device:
+        sample_img = '/tmp/sample.png'
+        try:
+            result = subprocess.run(
+                ['ffmpeg', '-f', 'v4l2', '-i', v4l2_device, '-frames', '1', sample_img],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            logging.info(f'Captured sample image')
+        except subprocess.CalledProcessError as e:
+            global socket
+            logging.error(f'Error: Failed to capture image from {v4l2_device}. {e.stderr.decode()}')
+            logger.info('Sending quit command')
+            send_terminate_plugin_fb_event(socket, "*", "35f20cdd-a404-4436-8df9-d80a9de91147")
+            send_quit_command(socket)
+            sys.exit()
+
+def update_video_info(num_images):
+    video_info_file = os.environ.get('TRAPS_VIDEO_INFO_PATH', '/video_info.yaml')
+    video_info = {}
+    if os.path.exists(video_info_file):
+        try:
+            with open(video_info_file, 'r') as f:
+                video_info = yaml.safe_load(f)
+        except Exception as e:
+            logging.error(f'Error processing {video_info_file}: {e}')
+    video_info['num_images'] = num_images
+    with open(video_info_file, 'w') as f:
+        yaml.dump(video_info, f)
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
@@ -215,9 +262,11 @@ if __name__ == "__main__":
     socket = get_socket()
     logging.info(f"Image Detecting Plugin starting, monitoring path: {path}")
 
+    monitor_generating_power()
+
     # Startup motion
     duration = get_duration()
-    motion_proc = Popen(['motion'])
+    motion_proc = subprocess.Popen(['motion'])
 
     # make sure motion is connected to camera
     log_observer = Observer()
@@ -226,6 +275,8 @@ if __name__ == "__main__":
     log_observer.start()
     log_observer.join()
     logger.info('motion has connected to camera')
+    with open('/tmp/ready', 'w') as f:
+        f.write('Application is ready\n')
     
     # instantiate and start the event handler 
     event_handler = NewFileHandler()
@@ -247,6 +298,7 @@ if __name__ == "__main__":
         observer.stop()
     observer.join()
     motion_proc.kill()
-    logger.info('Sending quit command')
-    send_terminate_plugin_fb_event(socket, "*", "35f20cdd-a404-4436-8df9-d80a9de91147")
+    update_video_info(event_handler.num_images)
+    send_terminating_plugin_fb_event(socket,"ext_image_detecting_plugin","35f20cdd-a404-4436-8df9-d80a9de91147")
     send_quit_command(socket)
+    logger.info("Image Detecting Plugin shutting down...")

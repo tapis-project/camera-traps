@@ -32,10 +32,19 @@ table ImageReceivedEvent {
   image_format:string;
 }  
 
+// Represents a bounding box in the format (xc, yc, w, h)
+table BoundingBox {
+  x_center:float;
+  y_center:float;
+  width:float;
+  height:float;
+}
+
 // Represents the probability that an image has a specific label.
 table ImageLabelScore {
   label:string;
   probability:float;
+  bbox:BoundingBox;
 }
 
 // Event indicating an image's scores.

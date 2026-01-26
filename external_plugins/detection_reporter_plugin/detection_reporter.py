@@ -5,8 +5,9 @@ import json
 import sys
 import time
 import toml
+import yaml
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
-from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event
+from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event, send_monitor_power_start_fb_event
 from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, PluginTerminatingEvent, PluginTerminateEvent
 from filelock import FileLock
 
@@ -39,6 +40,7 @@ PORT = int(os.environ.get('DETECTION_REPORTER_PLUGIN_PORT', 6012))
 OUTPUT_DIR = os.environ.get('TRAPS_DETECTION_REPORTER_OUTPUT_PATH', "/output/")
 EVENTS_FILE = os.environ.get('TRAPS_DETECTED_EVENTS_FILE', 'detections.csv')
 DETECTION_FILE = os.environ.get('TRAPS_DETECTION_FILE', '/traps-detection.toml')
+VIDEO_INFO_FILE = os.environ.get('TRAPS_VIDEO_INFO_FILE', '/video_info.yaml')
 
 output_file = os.path.join(OUTPUT_DIR, EVENTS_FILE)
 
@@ -58,7 +60,6 @@ def is_detected_image(uuid):
         for line in f:
             elems = line.strip().split(', ')[:2]
             if elems[0] == 'DETECTION' and elems[1] == uuid:
-                logger.info('yes')
                 return True
     return False
 
@@ -81,13 +82,37 @@ def update_csv(cat, uuid, **kwargs):
         # for the first image, the file has not been created yet and FileNotFound is expected
         logger.error(f"File not found: {output_file}")
 
+def monitor_generating_power():
+    """
+    This function is used to initiate the power monitoring event, if the monitoring flag is set.
+    """
+    monitor_flag = os.getenv('MONITOR_POWER')
+    pid = [os.getpid()]
+    monitor_type = [1]
+    monitor_seconds = 0
+    if monitor_flag:
+        send_monitor_power_start_fb_event(socket, pid, monitor_type, monitor_seconds)
+        logger.info(f"Monitoring detection reporter power")
+
+
+def get_num_images_captured():
+    if os.path.exists(VIDEO_INFO_FILE):
+        with open(VIDEO_INFO_FILE, 'r') as f:
+            video_info = yaml.safe_load(f)
+            return video_info.get('num_images')
+
 def main():
+    global socket
+    socket = get_socket()
     done = False
     with open(output_file, 'w') as f:
         pass
     detection_threshold = get_detection_thresholds()
+    monitor_generating_power()
+    num_images_processed = 0
+    num_images_captured = 0
+    received_terminating = False
     while not done:
-        socket = get_socket()
         try:
             message = get_next_msg(socket)
         except zmq.error.Again:
@@ -103,6 +128,9 @@ def main():
 
         logger.info("Got a message from the event socket - Detection reporter")
         event = socket_message_to_typed_event(message)
+
+        if isinstance(event, ImageDeletedEvent):
+            num_images_processed = num_images_processed + 1
 
         if isinstance(event, ImageScoredEvent):
             uuid = event.ImageUuid().decode('utf-8')
@@ -127,10 +155,19 @@ def main():
             #update_csv('STORING', uuid, {"image_store_delete_time": timestamp, "image_decision": destination})
             if is_detected_image(uuid):
                 update_csv('STORING', uuid, image_path=image_path, decision=destination)
+            num_images_processed = num_images_processed + 1
 
-        elif isinstance(event, PluginTerminateEvent):
+        elif isinstance(event, PluginTerminatingEvent):
+            plugin_name = event.PluginName().decode('utf-8')
+            if plugin_name == 'ext_image_detecting_plugin':
+                received_terminating = True
+                logger.info(f'Received Terminate event * from image detecting plugin')
+                num_images_captured = get_num_images_captured()
+
+        if received_terminating and num_images_captured and num_images_processed >= num_images_captured:
             done = True
-            logger.info(f'Received Terminate event * and shutting down detection reporter plugin')
+            logger.info("Initiating shut down for all other plugins...")
+            send_terminate_plugin_fb_event(socket, "*", "6e153711-9823-4ee6-b608-58e2e801db51")
             send_quit_command(socket)
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import datetime
 import uuid
 import sys
+import os
 from ctevents.ctevents import _bytes_to_event, _event_to_typed_event
 from ctevents.ctevents import _generate_new_image_fb_event, _generate_image_received_fb_event, _generate_image_scored_fb_event, _generate_delete_image_fb_event, _generate_start_plugin_fb_event, _generate_terminating_plugin_fb_event, _generate_terminate_plugin_fb_event, _generate_store_image_fb_event
 from ctevents.ctevents import _generate_new_image_fb_with_prefix, _generate_image_received_fb_with_prefix, _generate_store_image_fb_with_prefix, _generate_terminating_plugin_fb_with_prefix, _generate_delete_image_fb_with_prefix, _generate_image_scored_fb_with_prefix, _generate_start_plugin_fb_with_prefix, _generate_terminate_plugin_fb_with_prefix
@@ -94,7 +95,7 @@ def test_image_received_event_fb():
     # check the fields; each should match the previous test data we generated
     assert image_received_event.ImageUuid() == uuid_str.encode('utf-8')
     assert image_received_event.ImageFormat() == format_str.encode('utf-8')
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).isoformat()
     # assert times have the same year --
     assert now[:19] == image_received_event.EventCreateTs().decode('utf-8')[:19]
 
@@ -328,7 +329,7 @@ def test_image_scored_event_fb():
     assert "8f5f3962-d301-4e96-9994-3bd63c472ce8" == image_scored_event.ImageUuid().decode('utf-8')
     assert image_scored_event.ImageFormat() == image_format.encode('utf-8')
 
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).isoformat()
     # assert times have the same year --
     assert now[:4] == image_scored_event.EventCreateTs().decode('utf-8')[:4]
 
@@ -363,6 +364,36 @@ def test_image_scored_event_with_prefix():
     # check that prefix is the right thing
     assert image_scored_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['IMAGE_SCORED']
 
+def test_image_scored_event_with_bbox():
+    """
+    A basic test function to check that serializing and deserializing image scored event with bounding boxes
+    """
+    scores = [
+        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "lab", "probability": 0.95, "bbox": [0.5, 0.5, 0.4, 0.4]},
+        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "golden_retriever", "probability": 0.05, "bbox": [0.6, 0.6, 0.3, 0.5]},
+        {"image_uuid": "8f5f3962-d301-4e96-9994-3bd63c472ce8", "label": "pug", "probability": 0.012, "bbox": [0.4, 0.4, 0.2, 0.2]}
+    ]
+    image_uuid = "8f5f3962-d301-4e96-9994-3bd63c472ce8"
+    image_format = 'jpg'
+
+    # make a test image scored event flattbuffer
+    image_scored_fb = _generate_image_scored_fb_with_prefix(image_uuid, image_format, scores)
+
+    # check that prefix is the right thing
+    assert image_scored_fb[0:2] == EVENT_TYPE_BYTE_PREFIX['IMAGE_SCORED']
+    e = _bytes_to_event(image_scored_fb)
+
+    # convert the root event object to a typed event (of type new image)
+    image_scored_event = _event_to_typed_event(e)
+
+    for i in range(image_scored_event.ScoresLength()):
+        bbox = image_scored_event.Scores(i).Bbox()
+        assert bbox is not None
+        assert abs(bbox.XCenter() - scores[i]['bbox'][0]) < 0.01
+        assert abs(bbox.YCenter() - scores[i]['bbox'][1]) < 0.01
+        assert abs(bbox.Width() - scores[i]['bbox'][2]) < 0.01
+        assert abs(bbox.Height() - scores[i]['bbox'][3]) < 0.01
+
 
 if __name__ == "__main__":
     test_new_image_event_fb()
@@ -371,6 +402,7 @@ if __name__ == "__main__":
     test_image_received_event_with_prefix()
     test_image_scored_event_fb()
     test_image_scored_event_with_prefix()
+    test_image_scored_event_with_bbox()
     test_image_stored_event_with_prefix()
     test_image_stored_event_fb()
     test_delete_image_event_fb()
