@@ -2,6 +2,7 @@ import os
 import zmq
 import logging
 import json
+import yaml
 import sys
 import time
 import threading
@@ -200,7 +201,7 @@ POWER_SUMMARY_TOPIC = os.environ.get('POWER_SUMMARY_TOPIC', 'cameratraps-power-s
 uuid_image_mapping_path = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
 
 # Image detecting plugin
-VIDEO_INFO_FILE = os.environ.get('VIDEO_INFO_FILE', '')
+VIDEO_INFO_FILE = os.environ.get('TRAPS_VIDEO_INFO_PATH', '')
 
 # This is the file the CKN plugin actually writes
 output_file = os.path.join(OUTPUT_DIR, "image_mapping_final.json")
@@ -518,7 +519,7 @@ def compute_total_images_generated():
             video_info = yaml.safe_load(f)
             return video_info.get('num_images')
     else:
-        logger.error(f"Error parsing uuid_image_mapping file when trying to compute total images generated; details: {e}")
+        logger.error(f"Valid image mapping file not found.")
         return -1 
 
 
@@ -919,8 +920,8 @@ def main():
 
         elif isinstance(event, PluginTerminatingEvent):
             plugin_name = event.PluginName().decode('utf-8')
-            if plugin_name == 'ext_image_gen_plugin':
-                logger.info("Received Terminating signal from image generating plugin")
+            if plugin_name in ['ext_image_gen_plugin','ext_image_detecting_plugin']:
+                logger.info(f"Received Terminating signal from {plugin_name}")
                 # at this point, we can compute the total images generated and to be processed from the
                 # length of the uuid_image_mapping
                 global received_terminating_signal

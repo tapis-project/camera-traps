@@ -347,7 +347,7 @@ services:
       - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}
       - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
       - POWER_SUMMARY_TOPIC=cameratraps-power-summary
-      - TRAPS_VIDEO_INFO_FILE=/video_info/video_info.yam
+      - TRAPS_VIDEO_INFO_PATH=/video_info/video_info.yaml
       {% if deploy_video_generating %}
       - MODE=video
       {% else %}
