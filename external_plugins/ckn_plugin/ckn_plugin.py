@@ -1,118 +1,41 @@
+"""
+CKN Plugin - Combined Oracle and CKN Daemon functionality.
+
+This plugin:
+1. Listens on ZMQ for image events (ImageReceived, ImageScored, ImageStored, ImageDeleted, PluginTerminating)
+2. Keeps mapping state in memory (no image_mapping_final.json)
+3. Computes running experiment metrics (TP/FP/FN, precision, recall, f1, IoU, mAP)
+4. Streams per-image events to Kafka when image_decision is set (when CKN is configured)
+5. Streams power summary to Kafka at shutdown (when power monitoring is enabled)
+"""
+
 import os
+import sys
 import zmq
 import logging
 import json
-import yaml
-import sys
 import time
-import threading
+
 from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
 from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event
 from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, ImageReceivedEvent, PluginTerminatingEvent
 
-# Try to import watchdog for file watching (optional)
-try:
-    from watchdog.observers import Observer
-    from watchdog.events import FileSystemEventHandler
-    WATCHDOG_AVAILABLE = True
-except ImportError:
-    WATCHDOG_AVAILABLE = False
-
 # Try to import Kafka producer, handle gracefully if not available
+KAFKA_AVAILABLE = False
 try:
     from confluent_kafka import Producer, KafkaError
     from confluent_kafka.admin import AdminClient
     KAFKA_AVAILABLE = True
 except ImportError:
-    KAFKA_AVAILABLE = False
-    logger = logging.getLogger("CKN Plugin")
-    logger.warning("confluent-kafka not available. Kafka streaming will be disabled.")
+    pass
 
-# Try to import power processor, handle gracefully if not available
-try:
-    from power_processor import PowerProcessor
-    POWER_PROCESSOR_AVAILABLE = True
-except ImportError:
-    # In many deployments, only this file is copied into the container (see Dockerfile),
-    # so a separate power_processor module is not available. Provide an internal fallback
-    # so power summary processing still works when ENABLE_POWER_MONITORING is enabled.
-    class PowerProcessor:
-        def __init__(
-            self,
-            summary_file,
-            kafka_producer,
-            kafka_topic,
-            experiment_id,
-            max_tries=5,
-            timeout=10,
-        ):
-            self.summary_file = summary_file
-            self.kafka_producer = kafka_producer
-            self.kafka_topic = kafka_topic
-            self.experiment_id = experiment_id
-            self.max_tries = int(max_tries) if max_tries is not None else 5
-            self.timeout = int(timeout) if timeout is not None else 10
-
-        def _wait_for_summary_file(self):
-            """
-            Wait for the power summary report file to exist and be readable.
-            The power monitoring plugin generates this near its shutdown, so the
-            CKN plugin may reach shutdown first.
-            """
-            last_err = None
-            for _ in range(max(self.max_tries, 1)):
-                try:
-                    if self.summary_file and os.path.exists(self.summary_file) and os.path.getsize(self.summary_file) > 0:
-                        return True
-                except Exception as e:
-                    last_err = e
-                time.sleep(max(self.timeout, 0))
-            if last_err:
-                raise last_err
-            return False
-
-        def process_summary_events(self):
-            """
-            Reads the summary JSON and publishes it to Kafka (if available).
-            Expected file is typically: /power_logs/power_summary_report.json
-            """
-            if not self.summary_file:
-                raise ValueError("summary_file is empty")
-
-            if not self._wait_for_summary_file():
-                raise FileNotFoundError(f"Power summary file not found or empty at {self.summary_file}")
-
-            with open(self.summary_file, "r") as f:
-                summary = json.load(f)
-
-            payload = {
-                "experiment_id": self.experiment_id,
-                "device_id": os.environ.get("CAMERA_TRAPS_DEVICE_ID", ""),
-                "user_id": os.environ.get("USER_ID", ""),
-                "power_summary_file": self.summary_file,
-                "power_summary": summary,
-            }
-
-            # If Kafka isn't available (or producer failed to initialize), we still
-            # consider "processing" successful once the file is readable.
-            if not self.kafka_producer:
-                logger.info("Kafka producer not initialized; read power summary successfully but will not publish to Kafka.")
-                logger.debug(f"Power summary payload: {json.dumps(payload)}")
-                return
-
-            # Publish summary to Kafka
-            value = json.dumps(payload)
-            self.kafka_producer.produce(self.kafka_topic, key=self.experiment_id, value=value)
-            self.kafka_producer.flush()
-
-    POWER_PROCESSOR_AVAILABLE = True
-
+# ============================================================================
+# Logging setup
+# ============================================================================
 log_level = os.environ.get("CKN_LOG_LEVEL", "INFO")
-logger = logging.getLogger("CKN Plugin")
+LOG_FILE = os.environ.get("CKN_LOG_FILE", "/output/ckn_plugin.log")
 
-# Log watchdog availability after logger is initialized
-if not WATCHDOG_AVAILABLE:
-    logger.warning("watchdog not available. File watching mode will be disabled.")
+logger = logging.getLogger("CKN Plugin")
 if log_level == "DEBUG":
     logger.setLevel(logging.DEBUG)
 elif log_level == "INFO":
@@ -121,33 +44,82 @@ elif log_level == "WARN":
     logger.setLevel(logging.WARN)
 elif log_level == "ERROR":
     logger.setLevel(logging.ERROR)
-if not logger.handlers:
-    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
-            '[in %(pathname)s:%(lineno)d]')
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
-# Number of images generated by the entire application (i.e., by the image generating plugin)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
+    
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    # File handler
+    try:
+        log_dir = os.path.dirname(LOG_FILE)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+        file_handler = logging.FileHandler(LOG_FILE)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        logger.info(f"Logging to file: {LOG_FILE}")
+    except Exception as e:
+        logger.warning(f"Could not create log file {LOG_FILE}: {e}")
+
+# ============================================================================
+# Configuration from environment
+# ============================================================================
+PORT = int(os.environ.get('CKN_PLUGIN_PORT', 6011))
+OUTPUT_DIR = os.environ.get('TRAPS_CKN_OUTPUT_PATH', "/output/")
+MODEL_ID = os.environ.get("MODEL_ID")
+
+# Ground truth file (written by image generating plugin, read-only for us)
+uuid_image_mapping_path = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
+
+# Kafka configuration
+KAFKA_BROKER = os.environ.get('CKN_KAFKA_BROKER', '')
+KAFKA_TOPIC = os.environ.get('CKN_KAFKA_TOPIC', 'oracle-events')
+KAFKA_SECURITY_PROTOCOL = os.environ.get('CKN_KAFKA_SECURITY_PROTOCOL', 'SSL')
+DEVICE_ID = os.environ.get('CAMERA_TRAPS_DEVICE_ID', 'iu-edge-server-cib')
+USER_ID = os.environ.get('USER_ID', 'neelk')
+EXPERIMENT_ID = os.environ.get('EXPERIMENT_ID', 'googlenet-iu-animal-classification')
+
+# Power monitoring configuration
+ENABLE_POWER_MONITORING = os.environ.get('ENABLE_POWER_MONITORING', 'false').lower()
+POWER_SUMMARY_FILE = os.environ.get('POWER_SUMMARY_FILE', '')
+POWER_SUMMARY_TOPIC = os.environ.get('POWER_SUMMARY_TOPIC', 'cameratraps-power-summary')
+POWER_SUMMARY_TIMEOUT = int(os.environ.get('POWER_SUMMARY_TIMEOUT', 10))
+POWER_SUMMARY_MAX_TRIES = int(os.environ.get('POWER_SUMMARY_MAX_TRIES', 5))
+
+# Special UUID used to signal experiment end
+EXPERIMENT_END_SIGNAL = os.getenv('EXPERIMENT_END_SIGNAL', '6e153711-9823-4ee6-b608-58e2e801db51')
+
+SOCKET_TIMEOUT = 2000
+
+# ============================================================================
+# Global state
+# ============================================================================
+# In-memory mapping (replaces image_mapping_final.json)
+existing_image_mapping = {}
+
+# Number of images generated by the entire application
 total_images_generated = 0
 
-# Number of images processed by this CKN plugin 
+# Number of images processed (have image_decision set)
 total_images_processed = 0
 
-# Whether this program has received the PluginTerminating event from the image generating plugin
+# Whether we received the PluginTerminating event from image generating plugin
 received_terminating_signal = False
 
-# list of image UUIDs for which the CKN plugin is not able to initially retrieve the basic information 
-# from the uuid_image_mapping file (written by image generating plugin)
+# UUIDs we couldn't initially retrieve from uuid_image_mapping
 uuids_with_errors = []
 
-# Set of UUIDs that have been sent to Kafka to avoid duplicates
+# Set of UUIDs already streamed to Kafka
 processed_uuids = set()
 
-# Kafka producer instance
+# Kafka producer (initialized if KAFKA_BROKER is set)
 kafka_producer = None
 
-# Running experiment-level metrics
+# Running experiment metrics
 experiment_metrics = {
     "total_images": 0,
     "total_predictions": 0,
@@ -161,110 +133,137 @@ experiment_metrics = {
     "mean_iou": None,
     "map_50": None,
     "map_50_95": None,
-    # Internal accumulators for IoU/mAP
+    # Internal accumulators
     "sum_iou": 0.0,
     "num_iou_pairs": 0,
     "gt_boxes_count": 0,
 }
 
-# For mAP: keep per-threshold prediction lists of (score, is_tp)
+# For mAP: per-threshold prediction lists of (score, is_tp)
 map_thresholds = [round(t, 2) for t in [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95]]
 map_data = {t: [] for t in map_thresholds}
 
-PORT = int(os.environ.get('CKN_PLUGIN_PORT', 6011))
-OUTPUT_DIR = os.environ.get('TRAPS_CKN_OUTPUT_PATH', "/output/")
-MODEL_ID = os.environ.get("MODEL_ID")
 
-# Option to watch file instead of/in addition to ZMQ events
-# If ORACLE_CSV_PATH is set, watch that file (for compatibility with oracle_plugin)
-WATCH_ORACLE_FILE = os.environ.get('ORACLE_CSV_PATH', '')
-ENABLE_FILE_WATCHER = bool(WATCH_ORACLE_FILE and WATCH_ORACLE_FILE != output_file and WATCHDOG_AVAILABLE)
-
-# Set of UUIDs processed from file watching (to avoid duplicates)
-file_processed_uuids = set()
-file_watcher_stop = False
-
-# Kafka configuration
-KAFKA_BROKER = os.environ.get('CKN_KAFKA_BROKER', 'localhost:9092')
-KAFKA_TOPIC = os.environ.get('CKN_KAFKA_TOPIC', 'oracle-events')
-DEVICE_ID = os.environ.get('CAMERA_TRAPS_DEVICE_ID', '')
-EXPERIMENT_ID = os.environ.get('EXPERIMENT_ID', '')
-USER_ID = os.environ.get('USER_ID', '')
-
-# Power monitoring configuration
-ENABLE_POWER_MONITORING = os.environ.get('ENABLE_POWER_MONITORING', 'false')
-POWER_SUMMARY_FILE = os.environ.get('POWER_SUMMARY_FILE', '')
-POWER_SUMMARY_TOPIC = os.environ.get('POWER_SUMMARY_TOPIC', 'cameratraps-power-summary')
-
-# This is the ground truth file; this file is written by the image generating plugin and only read
-# by the CKN plugin (not written to)
-uuid_image_mapping_path = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
-
-# Image detecting plugin
-VIDEO_INFO_FILE = os.environ.get('TRAPS_VIDEO_INFO_PATH', '')
-
-# This is the file the CKN plugin actually writes
-output_file = os.path.join(OUTPUT_DIR, "image_mapping_final.json")
-
-SOCKET_TIMEOUT = 2000
+# ============================================================================
+# Kafka helpers
+# ============================================================================
+def validate_broker_address(broker_address):
+    """Validate the broker address format."""
+    if not broker_address:
+        return False, "Broker address is empty"
+    
+    # Check basic format (host:port)
+    if ':' not in broker_address:
+        return False, f"Invalid broker format '{broker_address}' - expected 'host:port'"
+    
+    parts = broker_address.rsplit(':', 1)
+    host = parts[0]
+    port_str = parts[1]
+    
+    # Validate port
+    try:
+        port = int(port_str)
+        if port < 1 or port > 65535:
+            return False, f"Invalid port {port} - must be between 1 and 65535"
+    except ValueError:
+        return False, f"Invalid port '{port_str}' - must be a number"
+    
+    # Validate host is not empty
+    if not host:
+        return False, "Host cannot be empty"
+    
+    return True, f"Broker address '{broker_address}' is valid (host={host}, port={port})"
 
 
-def get_socket():
-    context = zmq.Context()
-    return get_plugin_socket(context, PORT)
-
-
-def test_ckn_broker_connection(configuration, timeout=10, num_tries=5):
-    """
-    Checks if the CKN broker is up and running.
-    """
+def test_kafka_connection(configuration, timeout=10, num_tries=5):
+    """Check if the Kafka broker is up and running."""
     if not KAFKA_AVAILABLE:
+        logger.error("Kafka client library (confluent-kafka) not available")
         return False
+    
+    broker = configuration.get('bootstrap.servers', 'unknown')
+    security_protocol = configuration.get('security.protocol', 'unknown')
+    
+    logger.info(f"Testing Kafka connection to {broker} with protocol {security_protocol}")
+    
     for i in range(num_tries):
         try:
+            logger.info(f"Connection attempt {i+1}/{num_tries}...")
             admin_client = AdminClient(configuration)
-            # Access the topics, if not successful wait
             topics = admin_client.list_topics(timeout=timeout)
+            topic_list = list(topics.topics.keys())
+            logger.info(f"Successfully connected! Available topics: {topic_list[:10]}{'...' if len(topic_list) > 10 else ''}")
             return True
         except Exception as e:
-            logger.info(f"CKN broker not available yet: {e}. Retrying in 5 seconds...")
-            time.sleep(5)
-    logger.info(f"Could not connect to the CKN broker...")
+            error_msg = str(e)
+            logger.warning(f"Kafka connection attempt {i+1}/{num_tries} failed: {error_msg}")
+            if i < num_tries - 1:
+                logger.info(f"Retrying in 5 seconds...")
+                time.sleep(5)
+    
+    logger.error(f"Could not connect to Kafka broker after {num_tries} attempts")
     return False
 
 
-def initialize_kafka_producer():
-    """
-    Initialize Kafka producer with SSL configuration.
-    """
+def init_kafka_producer():
+    """Initialize Kafka producer if configured."""
     global kafka_producer
+    
+    logger.info("="*60)
+    logger.info("Initializing Kafka Producer")
+    logger.info("="*60)
+    
+    # Check if Kafka library is available
     if not KAFKA_AVAILABLE:
-        logger.warning("Kafka not available, skipping producer initialization")
+        logger.error("Kafka client library (confluent-kafka) not installed. CKN streaming disabled.")
         return False
     
-    kafka_conf = {'bootstrap.servers': KAFKA_BROKER, 'log_level': 0, 'security.protocol': 'SSL'}
-    
-    logger.info(f"Connecting to the CKN broker at {KAFKA_BROKER}")
-    
-    # Wait for CKN broker to be available
-    ckn_broker_available = test_ckn_broker_connection(kafka_conf)
-    
-    if not ckn_broker_available:
-        logger.warning(f"Shutting down CKN Plugin Kafka producer due to broker not being available")
+    # Check if broker is configured
+    if not KAFKA_BROKER:
+        logger.warning("CKN_KAFKA_BROKER environment variable not set. CKN streaming disabled.")
         return False
     
-    # Successful connection to CKN broker
-    logger.info(f"Successfully connected to the CKN broker at {KAFKA_BROKER}")
+    # Validate broker address format
+    is_valid, validation_msg = validate_broker_address(KAFKA_BROKER)
+    logger.info(f"Broker validation: {validation_msg}")
+    if not is_valid:
+        logger.error(f"Invalid broker address: {validation_msg}")
+        return False
     
-    # Initialize the Kafka producer
+    # Log configuration
+    logger.info(f"Kafka Configuration:")
+    logger.info(f"  - Broker: {KAFKA_BROKER}")
+    logger.info(f"  - Security Protocol: {KAFKA_SECURITY_PROTOCOL}")
+    logger.info(f"  - Topic: {KAFKA_TOPIC}")
+    logger.info(f"  - Experiment ID: {EXPERIMENT_ID}")
+    logger.info(f"  - User ID: {USER_ID}")
+    logger.info(f"  - Device ID: {DEVICE_ID}")
+    
+    kafka_conf = {
+        'bootstrap.servers': KAFKA_BROKER,
+        'log_level': 0,
+        'security.protocol': KAFKA_SECURITY_PROTOCOL
+    }
+    
+    logger.info(f"Attempting to connect to Kafka broker at {KAFKA_BROKER}...")
+    
+    if not test_kafka_connection(kafka_conf):
+        logger.error("Failed to connect to Kafka broker. CKN streaming disabled.")
+        logger.info("="*60)
+        return False
+    
+    logger.info(f"Successfully connected to Kafka broker!")
     kafka_producer = Producer(**kafka_conf)
+    logger.info("Kafka producer initialized successfully")
+    logger.info("="*60)
     return True
 
 
+# ============================================================================
+# Metrics computation (ported from oracle_ckn_daemon)
+# ============================================================================
 def _compute_iou(box_a, box_b):
-    """
-    Compute IoU between two boxes in [x, y, w, h] format with normalized coordinates.
-    """
+    """Compute IoU between two boxes in [x, y, w, h] format with normalized coordinates."""
     ax, ay, aw, ah = box_a
     bx, by, bw, bh = box_b
     ax2, ay2 = ax + aw, ay + ah
@@ -291,24 +290,18 @@ def _greedy_match(preds, gts, iou_threshold):
     used_preds = set()
     used_gts = set()
     # Precompute IoU matrix
-    iou_matrix = []
+    candidates = []
     for pi, p in enumerate(preds):
         pbox = p.get("bounding_box")
-        if not pbox:
-            continue  # Skip predictions without bounding boxes
-        prow = []
+        if pbox is None:
+            continue
         for gi, g in enumerate(gts):
             gbox = g.get("bounding_box")
-            if not gbox:
-                continue  # Skip ground truths without bounding boxes
+            if gbox is None:
+                continue
             iou = _compute_iou(pbox, gbox)
-            prow.append((gi, iou))
-        iou_matrix.append((pi, prow))
-    # Iterate by descending IoU candidates
-    candidates = []
-    for pi, prow in iou_matrix:
-        for gi, iou in prow:
             candidates.append((iou, pi, gi))
+    # Sort by descending IoU
     candidates.sort(reverse=True)
     for iou, pi, gi in candidates:
         if iou < iou_threshold:
@@ -322,13 +315,10 @@ def _greedy_match(preds, gts, iou_threshold):
 
 
 def _update_map_structures(predictions, gt_boxes):
-    """
-    Update per-threshold AP structures using label-aware matches.
-    """
-    global map_data, map_thresholds
+    """Update per-threshold AP structures using label-aware matches."""
+    global map_data
     for thr in map_thresholds:
         matches, used_preds, used_gts = _greedy_match(predictions, gt_boxes, thr)
-        # Label-aware: only count as TP if labels match
         matched_gt_by_pred = {pi: gi for pi, gi, _ in matches}
         for pi, pred in enumerate(predictions):
             score = float(pred.get("probability", 0.0))
@@ -345,11 +335,10 @@ def _update_map_structures(predictions, gt_boxes):
 def _compute_ap(preds_list, num_gt):
     """
     Compute AP given list of (score, is_tp) and total GT count.
-    Uses standard 11-point interpolation-like precision envelope integration.
+    Uses precision envelope integration.
     """
     if num_gt <= 0 or not preds_list:
         return 0.0
-    # Sort by score desc
     preds_sorted = sorted(preds_list, key=lambda x: x[0], reverse=True)
     tp_cum = 0
     fp_cum = 0
@@ -368,7 +357,7 @@ def _compute_ap(preds_list, num_gt):
     for i in range(len(precisions) - 2, -1, -1):
         if precisions[i] < precisions[i + 1]:
             precisions[i] = precisions[i + 1]
-    # Integrate AP over recall from 0 to 1 based on observed points
+    # Integrate AP
     ap = 0.0
     prev_recall = 0.0
     for p, r in zip(precisions, recalls):
@@ -381,32 +370,29 @@ def _compute_ap(preds_list, num_gt):
 def _update_experiment_metrics(ground_truth_label, scores_list, ground_truth_boxes=None):
     """
     Update running experiment metrics based on a single image's ground truth label and predictions.
-    If ground-truth bounding boxes are provided as a list of {label, bounding_box}, compute IoU and mAP.
+    If ground-truth bounding boxes are provided, compute IoU and mAP.
     """
-    global experiment_metrics, map_data, map_thresholds
+    global experiment_metrics, map_data
     
     # Normalize inputs
     gt = None if ground_truth_label is None else str(ground_truth_label)
     has_gt_object = gt is not None and gt.lower() not in ["empty", "unknown"]
-
+    
     predictions = scores_list if isinstance(scores_list, list) else []
     num_predictions = len(predictions)
     predicted_labels = [str(p.get("label")) for p in predictions if p and p.get("label") is not None]
-
-    # If GT boxes exist, use detection-based accounting; else use classification fallback
+    
+    # Detection mode vs classification mode
     detection_mode = isinstance(ground_truth_boxes, list) and len(ground_truth_boxes) > 0
     increment_true_positive = 0
     increment_false_negative = 0
     increment_false_positive = 0
+    
     if detection_mode:
-        # Ensure GT boxes have label and bounding_box
         gt_boxes = [g for g in ground_truth_boxes if g and g.get("bounding_box") is not None]
         experiment_metrics["gt_boxes_count"] += len(gt_boxes)
-        # Update mAP structures
         _update_map_structures(predictions, gt_boxes)
-        # Compute matches at IoU 0.5 for TP/FP/FN and IoU accumulation
         matches, used_preds, used_gts = _greedy_match(predictions, gt_boxes, 0.5)
-        # Label-aware TP
         tp_count = 0
         sum_iou_img = 0.0
         for pi, gi, iou in matches:
@@ -418,17 +404,15 @@ def _update_experiment_metrics(ground_truth_label, scores_list, ground_truth_box
         increment_true_positive = tp_count
         increment_false_positive = fp_count
         increment_false_negative = fn_count
-        # Update IoU accumulators
         if tp_count > 0:
             experiment_metrics["sum_iou"] += sum_iou_img
             experiment_metrics["num_iou_pairs"] += tp_count
     else:
-        # Classification-based TP/FP/FN (1 GT object at most per image in current data)
         has_correct_prediction = has_gt_object and any(lbl == gt for lbl in predicted_labels)
         increment_true_positive = 1 if has_correct_prediction else 0
         increment_false_negative = 1 if has_gt_object and not has_correct_prediction else 0
         increment_false_positive = max(num_predictions - (1 if has_correct_prediction else 0), 0)
-
+    
     # Update totals
     experiment_metrics["total_images"] += 1
     experiment_metrics["total_predictions"] += num_predictions
@@ -439,212 +423,67 @@ def _update_experiment_metrics(ground_truth_label, scores_list, ground_truth_box
     experiment_metrics["true_positives"] += increment_true_positive
     experiment_metrics["false_negatives"] += increment_false_negative
     experiment_metrics["false_positives"] += increment_false_positive
-
+    
     # Derived metrics
-    tp = float(experiment_metrics["true_positives"]) 
-    fp = float(experiment_metrics["false_positives"]) 
-    fn = float(experiment_metrics["false_negatives"]) 
+    tp = float(experiment_metrics["true_positives"])
+    fp = float(experiment_metrics["false_positives"])
+    fn = float(experiment_metrics["false_negatives"])
     precision = (tp / (tp + fp)) if (tp + fp) > 0 else 0.0
     recall = (tp / (tp + fn)) if (tp + fn) > 0 else 0.0
     f1 = (2.0 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
     experiment_metrics["precision"] = precision
     experiment_metrics["recall"] = recall
     experiment_metrics["f1_score"] = f1
+    
     # Mean IoU
     if experiment_metrics["num_iou_pairs"] > 0:
         experiment_metrics["mean_iou"] = experiment_metrics["sum_iou"] / experiment_metrics["num_iou_pairs"]
-    # mAP@0.5 and mAP@0.5:0.95 using accumulated predictions
+    
+    # mAP
     if experiment_metrics["gt_boxes_count"] > 0:
-        # AP at 0.5
         ap50 = _compute_ap(map_data[0.5], experiment_metrics["gt_boxes_count"]) if 0.5 in map_data else 0.0
-        # Mean AP across thresholds
-        ap_values = []
-        for t in map_thresholds:
-            ap_values.append(_compute_ap(map_data[t], experiment_metrics["gt_boxes_count"]))
+        ap_values = [_compute_ap(map_data[t], experiment_metrics["gt_boxes_count"]) for t in map_thresholds]
         map_50_95 = sum(ap_values) / len(ap_values) if ap_values else 0.0
         experiment_metrics["map_50"] = ap50
         experiment_metrics["map_50_95"] = map_50_95
 
 
-def stream_event_to_kafka(event_data):
+# ============================================================================
+# Kafka streaming
+# ============================================================================
+def build_event_payload(uuid):
     """
-    Stream event to Kafka broker.
-    """
-    global kafka_producer, processed_uuids
+    Build event payload from in-memory entry for Kafka streaming.
     
-    if not kafka_producer:
-        return
+    Event structure matches publish_test_event.py SAMPLE_EVENT for Neo4j Kafka Connector:
+    - Identity fields first (device_id, experiment_id, user_id, model_id)
+    - Image metadata (image_count, UUID, image_name, ground_truth)
+    - Timestamps (image_receiving_timestamp, image_scoring_timestamp, image_store_delete_time)
+    - Prediction result (label, probability, image_decision)
+    - Flattened scores
+    - Running experiment metrics
+    """
+    global existing_image_mapping, experiment_metrics
     
-    uuid = event_data.get('UUID')
-    if not uuid or uuid in processed_uuids:
-        return
-    
-    try:
-        # Add metadata to event
-        event_data['device_id'] = DEVICE_ID
-        event_data['experiment_id'] = EXPERIMENT_ID
-        event_data['user_id'] = USER_ID
-        
-        row_json = json.dumps(event_data)
-        
-        # Send the event
-        kafka_producer.produce(KAFKA_TOPIC, key=EXPERIMENT_ID, value=row_json)
-        kafka_producer.flush()
-        
-        # Add to processed set only if produce succeeds
-        processed_uuids.add(uuid)
-        logger.info(f"Streamed event to CKN broker for UUID: {uuid}")
-        
-    except BufferError as e:
-        logger.error(f"Buffer error streaming to CKN broker: {e}")
-    except Exception as e:
-        logger.error(f"CKN broker error streaming event: {e}")
-
-
-def compute_total_images_generated():
-    """
-    Reads the uuid_image_mapping file to determine how many images were generated by this execution.
-    """
-    if os.path.exists(uuid_image_mapping_path):
-        with open(uuid_image_mapping_path, 'r') as f:
-            try:
-                d = json.load(f)
-            except Exception as e:
-                logger.error(f"Error parsing uuid_image_mapping file when trying to compute total images generated; details: {e}")
-                return -1 
-        # the number of images generated is just the total number of keys in the file
-        return len(d.keys())
-    elif os.path.exists(VIDEO_INFO_FILE):
-        with open(VIDEO_INFO_FILE, 'r') as f:
-            video_info = yaml.safe_load(f)
-            return video_info.get('num_images')
-    else:
-        logger.error(f"Valid image mapping file not found.")
-        return -1 
-
-
-def compute_total_images_processed():
-    """
-    Reads the image_mapping_final file to determine how many images have been processed.
-    """
-    total = 0
-    with open(output_file, 'r') as f:
-        try:
-            d = json.load(f)
-        except Exception as e:
-            logger.error(f"Error parsing image_mapping_final file when trying to compute total images processed; details: {e}")
-            return total
-    # read through the entries and count all images which have a final decision
-    for _, v in d.items():
-        if v.get("image_decision"):
-            total += 1
-    return total
-
-
-def update_json(uuid, updated_data):
-    """
-    This function updates the existing image_mapping_final dictionary for a given image with id, `uuid`, 
-    and a dictionary, `updated_data`, with additional fields to write for the image. 
-    """
-    global total_images_processed, total_images_generated
-    
-    # load current dictionary from the image_mapping_final file 
-    existing_image_mapping_final = {}
-    try:
-        with open(output_file, 'r') as f:
-            try:
-                existing_image_mapping_final = json.load(f)
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON decoding error for {output_file}; details: {e}")        
-    except FileNotFoundError:
-        # for the first image, the file has not been created yet and FileNotFound is expected
-        if not total_images_processed == 0:
-            logger.error(f"File not found: {output_file}")
-
-    # if the uuid is not yet in the image_mapping_final file, go to the uuid_image_mapping file, written
-    # by the image generating plugin, to get basic information. The uuid should always be in this file 
-    # since the image generating plugin writes the uuid to that file before sending a new image event, 
-    if uuid not in existing_image_mapping_final:
-        logger.info(f"Fetching {uuid} from {uuid_image_mapping_path}")
-        uuid_image_mapping = {}
-        try:
-            with open(uuid_image_mapping_path, 'r') as file:
-                try:
-                    uuid_image_mapping = json.load(file)
-                    # If we were able to load the uuid_image_mapping file, try to recover any UUID that 
-                    # was previously on the error list 
-                    if uuids_with_errors:
-                        for failed_uuid in uuids_with_errors:
-                            if failed_uuid in existing_image_mapping_final:
-                                existing_image_mapping_final[failed_uuid].update(uuid_image_mapping[failed_uuid])
-                            else:
-                               existing_image_mapping_final[failed_uuid] = uuid_image_mapping[failed_uuid]
-                            uuids_with_errors.remove(failed_uuid)
-                
-                # it is possible the image generating plugin was writing to the file at the same time and,
-                # at the moment we read the file, the contents of the file are not valid JSON.
-                except json.JSONDecodeError as e:                    
-                    logger.error(f"JSON loading Error loading uuid_image_mapping.json file while processing uuid: {uuid}; details: {e}")
-                    # we were not able to read the uuid_image_mapping.json file, so add this uuid to the error list
-                    uuids_with_errors.append(uuid)
-        except FileNotFoundError:
-            # the uuid_image_mapping file should always at least exist
-            logger.error(f"File {uuid_image_mapping_path} not found. This is unexpected and represents a bug.")
-
-        # use the uuid_image_mapping file to get the base info for this image, if possible, and otherwise,
-        # create a new dictionary with just the UUID field.
-        existing_image_mapping_final[uuid] = uuid_image_mapping.get(uuid, {"UUID": uuid})
-
-    # iterate through the update_data parameter and add them to the existing data
-    for key, value in updated_data.items():
-        existing_image_mapping_final[uuid][key] = value    
-    
-    # write the updates mapping back to the file
-    with open(output_file, "w") as f: 
-        json.dump(existing_image_mapping_final, f, indent=2)
-    
-    # If image_decision is present, stream to Kafka
-    if "image_decision" in updated_data:
-        # Read the complete entry to stream
-        event_entry = existing_image_mapping_final.get(uuid, {})
-        if event_entry:
-            # Update experiment metrics before building event payload
-            ground_truth = event_entry.get("ground_truth")
-            scores = event_entry.get("score", [])
-            ground_truth_boxes = event_entry.get("ground_truth_boxes") or event_entry.get("ground_truth_bboxes")
-            _update_experiment_metrics(ground_truth, scores, ground_truth_boxes)
-            
-            # Build event payload from the JSON entry
-            event_payload = build_event_payload(event_entry)
-            if event_payload:
-                stream_event_to_kafka(event_payload)
-
-
-def build_event_payload(event_entry):
-    """
-    Build event payload from JSON entry for Kafka streaming.
-    No metrics computation - just forward raw data.
-    """
-    uuid = event_entry.get("UUID")
-    if not uuid:
+    entry = existing_image_mapping.get(uuid)
+    if not entry:
         return None
     
-    # Extract all relevant fields
-    image_count = event_entry.get("image_count")
-    image_name = event_entry.get("image_name")
-    ground_truth = event_entry.get("ground_truth")
-    ground_truth_boxes = event_entry.get("ground_truth_boxes") or event_entry.get("ground_truth_bboxes")
-    image_receiving_timestamp = event_entry.get("image_receiving_timestamp")
-    image_scoring_timestamp = event_entry.get("image_scoring_timestamp")
-    image_store_delete_time = event_entry.get("image_store_delete_time") or event_entry.get("image_delete_time")
-    image_decision = event_entry.get("image_decision")
-    model_id = event_entry.get("model_id") or MODEL_ID
+    # Extract fields
+    image_count = entry.get("image_count")
+    image_name = entry.get("image_name")
+    ground_truth = entry.get("ground_truth")
+    image_receiving_timestamp = entry.get("image_receiving_timestamp")
+    image_scoring_timestamp = entry.get("image_scoring_timestamp")
+    image_store_delete_time = entry.get("image_store_delete_time") or entry.get("image_delete_time")
+    image_decision = entry.get("image_decision")
+    model_id = entry.get("model_id") or MODEL_ID
     
     # Extract scores
-    scores = event_entry.get("score", [])
+    scores = entry.get("score", [])
     flattened_scores = json.dumps(scores) if scores else None
     
-    # Extract highest probability label and probability
+    # Extract highest probability label
     label = None
     probability = 0.0
     if scores:
@@ -652,21 +491,29 @@ def build_event_payload(event_entry):
         label = highest_score.get("label")
         probability = highest_score.get("probability", 0.0)
     
-    # Build event payload
+    # Build event payload - SAME STRUCTURE AS publish_test_event.py SAMPLE_EVENT
     event = {
+        # Identity fields
+        "device_id": DEVICE_ID,
+        "experiment_id": EXPERIMENT_ID,
+        "user_id": USER_ID,
+        "model_id": model_id,
+        # Image metadata
         "image_count": image_count,
         "UUID": uuid,
         "image_name": image_name,
         "ground_truth": ground_truth,
+        # Timestamps
         "image_receiving_timestamp": image_receiving_timestamp,
         "image_scoring_timestamp": image_scoring_timestamp,
-        "model_id": model_id,
+        "image_store_delete_time": image_store_delete_time,
+        # Prediction result (highest probability label)
         "label": label,
         "probability": probability,
-        "image_store_delete_time": image_store_delete_time,
         "image_decision": image_decision,
+        # Flattened scores as JSON string
         "flattened_scores": flattened_scores,
-        # Running totals for the experiment at the moment of this event
+        # Running experiment metrics
         "total_images": experiment_metrics["total_images"],
         "total_predictions": experiment_metrics["total_predictions"],
         "total_ground_truth_objects": experiment_metrics["total_ground_truth_objects"],
@@ -681,193 +528,222 @@ def build_event_payload(event_entry):
         "map_50_95": experiment_metrics["map_50_95"],
     }
     
-    # Add ground truth boxes if available
-    if ground_truth_boxes:
-        event["ground_truth_boxes"] = ground_truth_boxes
-    
     return event
 
 
-def add_terminating_function_json(special_uuid):
-    """
-    This function writes a 'special' UUID that may be used for compatibility.
-    It first checks one last time for images in the uuids_with_errors file and tries to retrieve 
-    them 
-    """
-    # read the existing output data 
-    with open(output_file, "r") as f: 
-        existing_image_mapping_final = json.load(f)
+def stream_event_to_kafka(uuid):
+    """Stream event to Kafka broker."""
+    global kafka_producer, processed_uuids
     
-    # check if we still have UUIDs with errors
-    if uuids_with_errors:
-        uuid_image_mapping = {}
-        # try to read the mapping file and make the corrections
-        try:
-            with open(uuid_image_mapping_path, 'r') as file:
-                try:
-                    uuid_image_mapping = json.load(file)
-                except Exception as e:
-                    logger.error(f"Could not load JSON from uuid_image_mapping file at the very end; details: {e}")
-        except Exception as e:
-            logger.error(f"Got exception trying to open the uuid_image_mapping file at the very end; details: {e}")
-        if uuid_image_mapping:
-            for failed_uuid in uuids_with_errors:
-                # we should always have SOME data for all failed uuids, so this 
-                if not existing_image_mapping_final.get(failed_uuid):
-                    existing_image_mapping_final[failed_uuid] = {}
-                    logger.error(f"In final processing and existing_image_mapping_final had no data for uuid {failed_uuid}")
-                # extend the existing mapping data with the uuid data
-                existing_image_mapping_final[failed_uuid].update(uuid_image_mapping[failed_uuid])
-                uuids_with_errors.remove(failed_uuid)
-                logger.info(f"Updated final mapping at the end for failed UUID {failed_uuid}")
-
-    # add the special UUID to the mapping file; it gets an empty dict since it does not correspond to a 
-    # real image
-    existing_image_mapping_final[special_uuid] = {}
+    if not kafka_producer:
+        logger.debug(f"Kafka producer not initialized, skipping stream for UUID: {uuid}")
+        return
     
-    # write the complete mapping file:
-    with open(output_file, "w") as f: 
-        json.dump(existing_image_mapping_final, f, indent=2)
-
-
-class OracleFileEventHandler(FileSystemEventHandler):
-    """
-    Event handler for watching the oracle output file (when oracle_plugin runs separately).
-    """
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.last_size = 0
-
-    def on_modified(self, event):
-        """When the file is modified, process new entries."""
-        if event.src_path == self.file_path:
-            logger.debug(f"File {self.file_path} modified, processing events...")
-            process_file_events(self.file_path)
-
-
-def process_file_events(file_path):
-    """
-    Read events from the oracle output file and stream to Kafka.
-    This replicates the behavior of ckn_daemon.py.
-    """
-    global file_processed_uuids, file_watcher_stop
+    if uuid in processed_uuids:
+        logger.debug(f"UUID {uuid} already processed, skipping")
+        return
     
-    if not os.path.exists(file_path):
+    event_data = build_event_payload(uuid)
+    if not event_data:
+        logger.warning(f"Could not build event payload for UUID: {uuid}")
         return
     
     try:
-        # Load the JSON data from the file
-        while True:
-            try:
-                with open(file_path, 'r') as file:
-                    data = json.load(file)
-                    break
-            except json.JSONDecodeError:
-                logger.debug("File not complete. Waiting for the file to be completely written")
-                time.sleep(1)
-            except Exception as e:
-                logger.error(f"Error reading file {file_path}: {e}")
-                return
-
-        EXPERIMENT_END_SIGNAL = os.getenv('EXPERIMENT_END_SIGNAL', '6e153711-9823-4ee6-b608-58e2e801db51')
-        shutdown_signal = False
+        # Event already includes device_id, experiment_id, user_id from build_event_payload
+        row_json = json.dumps(event_data, indent=2)
         
-        # Process each entry in the JSON data
-        for key, value in data.items():
-            # Shutdown signal received from oracle
-            if key == EXPERIMENT_END_SIGNAL:
-                shutdown_signal = True
-                continue
-
-            # Only process entries with image_decision
-            if "image_decision" not in value:
-                continue
-
-            uuid = value.get("UUID")
-            if not uuid or uuid in file_processed_uuids:
-                continue
-
-            # Update experiment metrics
-            ground_truth = value.get("ground_truth")
-            scores = value.get("score", [])
-            ground_truth_boxes = value.get("ground_truth_boxes") or value.get("ground_truth_bboxes")
-            _update_experiment_metrics(ground_truth, scores, ground_truth_boxes)
-
-            # Build and stream event
-            event_payload = build_event_payload(value)
-            if event_payload:
-                stream_event_to_kafka(event_payload)
-                file_processed_uuids.add(uuid)
-
-        # Handle shutdown signal
-        if shutdown_signal:
-            logger.info("Shutdown signal from Oracle file received...")
-            global file_watcher_stop
-            file_watcher_stop = True
-
+        # Log the event before publishing
+        logger.info("="*60)
+        logger.info(f"KAFKA EVENT - Publishing to topic '{KAFKA_TOPIC}'")
+        logger.info("="*60)
+        logger.info(f"Key: {EXPERIMENT_ID}")
+        logger.info(f"Event payload:")
+        logger.info(row_json)
+        logger.info("="*60)
+        
+        # Produce to Kafka (use non-indented JSON for actual message)
+        kafka_producer.produce(KAFKA_TOPIC, key=EXPERIMENT_ID, value=json.dumps(event_data))
+        kafka_producer.flush()
+        
+        processed_uuids.add(uuid)
+        logger.info(f"Successfully streamed event to Kafka for UUID: {uuid}")
+        
     except Exception as e:
-        logger.error(f"Error processing file events: {e}")
+        logger.error(f"Error streaming to Kafka: {e}")
 
 
-def start_file_watcher(file_path):
-    """
-    Start a file watcher thread to monitor the oracle output file.
-    """
-    if not WATCHDOG_AVAILABLE:
-        logger.warning("watchdog not available, cannot start file watcher")
-        return None
-    
-    observer = Observer()
-    event_handler = OracleFileEventHandler(file_path)
-    observer.schedule(event_handler, path=os.path.dirname(file_path) or '.', recursive=False)
-    observer.start()
-    logger.info(f"Started file watcher for: {file_path}")
-    return observer
-
-
+# ============================================================================
+# Power summary processing
+# ============================================================================
 def process_power_summary():
+    """Read power summary file and stream to Kafka."""
+    global kafka_producer
+    
+    if ENABLE_POWER_MONITORING != 'true':
+        logger.info("Power monitoring not enabled, skipping power summary.")
+        return
+    
+    if not kafka_producer:
+        logger.info("Kafka producer not available, skipping power summary streaming.")
+        return
+    
+    if not POWER_SUMMARY_FILE:
+        logger.info("Power summary file not configured, skipping.")
+        return
+    
+    logger.info(f"Waiting for power summary file: {POWER_SUMMARY_FILE}")
+    
+    attempt = 0
+    while attempt < POWER_SUMMARY_MAX_TRIES:
+        if os.path.exists(POWER_SUMMARY_FILE):
+            try:
+                with open(POWER_SUMMARY_FILE, 'r') as f:
+                    data = json.load(f)
+                
+                power_summary = data.get("plugin power summary report", [])
+                
+                # Build flattened event - SAME STRUCTURE AS publish_test_event.py POWER_SUMMARY_EVENT
+                # experiment_id first, then per-plugin fields, then totals
+                flattened_event = {
+                    "experiment_id": EXPERIMENT_ID,
+                }
+                
+                total_cpu = 0.0
+                total_gpu = 0.0
+                
+                for plugin_data in power_summary:
+                    plugin_name = plugin_data.get("plugin", "unknown")
+                    cpu = plugin_data.get("cpu_power_consumption", 0.0)
+                    gpu = plugin_data.get("gpu_power_consumption", 0.0)
+                    
+                    flattened_event[f"{plugin_name}_cpu_power_consumption"] = cpu
+                    flattened_event[f"{plugin_name}_gpu_power_consumption"] = gpu
+                    total_cpu += cpu
+                    total_gpu += gpu
+                
+                flattened_event["total_cpu_power_consumption"] = total_cpu
+                flattened_event["total_gpu_power_consumption"] = total_gpu
+                
+                # Log the event before publishing
+                power_json = json.dumps(flattened_event, indent=2)
+                logger.info("="*60)
+                logger.info(f"KAFKA POWER EVENT - Publishing to topic '{POWER_SUMMARY_TOPIC}'")
+                logger.info("="*60)
+                logger.info(f"Key: {EXPERIMENT_ID}")
+                logger.info(f"Power summary payload:")
+                logger.info(power_json)
+                logger.info("="*60)
+                
+                # Stream to Kafka
+                kafka_producer.produce(POWER_SUMMARY_TOPIC, key=EXPERIMENT_ID, value=json.dumps(flattened_event))
+                kafka_producer.flush()
+                
+                logger.info("Power summary successfully streamed to Kafka.")
+                return
+                
+            except Exception as e:
+                logger.error(f"Error processing power summary: {e}")
+                return
+        
+        attempt += 1
+        logger.info(f"Power summary file not found, attempt {attempt}/{POWER_SUMMARY_MAX_TRIES}")
+        time.sleep(POWER_SUMMARY_TIMEOUT)
+    
+    logger.warning("Power summary file not found after all attempts.")
+
+
+# ============================================================================
+# In-memory state management (replaces file-based image_mapping_final.json)
+# ============================================================================
+def get_socket():
+    context = zmq.Context()
+    return get_plugin_socket(context, PORT)
+
+
+def compute_total_images_generated():
+    """Reads uuid_image_mapping file to determine how many images were generated."""
+    try:
+        with open(uuid_image_mapping_path, 'r') as f:
+            d = json.load(f)
+        return len(d.keys())
+    except Exception as e:
+        logger.error(f"Error reading uuid_image_mapping: {e}")
+        return -1
+
+
+def compute_total_images_processed():
+    """Count images in memory with image_decision set."""
+    global existing_image_mapping
+    total = 0
+    for _, v in existing_image_mapping.items():
+        if v.get("image_decision"):
+            total += 1
+    return total
+
+
+def update_mapping(uuid, updated_data):
     """
-    Process power summary at shutdown if enabled.
+    Update the in-memory mapping for a given image UUID.
+    If UUID is new, fetch base info from uuid_image_mapping.json.
     """
-    if ENABLE_POWER_MONITORING.lower() != 'false' and POWER_PROCESSOR_AVAILABLE and POWER_SUMMARY_FILE:
+    global existing_image_mapping, uuids_with_errors
+    
+    # If UUID not yet in mapping, fetch from uuid_image_mapping.json
+    if uuid not in existing_image_mapping:
+        logger.debug(f"Fetching {uuid} from {uuid_image_mapping_path}")
+        uuid_image_mapping = {}
         try:
-            power_processor = PowerProcessor(
-                POWER_SUMMARY_FILE, 
-                kafka_producer, 
-                POWER_SUMMARY_TOPIC, 
-                EXPERIMENT_ID, 
-                5,  # max_tries
-                10  # timeout
-            )
-            power_processor.process_summary_events()
-            logger.info("Power summary processed.")
-        except Exception as e:
-            logger.warning(f"Could not process power summary: {e}")
-    elif ENABLE_POWER_MONITORING.lower() != 'false':
-        logger.warning("Power monitoring enabled but power_processor module not available or POWER_SUMMARY_FILE not set")
+            with open(uuid_image_mapping_path, 'r') as f:
+                uuid_image_mapping = json.load(f)
+                # Try to recover any previously failed UUIDs
+                for failed_uuid in list(uuids_with_errors):
+                    if failed_uuid in uuid_image_mapping:
+                        if failed_uuid in existing_image_mapping:
+                            existing_image_mapping[failed_uuid].update(uuid_image_mapping[failed_uuid])
+                        else:
+                            existing_image_mapping[failed_uuid] = uuid_image_mapping[failed_uuid]
+                        uuids_with_errors.remove(failed_uuid)
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error reading uuid_image_mapping for {uuid}: {e}")
+            uuids_with_errors.append(uuid)
+        except FileNotFoundError:
+            logger.error(f"uuid_image_mapping file not found: {uuid_image_mapping_path}")
+        
+        # Get base info or create minimal entry
+        existing_image_mapping[uuid] = uuid_image_mapping.get(uuid, {"UUID": uuid})
+    
+    # Update with new data
+    for key, value in updated_data.items():
+        existing_image_mapping[uuid][key] = value
+    
+    # If this update set image_decision, update metrics and stream to Kafka
+    if "image_decision" in updated_data:
+        entry = existing_image_mapping[uuid]
+        ground_truth = entry.get("ground_truth")
+        scores = entry.get("score", [])
+        ground_truth_boxes = entry.get("ground_truth_boxes") or entry.get("ground_truth_bboxes")
+        
+        # Update experiment metrics
+        _update_experiment_metrics(ground_truth, scores, ground_truth_boxes)
+        
+        # Stream to Kafka
+        stream_event_to_kafka(uuid)
 
 
+# ============================================================================
+# Main event loop
+# ============================================================================
 def main():
     """
-    Main loop for CKN plugin; this function waits for new messages on the event socket and processes accordingly:
-      1. Image received, scored, stored, deleted: update the image_mapping_final and stream to Kafka
-      2. Plugin terminating (from image generating): Compute total images needed to be processed.
-    
-    If ORACLE_CSV_PATH is set, also watches that file for events (compatibility mode with oracle_plugin).
+    Main loop for CKN plugin.
+    Waits for new messages on ZMQ and processes accordingly:
+    1. ImageReceived/ImageScored/ImageStored/ImageDeleted: update in-memory mapping
+    2. PluginTerminating: compute total images, trigger shutdown when done
     """
-    # Initialize Kafka producer
-    initialize_kafka_producer()
+    global received_terminating_signal, total_images_generated, total_images_processed
     
-    # Start file watcher if oracle_plugin is running separately
-    file_observer = None
-    if ENABLE_FILE_WATCHER:
-        # Wait for the file to exist
-        while not os.path.exists(WATCH_ORACLE_FILE):
-            logger.info(f"Waiting for {WATCH_ORACLE_FILE} to exist...")
-            time.sleep(1)
-        file_observer = start_file_watcher(WATCH_ORACLE_FILE)
-        # Also process any existing events in the file
-        process_file_events(WATCH_ORACLE_FILE)
+    # Initialize Kafka if configured
+    init_kafka_producer()
     
     done = False
     while not done:
@@ -875,25 +751,27 @@ def main():
         try:
             message = get_next_msg(socket)
         except zmq.error.Again:
-            logger.debug(f"Got a zmq.error.Again; i.e., waited {SOCKET_TIMEOUT} ms without getting a message")
+            logger.debug(f"Got zmq.error.Again; waited {SOCKET_TIMEOUT} ms without message")
             continue
         except Exception as e:
-            logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
-            done = True 
+            logger.debug(f"Got exception from get_next_msg: {type(e)}: {e}")
+            done = True
             logger.info("CKN plugin stopping due to timeout limit...")
             continue
+        
         if not message:
             logger.info("No message found in get_next_msg")
-
-        logger.info("Got a message from the event socket - CKN plugin check")
+            continue
+        
+        logger.info("Got a message from the event socket")
         event = socket_message_to_typed_event(message)
-
+        
         if isinstance(event, ImageReceivedEvent):
             uuid = event.ImageUuid().decode('utf-8')
             timestamp = event.EventCreateTs().decode('utf-8').strip("'")
             logger.info(f"Image received {uuid} {timestamp}")
-            update_json(uuid, {"image_receiving_timestamp": timestamp})
-
+            update_mapping(uuid, {"image_receiving_timestamp": timestamp})
+        
         elif isinstance(event, ImageScoredEvent):
             uuid = event.ImageUuid().decode('utf-8')
             scores = []
@@ -902,77 +780,59 @@ def main():
                 prob = event.Scores(i).Probability()
                 scores.append({"label": label, "probability": prob})
             timestamp = event.EventCreateTs().decode('utf-8')
-            logger.info(f"Inside scoring {uuid} {scores} {timestamp}")
-            update_json(uuid, {"image_scoring_timestamp": timestamp, "score": scores})
-
+            logger.info(f"Image scored {uuid} {scores} {timestamp}")
+            update_mapping(uuid, {"image_scoring_timestamp": timestamp, "score": scores})
+        
         elif isinstance(event, ImageStoredEvent):
             uuid = event.ImageUuid().decode('utf-8')
             timestamp = event.EventCreateTs().decode('utf-8')
             destination = event.Destination().decode('utf-8')
             logger.info(f"Image stored {uuid} {timestamp} {destination}")
-            update_json(uuid, {"image_store_delete_time": timestamp, "image_decision": destination})
-
+            update_mapping(uuid, {"image_store_delete_time": timestamp, "image_decision": destination})
+        
         elif isinstance(event, ImageDeletedEvent):
             uuid = event.ImageUuid().decode('utf-8')
             timestamp = event.EventCreateTs().decode('utf-8')
             logger.info(f"Image deleted {uuid} {timestamp}")
-            update_json(uuid, {"image_delete_time": timestamp, "image_decision": "Deleted"})
-
+            update_mapping(uuid, {"image_delete_time": timestamp, "image_decision": "Deleted"})
+        
         elif isinstance(event, PluginTerminatingEvent):
             plugin_name = event.PluginName().decode('utf-8')
-            if plugin_name in ['ext_image_gen_plugin','ext_image_detecting_plugin']:
-                logger.info(f"Received Terminating signal from {plugin_name}")
-                # at this point, we can compute the total images generated and to be processed from the
-                # length of the uuid_image_mapping
-                global received_terminating_signal
+            if plugin_name == 'ext_image_gen_plugin':
+                logger.info("Received Terminating signal from image generating plugin")
                 received_terminating_signal = True
                 total_images_generated = compute_total_images_generated()
-                logger.info(f"Total images generated: {total_images_generated}")         
+                logger.info(f"Total images generated: {total_images_generated}")
         
-        # Once we have received the terminating signal, we compute total_images_processed 
+        # Check if all images processed
         if received_terminating_signal:
             total_images_processed = compute_total_images_processed()
-            logger.info(f"CKN plugin has processed: {total_images_processed} out of {total_images_generated}")       
+            logger.info(f"CKN plugin has processed: {total_images_processed} out of {total_images_generated}")
+            
             if total_images_generated < 0:
                 total_images_generated = compute_total_images_generated()
-       
-        if received_terminating_signal \
-        and total_images_generated > 0 \
-        and total_images_generated == total_images_processed:
-            logger.info("Initiating shut down for all other plugins...")
-            add_terminating_function_json("6e153711-9823-4ee6-b608-58e2e801db51")
-            send_terminate_plugin_fb_event(socket, "*", "6e153711-9823-4ee6-b608-58e2e801db51")
-            logger.info("Sent PluginTerminate * event")
-            time.sleep(1)
+        
+        # Shutdown when all images processed
+        if (received_terminating_signal 
+            and total_images_generated > 0 
+            and total_images_generated == total_images_processed):
+            logger.info("All images processed. Initiating shutdown...")
             
-            # Process power summary if enabled
+            # Process power summary before shutting down
             process_power_summary()
             
-            # Stop file watcher if running
-            if file_observer:
-                file_observer.stop()
-                file_observer.join()
-            
+            # Send PluginTerminate to other plugins
+            send_terminate_plugin_fb_event(socket, "*", EXPERIMENT_END_SIGNAL)
+            logger.info("Sent PluginTerminate * event")
+            time.sleep(1)
             send_quit_command(socket)
             logger.info("Sent quit command.")
             sys.exit()
         else:
-            logger.info(event)
-        
-        # Check if file watcher should stop
-        if file_watcher_stop:
-            logger.info("File watcher stop signal received...")
-            if file_observer:
-                file_observer.stop()
-                file_observer.join()
-            process_power_summary()
-            send_quit_command(socket)
-            logger.info("Sent quit command.")
-            sys.exit()
+            logger.debug(f"Event: {event}")
 
 
 if __name__ == '__main__':
     logger.info("CKN plugin starting...")
     main()
     logger.info("CKN plugin exiting...")
-

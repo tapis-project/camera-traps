@@ -1,77 +1,99 @@
-import os
+"""
+Power Processor - Reads power summary from file and streams to Kafka.
+
+This module can be used standalone or imported by ckn_plugin.
+The main ckn_plugin.py has this logic inlined, but this module
+is kept for compatibility and testing.
+"""
+
 import json
+import os
 import time
 import logging
 
-logger = logging.getLogger("PowerProcessor")
-
 
 class PowerProcessor:
-    def __init__(
-        self,
-        summary_file,
-        kafka_producer,
-        kafka_topic,
-        experiment_id,
-        max_tries=5,
-        timeout=10,
-    ):
-        self.summary_file = summary_file
+    """
+    Processes the power events and sends events to the CKN Broker.
+    """
+    def __init__(self, power_summary_file, kafka_producer, topic, experiment_id, max_attempts=5, timeout=10):
+        self.power_summary_file = power_summary_file
         self.kafka_producer = kafka_producer
-        self.kafka_topic = kafka_topic
+        self.topic = topic
         self.experiment_id = experiment_id
-        self.max_tries = int(max_tries) if max_tries is not None else 5
+        self.max_attempts = int(max_attempts) if max_attempts is not None else 5
         self.timeout = int(timeout) if timeout is not None else 10
 
-    def _wait_for_summary_file(self):
+    def get_power_summary(self):
         """
-        Wait for the power summary report file to exist and be readable.
-        The power monitoring plugin generates this near its shutdown, so the
-        CKN daemon may reach shutdown first.
+        Reads the power summary from the power summary file.
+        Returns a flattened event dictionary.
         """
-        last_err = None
-        for _ in range(max(self.max_tries, 1)):
-            try:
-                if self.summary_file and os.path.exists(self.summary_file) and os.path.getsize(self.summary_file) > 0:
-                    return True
-            except Exception as e:
-                last_err = e
-            time.sleep(max(self.timeout, 0))
-        if last_err:
-            raise last_err
-        return False
+        with open(self.power_summary_file, 'r') as file:
+            data = json.load(file)
+
+        # Extract the plugin power summary report
+        power_summary = data.get("plugin power summary report", [])
+
+        # Initialize a dictionary for the flattened event
+        flattened_event = {}
+
+        # Initialize total CPU and GPU consumption
+        total_cpu_consumption = 0.0
+        total_gpu_consumption = 0.0
+
+        # Iterate over each plugin's data and add it to the flattened event
+        for plugin_data in power_summary:
+            plugin_name = plugin_data.get("plugin", "unknown")
+
+            # Add plugin's CPU and GPU consumption to the flattened event
+            cpu_consumption = plugin_data.get("cpu_power_consumption", 0.0)
+            gpu_consumption = plugin_data.get("gpu_power_consumption", 0.0)
+
+            flattened_event[f"{plugin_name}_cpu_power_consumption"] = cpu_consumption
+            flattened_event[f"{plugin_name}_gpu_power_consumption"] = gpu_consumption
+
+            # Accumulate total CPU and GPU consumption
+            total_cpu_consumption += cpu_consumption
+            total_gpu_consumption += gpu_consumption
+
+        # Add total CPU and GPU consumption and experiment ID to the flattened event
+        flattened_event["total_cpu_power_consumption"] = total_cpu_consumption
+        flattened_event["total_gpu_power_consumption"] = total_gpu_consumption
+        flattened_event["experiment_id"] = self.experiment_id
+
+        return flattened_event
 
     def process_summary_events(self):
         """
-        Reads the summary JSON and publishes it to Kafka (if available).
-        Expected file is typically: /power_logs/power_summary_report.json
+        Waits for the summary to be available and processes it.
         """
-        if not self.summary_file:
-            raise ValueError("summary_file is empty")
+        attempt = 0
+        while attempt < self.max_attempts:
+            if os.path.exists(self.power_summary_file):
+                logging.info("Reading the power summary file...")
 
-        if not self._wait_for_summary_file():
-            raise FileNotFoundError(f"Power summary file not found or empty at {self.summary_file}")
+                try:
+                    # Read the power summary
+                    power_summary = self.get_power_summary()
+                    power_summary_json = json.dumps(power_summary)
 
-        with open(self.summary_file, "r") as f:
-            summary = json.load(f)
+                    # Send the event to Kafka
+                    if self.kafka_producer:
+                        self.kafka_producer.produce(self.topic, key=self.experiment_id, value=power_summary_json)
+                        self.kafka_producer.flush()
+                        logging.info("Power summary streamed to Kafka.")
+                    else:
+                        logging.info("Kafka producer not available; read power summary but did not stream.")
+                        logging.debug(f"Power summary payload: {power_summary_json}")
+                    return
+                except Exception as e:
+                    logging.error(f"Error processing power summary: {e}")
+                    return
 
-        payload = {
-            "experiment_id": self.experiment_id,
-            "device_id": os.environ.get("CAMERA_TRAPS_DEVICE_ID", ""),
-            "user_id": os.environ.get("USER_ID", ""),
-            "power_summary_file": self.summary_file,
-            "power_summary": summary,
-        }
+            # Increment the attempt count and wait before trying again
+            attempt += 1
+            logging.info(f"Power summary file not found, attempt {attempt}/{self.max_attempts}")
+            time.sleep(self.timeout)
 
-        # If Kafka isn't available (or producer failed to initialize), we still
-        # consider "processing" successful once the file is readable.
-        if not self.kafka_producer:
-            logger.info("Kafka producer not initialized; read power summary successfully but will not publish to Kafka.")
-            logger.debug(f"Power summary payload: {json.dumps(payload)}")
-            return
-
-        # Publish summary to Kafka
-        value = json.dumps(payload)
-        self.kafka_producer.produce(self.kafka_topic, key=self.experiment_id, value=value)
-        self.kafka_producer.flush()
-        logger.info(f"Power summary published to Kafka topic: {self.kafka_topic}")
+        logging.warning("No power summary file found after all attempts.")
