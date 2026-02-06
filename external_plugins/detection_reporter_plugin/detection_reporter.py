@@ -110,7 +110,7 @@ def main():
     detection_threshold = get_detection_thresholds()
     monitor_generating_power()
     num_images_processed = 0
-    num_images_captured = 0
+    num_images_captured = None
     received_terminating = False
     while not done:
         try:
@@ -164,7 +164,7 @@ def main():
                 logger.info(f'Received Terminate event * from image detecting plugin')
                 num_images_captured = get_num_images_captured()
 
-        if received_terminating and num_images_captured and num_images_processed >= num_images_captured:
+        if received_terminating and num_images_captured is not None and num_images_processed >= num_images_captured:
             done = True
             logger.info("Initiating shut down for all other plugins...")
             send_terminate_plugin_fb_event(socket, "*", "6e153711-9823-4ee6-b608-58e2e801db51")
