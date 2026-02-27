@@ -1,0 +1,360 @@
+#!/usr/bin/env python3
+"""
+Smart-batched uploader for Tapis Files.
+Now uses a JSON config file instead of environment variables.
+
+Required JSON keys:
+  - "token": Tapis access token string
+  - "dir":   "{system_id}/{dest_dir}" (e.g., "ascend-tapis/users/you/inbox")
+"""
+
+import os
+import json
+import time
+import signal
+import threading
+import subprocess
+import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
+#from watchdog.observers import Observer
+#from watchdog.events import FileSystemEventHandler
+from PIL import Image  # requires: pip install Pillow
+
+import zmq
+import logging
+from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
+from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event, send_monitor_power_start_fb_event
+from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, PluginTerminatingEvent, PluginTerminateEvent
+
+log_level = os.environ.get("IMAGE_UPLOADING_LOG_LEVEL", "INFO")
+logger = logging.getLogger("Image Uploading Plugin")
+if log_level == "DEBUG":
+    logger.setLevel(logging.DEBUG)
+elif log_level == "INFO":
+    logger.setLevel(logging.INFO)
+elif log_level == "WARN":
+    logger.setLevel(logging.WARN)
+elif log_level == "ERROR":
+    logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+# ----------------------- CONFIG -----------------------
+PORT = os.environ.get('IMAGE_UPLOADING_PLUGIN_PORT', 6013)
+BASE_URL = os.environ.get("BASE_URL", "https://tacc.tapis.io")
+
+# Path to JSON config file (edit this path)
+#JSON_CONFIG_PATH = "/Users/harikeshbyrandurgagopinath/Desktop/ICICLE_projects/data-collection-transfer/sample.json"
+# TOKEN, SYSTEM_ID, DEST_DIR = load_config(JSON_CONFIG_PATH)
+TOKEN = os.environ.get("JWT")
+SYSTEM_ID = os.environ.get("SYSTEM_ID")
+DEST_DIR = os.environ.get("DEST_DIR")
+
+#WATCH_DIR = "/Users/harikeshbyrandurgagopinath/Desktop/ICICLE_projects/test_upload"
+WATCH_DIR = os.environ.get("WATCH_DIR", "/images")
+RECURSIVE = False
+
+# batching triggers (flush when any trips)
+BATCH_MAX_AGE   = 3600              # seconds since first file added
+BATCH_MAX_FILES = 2            # max files in a batch
+BATCH_MAX_BYTES = 30000 * 1024**2    # 300 MB total batch size
+
+# upload behavior
+WORKERS = 8
+STABILITY_SECONDS = 3.0           # wait for file to stop growing
+RETRY_MAX = 3
+RETRY_BACKOFF = 2.0               # seconds * (2**attempt)
+
+# ignore rules
+IGNORE_SUFFIXES = (".tmp", ".partial", ".crdownload", ".swp", ".swx")
+IGNORE_PREFIXES = (".",)  # e.g., .DS_Store, .gitkeep
+# ------------------------------------------------------
+
+# internal state
+_executor = ThreadPoolExecutor(max_workers=WORKERS)
+_queued_events = set()
+_event_lock = threading.Lock()
+
+_batch_lock = threading.Lock()
+_batch_files = []        # list of (path, size)
+_batch_bytes = 0
+_batch_first_ts = None
+_flusher_stop = threading.Event()
+
+# ---------------- core utils ----------------
+def is_stable(path: str, wait: float = STABILITY_SECONDS) -> bool:
+    if not os.path.isfile(path):
+        return False
+    try:
+        size1 = os.path.getsize(path)
+    except OSError:
+        return False
+    time.sleep(wait)
+    if not os.path.isfile(path):
+        return False
+    try:
+        size2 = os.path.getsize(path)
+    except OSError:
+        return False
+    return size1 == size2 and size1 > 0
+
+def is_valid_image(path: str) -> bool:
+    try:
+        with Image.open(path) as img:
+            img.verify()
+        with Image.open(path) as img:
+            img.load()
+        return True
+    except Exception as e:
+        print(f"[INVALID IMG] {path}: {e}")
+        return False
+
+def parse_dir(combined: str):
+    """
+    Parse "{system_id}/{dest_dir...}" into (system_id, "/dest_dir...")
+    Accepts optional leading slash.
+    """
+    if not combined or not isinstance(combined, str):
+        raise ValueError("config 'dir' must be a non-empty string")
+    s = combined.strip().lstrip("/")  # drop leading slash if present
+    parts = s.split("/", 1)
+    if len(parts) < 2 or not parts[0] or not parts[1]:
+        raise ValueError("config 'dir' must look like 'system_id/path/to/dest_dir'")
+    system_id = parts[0]
+    dest_dir = "/" + parts[1]        # ensure leading slash
+    return system_id, dest_dir
+
+def run_upload(filepath: str) -> bool:
+    """Upload a single file via Tapis Files API. Returns True on success."""
+    assert TOKEN != "" and SYSTEM_ID != "" and DEST_DIR != ""
+    fp = os.path.abspath(filepath)
+
+    bn_enc = urllib.parse.quote(os.path.basename(fp))
+    url = f"{BASE_URL.rstrip('/')}/v3/files/ops/{SYSTEM_ID}{DEST_DIR}/{bn_enc}"
+
+    args = [
+        "curl", "-sS", "--fail-with-body",
+        "-X", "POST",
+        "-H", f"X-Tapis-Token: {TOKEN}",
+        "--form", f"file=@{fp}",
+        url,
+    ]
+    logger.info(f'Uploading with command: {args}')
+
+    attempt = 0
+    while True:
+        attempt += 1
+        res = subprocess.run(args, capture_output=True, text=True)
+        if res.returncode == 0:
+            print(f"[OK] {fp}")
+            return True
+        print(f"[ERR] {fp} (exit {res.returncode})\n{res.stderr or res.stdout}")
+        if attempt >= RETRY_MAX:
+            print(f"[GIVEUP] {fp} after {RETRY_MAX} attempts")
+            return False
+        time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
+
+# -------------- batching helpers --------------
+def _batch_add(path: str):
+    global _batch_first_ts, _batch_bytes
+    size = os.path.getsize(path)
+    with _batch_lock:
+        if not _batch_files:
+            _batch_first_ts = time.time()
+        _batch_files.append((path, size))
+        _batch_bytes += size
+    print(f"[QUEUE] Added to batch: {path} ({size} bytes)")
+
+def _batch_ready() -> bool:
+    with _batch_lock:
+        if not _batch_files:
+            return False
+        age_ok = (time.time() - _batch_first_ts) >= BATCH_MAX_AGE
+        count_ok = len(_batch_files) >= BATCH_MAX_FILES
+        size_ok = _batch_bytes >= BATCH_MAX_BYTES
+    return age_ok or count_ok or size_ok
+
+def _take_batch():
+    global _batch_files, _batch_bytes, _batch_first_ts
+    with _batch_lock:
+        items = list(_batch_files)
+        _batch_files = []
+        _batch_bytes = 0
+        _batch_first_ts = None
+    return items
+
+def _flush_now():
+    start_ts = time.time()
+
+    items = _take_batch()
+    if not items:
+        return
+
+    total_bytes = sum(s for _, s in items)
+    print(f"[BATCH] Flushing {len(items)} files, total {total_bytes} bytes")
+
+    futs = []
+    for path, _ in items:
+        futs.append(_executor.submit(run_upload, path))
+
+    ok = 0
+    for f in futs:
+        try:
+            if f.result():
+                ok += 1
+        except Exception as e:
+            print(f"[BATCH ERR] {e}")
+
+    end_ts = time.time()
+    elapsed = end_ts - start_ts
+    print(f"[BATCH] Done: {ok}/{len(items)} successful in {elapsed:.2f} seconds")
+
+def _flusher_loop():
+    while not _flusher_stop.is_set():
+        if _batch_ready():
+            _flush_now()
+        _flusher_stop.wait(0.5)
+    if _batch_files:
+        _flush_now()
+
+# -------------- event intake --------------
+def enqueue_for_batch(filepath: str) -> None:
+    bn = os.path.basename(filepath)
+    if bn.startswith(IGNORE_PREFIXES) or filepath.lower().endswith(IGNORE_SUFFIXES):
+        return
+
+    with _event_lock:
+        if filepath in _queued_events:
+            return
+        _queued_events.add(filepath)
+
+    def task():
+        try:
+            if not is_stable(filepath):
+                time.sleep(STABILITY_SECONDS)
+                if not is_stable(filepath):
+                    print(f"[SKIP] Not stable: {filepath}")
+                    return
+            if not os.path.isfile(filepath):
+                return
+            if not is_valid_image(filepath):
+                print(f"[SKIP] Invalid/truncated image: {filepath}")
+                return
+            _batch_add(filepath)
+        finally:
+            with _event_lock:
+                _queued_events.discard(filepath)
+
+    _executor.submit(task)
+
+#class Handler(FileSystemEventHandler):
+#    def on_created(self, event):
+#        if not event.is_directory:
+#            enqueue_for_batch(event.src_path)
+#    def on_modified(self, event):
+#        if not event.is_directory:
+#            enqueue_for_batch(event.src_path)
+
+# ------------------- Main -------------------
+def _handle_term(signum, frame):
+    _flusher_stop.set()
+
+#def load_config(path: str):
+#    with open(path, "r") as f:
+#        cfg = json.load(f)
+#    token = cfg.get("token")
+#    combined_dir = cfg.get("dir")
+#    if not token or not combined_dir:
+#        raise ValueError("JSON must contain both 'token' and 'dir'")
+#    system_id, dest_dir = parse_dir(combined_dir)
+#    if not dest_dir.startswith("/"):
+#        raise ValueError(f"'dir' parsed dest_dir must start with '/'. Got: {dest_dir}")
+#    return token, system_id, dest_dir
+
+def get_socket():
+    context = zmq.Context()
+    return get_plugin_socket(context, PORT)  
+
+def main():
+    #global TOKEN, SYSTEM_ID, DEST_DIR
+    global socket
+    socket = get_socket()
+
+    # graceful shutdown (works with SIGTERM from a controller)
+    signal.signal(signal.SIGTERM, _handle_term)
+
+#    try:
+#        TOKEN, SYSTEM_ID, DEST_DIR = load_config(JSON_CONFIG_PATH)
+#    except Exception as e:
+#        print(f"ERROR: Failed to load config {JSON_CONFIG_PATH}: {e}")
+#        return
+
+    #os.makedirs(WATCH_DIR, exist_ok=True)
+
+    flusher = threading.Thread(target=_flusher_loop, daemon=True)
+    flusher.start()
+
+#    obs = Observer()
+#    obs.schedule(Handler(), WATCH_DIR, recursive=RECURSIVE)
+#    obs.start()
+    print(f"Watching {WATCH_DIR} (batched) → {SYSTEM_ID}{DEST_DIR}")
+    print(f"Batch triggers: age≥{BATCH_MAX_AGE}s OR files≥{BATCH_MAX_FILES} OR bytes≥{BATCH_MAX_BYTES}.")
+    print(f"Base URL: {BASE_URL}")
+
+#    try:
+#        while True:
+#            time.sleep(1)
+#    except KeyboardInterrupt:
+#        pass
+#    finally:
+#        obs.stop()
+#        obs.join()
+#        _flusher_stop.set()
+#        flusher.join()
+#        _executor.shutdown(wait=True)
+    done = False
+    while not done:
+        try:
+            message = get_next_msg(socket)
+        except zmq.error.Again:
+            logger.debug(f"Got a zmq.error.Again; i.e., waited {SOCKET_TIMEOUT} ms without getting a message")
+            continue
+        except Exception as e:
+            logger.debug(f"Got exception from get_next_msg; type(e): {type(e)}; e: {e}")
+            done = True 
+            continue
+        if not message:
+            logger.info("No message found in get_next_msg")
+
+        logger.info("Got a message from the event socket - Image uploader")
+        event = socket_message_to_typed_event(message)
+
+        if isinstance(event, ImageScoredEvent):
+            logger.info(f"Inside scored event")
+            pass
+        elif isinstance(event, ImageStoredEvent):
+            uuid = event.ImageUuid().decode('utf-8')
+            ext = event.ImageFormat().decode('utf-8')
+            timestamp = event.EventCreateTs().decode('utf-8')
+            destination = event.Destination().decode('utf-8')
+            image_path = f'{WATCH_DIR}/{uuid}.{ext}'
+            logger.info(f"Image stored {uuid} {timestamp} {destination} {image_path}")
+            enqueue_for_batch(image_path)
+
+        elif isinstance(event, PluginTerminatingEvent):
+            logger.info(f"Plugin terminating event")
+            plugin_name = event.PluginName().decode('utf-8')
+            if plugin_name == 'ext_oracle_monitor_plugin':
+            #    received_terminating = True
+            #    logger.info(f'Received Terminate event * from image detecting plugin')
+            #    num_images_captured = get_num_images_captured()
+                done = True
+
+if __name__ == "__main__":
+    logger.info("Image uploading plugin starting...")
+    main()
+    logger.info("Image uploading plugin exiting...")
