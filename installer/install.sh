@@ -13,4 +13,4 @@ export gid=$(id -g)
 # in argument 1 and the INPUT_FILE environment variable, as passed in argument 2.
 input_file=${2:-install_config.yml}
 
-    docker run -it --rm --user $uid:$gid -v $1:/host/ -e INSTALL_HOST_PATH=$1 -e INPUT_FILE=$input_file tapis/camera-traps-installer:test
+    docker run -it --rm --user $uid:$gid -v $1:/host/ -e INSTALL_HOST_PATH=$1 -e INPUT_FILE=$input_file tapis/camera-traps-installer
