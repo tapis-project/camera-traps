@@ -16,8 +16,6 @@ import threading
 import subprocess
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
-#from watchdog.observers import Observer
-#from watchdog.events import FileSystemEventHandler
 from PIL import Image  # requires: pip install Pillow
 
 import zmq
@@ -251,71 +249,25 @@ def enqueue_for_batch(filepath: str) -> None:
 
     _executor.submit(task)
 
-#class Handler(FileSystemEventHandler):
-#    def on_created(self, event):
-#        if not event.is_directory:
-#            enqueue_for_batch(event.src_path)
-#    def on_modified(self, event):
-#        if not event.is_directory:
-#            enqueue_for_batch(event.src_path)
-
 # ------------------- Main -------------------
 def _handle_term(signum, frame):
     _flusher_stop.set()
-
-#def load_config(path: str):
-#    with open(path, "r") as f:
-#        cfg = json.load(f)
-#    token = cfg.get("token")
-#    combined_dir = cfg.get("dir")
-#    if not token or not combined_dir:
-#        raise ValueError("JSON must contain both 'token' and 'dir'")
-#    system_id, dest_dir = parse_dir(combined_dir)
-#    if not dest_dir.startswith("/"):
-#        raise ValueError(f"'dir' parsed dest_dir must start with '/'. Got: {dest_dir}")
-#    return token, system_id, dest_dir
 
 def get_socket():
     context = zmq.Context()
     return get_plugin_socket(context, PORT)  
 
 def main():
-    #global TOKEN, SYSTEM_ID, DEST_DIR
     global socket
     socket = get_socket()
-
-    # graceful shutdown (works with SIGTERM from a controller)
-    signal.signal(signal.SIGTERM, _handle_term)
-
-#    try:
-#        TOKEN, SYSTEM_ID, DEST_DIR = load_config(JSON_CONFIG_PATH)
-#    except Exception as e:
-#        print(f"ERROR: Failed to load config {JSON_CONFIG_PATH}: {e}")
-#        return
-
-    #os.makedirs(WATCH_DIR, exist_ok=True)
 
     flusher = threading.Thread(target=_flusher_loop, daemon=True)
     flusher.start()
 
-#    obs = Observer()
-#    obs.schedule(Handler(), WATCH_DIR, recursive=RECURSIVE)
-#    obs.start()
     print(f"Watching {WATCH_DIR} (batched) → {SYSTEM_ID}{DEST_DIR}")
     print(f"Batch triggers: age≥{BATCH_MAX_AGE}s OR files≥{BATCH_MAX_FILES} OR bytes≥{BATCH_MAX_BYTES}.")
     print(f"Base URL: {BASE_URL}")
 
-#    try:
-#        while True:
-#            time.sleep(1)
-#    except KeyboardInterrupt:
-#        pass
-#    finally:
-#        obs.stop()
-#        obs.join()
-#        _flusher_stop.set()
-#        flusher.join()
-#        _executor.shutdown(wait=True)
     done = False
     while not done:
         try:
@@ -345,14 +297,14 @@ def main():
             logger.info(f"Image stored {uuid} {timestamp} {destination} {image_path}")
             enqueue_for_batch(image_path)
 
-        elif isinstance(event, PluginTerminatingEvent):
-            logger.info(f"Plugin terminating event")
-            plugin_name = event.PluginName().decode('utf-8')
-            if plugin_name == 'ext_oracle_monitor_plugin':
-            #    received_terminating = True
-            #    logger.info(f'Received Terminate event * from image detecting plugin')
-            #    num_images_captured = get_num_images_captured()
-                done = True
+        elif isinstance(event, PluginTerminateEvent):
+            logging.info('received PluginTerminateEvent')
+            done = True
+
+    _flusher_stop.set()
+    flusher.join()
+    _executor.shutdown(wait=True)
+    send_quit_command(socket)
 
 if __name__ == "__main__":
     logger.info("Image uploading plugin starting...")
