@@ -449,6 +449,7 @@ services:
     pid: host
     volumes:
       - {{host_output_dir}}/{{ images_output_dir }}:/images
+      - {{ host_config_dir }}/traps-upload.toml:/traps-upload.toml:ro
     environment:
       - IMAGE_UPLOADING_PLUGIN_PORT=6013
       - WATCH_DIR=/images
@@ -456,6 +457,7 @@ services:
       - JWT={{ tapis_jwt }}
       - SYSTEM_ID={{upload_system_id }}
       - DEST_DIR={{ upload_dest_dir }}
+      - TRAPS_UPLOAD_FILE=/traps-upload.toml
 {% endif %}
 
 {% if inference_server %}

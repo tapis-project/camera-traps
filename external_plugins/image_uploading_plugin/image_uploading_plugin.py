@@ -10,6 +10,7 @@ Required JSON keys:
 
 import os
 import json
+import toml
 import time
 import signal
 import threading
@@ -42,17 +43,15 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 # ----------------------- CONFIG -----------------------
+UPLOAD_THRESHOLD_FILE = os.environ.get('TRAPS_UPLOAD_FILE', '/traps-upload.toml')
 PORT = os.environ.get('IMAGE_UPLOADING_PLUGIN_PORT', 6013)
 BASE_URL = os.environ.get("BASE_URL", "https://tacc.tapis.io")
 
 # Path to JSON config file (edit this path)
-#JSON_CONFIG_PATH = "/Users/harikeshbyrandurgagopinath/Desktop/ICICLE_projects/data-collection-transfer/sample.json"
-# TOKEN, SYSTEM_ID, DEST_DIR = load_config(JSON_CONFIG_PATH)
 TOKEN = os.environ.get("JWT")
 SYSTEM_ID = os.environ.get("SYSTEM_ID")
 DEST_DIR = os.environ.get("DEST_DIR")
 
-#WATCH_DIR = "/Users/harikeshbyrandurgagopinath/Desktop/ICICLE_projects/test_upload"
 WATCH_DIR = os.environ.get("WATCH_DIR", "/images")
 RECURSIVE = False
 
@@ -108,7 +107,7 @@ def is_valid_image(path: str) -> bool:
             img.load()
         return True
     except Exception as e:
-        print(f"[INVALID IMG] {path}: {e}")
+        logger.warning(f"[INVALID IMG] {path}: {e}")
         return False
 
 def parse_dir(combined: str):
@@ -148,11 +147,11 @@ def run_upload(filepath: str) -> bool:
         attempt += 1
         res = subprocess.run(args, capture_output=True, text=True)
         if res.returncode == 0:
-            print(f"[OK] {fp}")
+            logger.info(f"[OK] {fp}")
             return True
-        print(f"[ERR] {fp} (exit {res.returncode})\n{res.stderr or res.stdout}")
+        logger.warning(f"[ERR] {fp} (exit {res.returncode})\n{res.stderr or res.stdout}")
         if attempt >= RETRY_MAX:
-            print(f"[GIVEUP] {fp} after {RETRY_MAX} attempts")
+            logger.warning(f"[GIVEUP] {fp} after {RETRY_MAX} attempts")
             return False
         time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
 
@@ -165,7 +164,7 @@ def _batch_add(path: str):
             _batch_first_ts = time.time()
         _batch_files.append((path, size))
         _batch_bytes += size
-    print(f"[QUEUE] Added to batch: {path} ({size} bytes)")
+    logger.info(f"[QUEUE] Added to batch: {path} ({size} bytes)")
 
 def _batch_ready() -> bool:
     with _batch_lock:
@@ -193,7 +192,7 @@ def _flush_now():
         return
 
     total_bytes = sum(s for _, s in items)
-    print(f"[BATCH] Flushing {len(items)} files, total {total_bytes} bytes")
+    logger.info(f"[BATCH] Flushing {len(items)} files, total {total_bytes} bytes")
 
     futs = []
     for path, _ in items:
@@ -205,11 +204,11 @@ def _flush_now():
             if f.result():
                 ok += 1
         except Exception as e:
-            print(f"[BATCH ERR] {e}")
+            logger.warning(f"[BATCH ERR] {e}")
 
     end_ts = time.time()
     elapsed = end_ts - start_ts
-    print(f"[BATCH] Done: {ok}/{len(items)} successful in {elapsed:.2f} seconds")
+    logger.info(f"[BATCH] Done: {ok}/{len(items)} successful in {elapsed:.2f} seconds")
 
 def _flusher_loop():
     while not _flusher_stop.is_set():
@@ -235,12 +234,12 @@ def enqueue_for_batch(filepath: str) -> None:
             if not is_stable(filepath):
                 time.sleep(STABILITY_SECONDS)
                 if not is_stable(filepath):
-                    print(f"[SKIP] Not stable: {filepath}")
+                    logger.info(f"[SKIP] Not stable: {filepath}")
                     return
             if not os.path.isfile(filepath):
                 return
             if not is_valid_image(filepath):
-                print(f"[SKIP] Invalid/truncated image: {filepath}")
+                logger.info(f"[SKIP] Invalid/truncated image: {filepath}")
                 return
             _batch_add(filepath)
         finally:
@@ -257,6 +256,11 @@ def get_socket():
     context = zmq.Context()
     return get_plugin_socket(context, PORT)  
 
+def get_upload_thresholds():
+    if os.path.exists(UPLOAD_THRESHOLD_FILE):
+        with open(UPLOAD_THRESHOLD_FILE, 'r') as f:
+            return toml.load(f).get('thresholds')
+
 def main():
     global socket
     socket = get_socket()
@@ -264,10 +268,12 @@ def main():
     flusher = threading.Thread(target=_flusher_loop, daemon=True)
     flusher.start()
 
-    print(f"Watching {WATCH_DIR} (batched) → {SYSTEM_ID}{DEST_DIR}")
-    print(f"Batch triggers: age≥{BATCH_MAX_AGE}s OR files≥{BATCH_MAX_FILES} OR bytes≥{BATCH_MAX_BYTES}.")
-    print(f"Base URL: {BASE_URL}")
+    logger.info(f"Watching {WATCH_DIR} (batched) → {SYSTEM_ID}{DEST_DIR}")
+    logger.info(f"Batch triggers: age≥{BATCH_MAX_AGE}s OR files≥{BATCH_MAX_FILES} OR bytes≥{BATCH_MAX_BYTES}.")
+    logger.info(f"Base URL: {BASE_URL}")
 
+    upload_threshold = get_upload_thresholds()
+    upload_list = set()
     done = False
     while not done:
         try:
@@ -286,19 +292,34 @@ def main():
         event = socket_message_to_typed_event(message)
 
         if isinstance(event, ImageScoredEvent):
-            logger.info(f"Inside scored event")
-            pass
+            logger.info(f'Image scored event received')
+            uuid = event.ImageUuid().decode('utf-8')
+            for i in range(event.ScoresLength()):
+                label = event.Scores(i).Label().decode('utf-8')
+                prob = event.Scores(i).Probability()
+                if not upload_threshold:
+                    logger.info(f'Image scored and no thresholds found. Waiting for image store decision before adding to batch.')
+                    upload_list.add(uuid)
+                    break
+                elif label in upload_threshold and prob > upload_threshold[label]:
+                    logger.info(f'Image score above upload threshold. Waiting for image store decision before adding to batch.')
+                    upload_list.add(uuid)
+                    break
         elif isinstance(event, ImageStoredEvent):
             uuid = event.ImageUuid().decode('utf-8')
+            if uuid not in upload_list:
+                logger.info(f'Image stored but score is below the upload threshold. Skipping upload.')
+                continue
             ext = event.ImageFormat().decode('utf-8')
             timestamp = event.EventCreateTs().decode('utf-8')
             destination = event.Destination().decode('utf-8')
             image_path = f'{WATCH_DIR}/{uuid}.{ext}'
             logger.info(f"Image stored {uuid} {timestamp} {destination} {image_path}")
             enqueue_for_batch(image_path)
+            upload_list.remove(uuid)
 
         elif isinstance(event, PluginTerminateEvent):
-            logging.info('received PluginTerminateEvent')
+            logger.info('received PluginTerminateEvent')
             done = True
 
     _flusher_stop.set()

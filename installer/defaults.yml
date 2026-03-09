@@ -96,6 +96,7 @@ tapis_tenant: https://icicleai.tapis.io
 tapis_jwt: 
 upload_system_id: 
 upload_dest_dir: 
+upload_thresholds:
 
 #CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true
