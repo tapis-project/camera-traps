@@ -21,8 +21,8 @@ from PIL import Image  # requires: pip install Pillow
 
 import zmq
 import logging
-from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command
-from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event, send_monitor_power_start_fb_event
+from pyevents.events import get_plugin_socket, get_next_msg, send_quit_command, publish_msg
+from ctevents.ctevents import socket_message_to_typed_event, send_terminate_plugin_fb_event, send_monitor_power_start_fb_event, _generate_delete_image_fb_with_prefix
 from ctevents import ImageStoredEvent, ImageDeletedEvent, ImageScoredEvent, PluginTerminatingEvent, PluginTerminateEvent
 
 log_level = os.environ.get("IMAGE_UPLOADING_LOG_LEVEL", "INFO")
@@ -125,6 +125,27 @@ def parse_dir(combined: str):
     dest_dir = "/" + parts[1]        # ensure leading slash
     return system_id, dest_dir
 
+def delete_file(path: str) -> bool:
+    try:
+        filename = os.path.basename(path)
+        if '.' in filename:
+            uuid, ext = filename.rsplit('.', 1)
+        else:
+            logger.warning(f"Unable to parse UUID and format from {path}")
+            return
+
+        # Delete the file
+        if os.path.exists(path):
+            os.remove(path)
+
+
+        fb_data = _generate_delete_image_fb_with_prefix(uuid, ext)
+        publish_msg(socket, fb_data)
+        logger.info(f"Sent ImageDeletedEvent for {uuid}")
+
+    except Exception as e:
+        logger.error(f"Failed to delete {path}: {e}")
+
 def run_upload(filepath: str) -> bool:
     """Upload a single file via Tapis Files API. Returns True on success."""
     assert TOKEN != "" and SYSTEM_ID != "" and DEST_DIR != ""
@@ -148,6 +169,7 @@ def run_upload(filepath: str) -> bool:
         res = subprocess.run(args, capture_output=True, text=True)
         if res.returncode == 0:
             logger.info(f"[OK] {fp}")
+            delete_file(filepath)
             return True
         logger.warning(f"[ERR] {fp} (exit {res.returncode})\n{res.stderr or res.stdout}")
         if attempt >= RETRY_MAX:
