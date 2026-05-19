@@ -79,9 +79,10 @@ uuid_image_mapping_path = os.path.join(OUTPUT_DIR, "uuid_image_mapping.json")
 KAFKA_BROKER = os.environ.get('CKN_KAFKA_BROKER', '')
 KAFKA_TOPIC = os.environ.get('CKN_KAFKA_TOPIC', 'oracle-events')
 KAFKA_SECURITY_PROTOCOL = os.environ.get('CKN_KAFKA_SECURITY_PROTOCOL', 'SSL')
-DEVICE_ID = os.environ.get('CAMERA_TRAPS_DEVICE_ID', 'iu-edge-server-cib')
-USER_ID = os.environ.get('USER_ID', 'neelk')
-EXPERIMENT_ID = os.environ.get('EXPERIMENT_ID', 'googlenet-iu-animal-classification')
+DEVICE_ID = os.environ.get('CAMERA_TRAPS_DEVICE_ID', '')
+CKN_DOMAIN = os.environ.get('CKN_DOMAIN', 'animal-ecology')
+USER_ID = os.environ.get('USER_ID', '')
+EXPERIMENT_ID = os.environ.get('EXPERIMENT_ID', '')
 
 # Power monitoring configuration
 ENABLE_POWER_MONITORING = os.environ.get('ENABLE_POWER_MONITORING', 'false').lower()
@@ -494,6 +495,7 @@ def build_event_payload(uuid):
     # Build event payload - SAME STRUCTURE AS publish_test_event.py SAMPLE_EVENT
     event = {
         # Identity fields
+        "domain": CKN_DOMAIN,
         "device_id": DEVICE_ID,
         "experiment_id": EXPERIMENT_ID,
         "user_id": USER_ID,
