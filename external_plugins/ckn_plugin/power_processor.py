@@ -12,6 +12,29 @@ import time
 import logging
 
 
+def build_connect_envelope(payload, field_types, required_fields=None):
+    """Wrap a flat dict in a Kafka Connect JSON schema envelope (schema+payload).
+
+    Mirrors the helper in ckn_plugin.py - the JDBC sink connectors run with
+    value.converter.schemas.enable=true, so bare JSON is silently dropped.
+    """
+    required_fields = required_fields or set()
+    fields = [
+        {"field": name, "type": conn_type, "optional": name not in required_fields}
+        for name, conn_type in field_types.items()
+    ]
+    schema = {"type": "struct", "fields": fields, "optional": False}
+    return {"schema": schema, "payload": payload}
+
+
+def build_power_field_types(flattened_event):
+    """Power summary keys are dynamic (per-plugin names), so infer types from the event."""
+    return {
+        name: "string" if name == "experiment_id" else "double"
+        for name in flattened_event
+    }
+
+
 class PowerProcessor:
     """
     Processes the power events and sends events to the CKN Broker.
@@ -76,7 +99,10 @@ class PowerProcessor:
                 try:
                     # Read the power summary
                     power_summary = self.get_power_summary()
-                    power_summary_json = json.dumps(power_summary)
+                    envelope = build_connect_envelope(
+                        power_summary, build_power_field_types(power_summary), {"experiment_id"}
+                    )
+                    power_summary_json = json.dumps(envelope)
 
                     # Send the event to Kafka
                     if self.kafka_producer:

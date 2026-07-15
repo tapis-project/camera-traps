@@ -146,6 +146,64 @@ map_data = {t: [] for t in map_thresholds}
 
 
 # ============================================================================
+# Kafka Connect JSON schema envelopes
+# ============================================================================
+# The JDBC sink connectors on cknkafkaconnect run with
+# value.converter.schemas.enable=true, so JsonConverter requires each record
+# to be a {"schema": ..., "payload": ...} envelope rather than bare JSON.
+EVENT_FIELD_TYPES = {
+    "domain": "string",
+    "device_id": "string",
+    "experiment_id": "string",
+    "user_id": "string",
+    "model_id": "string",
+    "image_count": "int32",
+    "UUID": "string",
+    "image_name": "string",
+    "ground_truth": "string",
+    "image_receiving_timestamp": "string",
+    "image_scoring_timestamp": "string",
+    "image_store_delete_time": "string",
+    "label": "string",
+    "probability": "double",
+    "image_decision": "string",
+    "flattened_scores": "string",
+    "total_images": "int32",
+    "total_predictions": "int32",
+    "total_ground_truth_objects": "int32",
+    "true_positives": "int32",
+    "false_positives": "int32",
+    "false_negatives": "int32",
+    "precision": "double",
+    "recall": "double",
+    "f1_score": "double",
+    "mean_iou": "double",
+    "map_50": "double",
+    "map_50_95": "double",
+}
+EVENT_REQUIRED_FIELDS = {"UUID", "experiment_id", "user_id"}
+
+
+def build_connect_envelope(payload, field_types, required_fields=None):
+    """Wrap a flat dict in a Kafka Connect JSON schema envelope (schema+payload)."""
+    required_fields = required_fields or set()
+    fields = [
+        {"field": name, "type": conn_type, "optional": name not in required_fields}
+        for name, conn_type in field_types.items()
+    ]
+    schema = {"type": "struct", "fields": fields, "optional": False}
+    return {"schema": schema, "payload": payload}
+
+
+def build_power_field_types(flattened_event):
+    """Power summary keys are dynamic (per-plugin names), so infer types from the event."""
+    return {
+        name: "string" if name == "experiment_id" else "double"
+        for name in flattened_event
+    }
+
+
+# ============================================================================
 # Kafka helpers
 # ============================================================================
 def validate_broker_address(broker_address):
@@ -563,8 +621,9 @@ def stream_event_to_kafka(uuid):
         logger.info(row_json)
         logger.info("="*60)
         
-        # Produce to Kafka (use non-indented JSON for actual message)
-        kafka_producer.produce(KAFKA_TOPIC, key=EXPERIMENT_ID, value=json.dumps(event_data))
+        # Produce to Kafka wrapped in a Connect schema envelope (use non-indented JSON for actual message)
+        envelope = build_connect_envelope(event_data, EVENT_FIELD_TYPES, EVENT_REQUIRED_FIELDS)
+        kafka_producer.produce(KAFKA_TOPIC, key=EXPERIMENT_ID, value=json.dumps(envelope))
         kafka_producer.flush()
         
         processed_uuids.add(uuid)
@@ -636,8 +695,11 @@ def process_power_summary():
                 logger.info(power_json)
                 logger.info("="*60)
                 
-                # Stream to Kafka
-                kafka_producer.produce(POWER_SUMMARY_TOPIC, key=EXPERIMENT_ID, value=json.dumps(flattened_event))
+                # Stream to Kafka wrapped in a Connect schema envelope
+                power_envelope = build_connect_envelope(
+                    flattened_event, build_power_field_types(flattened_event), {"experiment_id"}
+                )
+                kafka_producer.produce(POWER_SUMMARY_TOPIC, key=EXPERIMENT_ID, value=json.dumps(power_envelope))
                 kafka_producer.flush()
                 
                 logger.info("Power summary successfully streamed to Kafka.")
@@ -819,13 +881,16 @@ def main():
             and total_images_generated > 0 
             and total_images_generated == total_images_processed):
             logger.info("All images processed. Initiating shutdown...")
-            
-            # Process power summary before shutting down
-            process_power_summary()
-            
-            # Send PluginTerminate to other plugins
+
+            # Send PluginTerminate first: the power monitor plugin only writes
+            # power_summary_report.json when it receives this event, so it must
+            # be told to stop before we wait on the summary file.
             send_terminate_plugin_fb_event(socket, "*", EXPERIMENT_END_SIGNAL)
             logger.info("Sent PluginTerminate * event")
+
+            # Now wait for the power summary file and stream it to Kafka
+            process_power_summary()
+
             time.sleep(1)
             send_quit_command(socket)
             logger.info("Sent quit command.")

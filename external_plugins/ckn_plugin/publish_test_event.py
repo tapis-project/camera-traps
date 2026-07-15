@@ -19,17 +19,71 @@ KAFKA_SECURITY_PROTOCOL = "SSL"
 ORACLE_EVENTS_TOPIC = "oracle-events"
 POWER_SUMMARY_TOPIC = "cameratraps-power-summary"
 
+# The JDBC sink connectors run with value.converter.schemas.enable=true, so
+# JsonConverter requires each record to be a {"schema": ..., "payload": ...}
+# envelope rather than bare JSON - mirrors the helper in ckn_plugin.py.
+EVENT_FIELD_TYPES = {
+    "device_id": "string",
+    "experiment_id": "string",
+    "user_id": "string",
+    "model_id": "string",
+    "image_count": "int32",
+    "UUID": "string",
+    "image_name": "string",
+    "ground_truth": "string",
+    "image_receiving_timestamp": "string",
+    "image_scoring_timestamp": "string",
+    "image_store_delete_time": "string",
+    "label": "string",
+    "probability": "double",
+    "image_decision": "string",
+    "flattened_scores": "string",
+    "total_images": "int32",
+    "total_predictions": "int32",
+    "total_ground_truth_objects": "int32",
+    "true_positives": "int32",
+    "false_positives": "int32",
+    "false_negatives": "int32",
+    "precision": "double",
+    "recall": "double",
+    "f1_score": "double",
+    "mean_iou": "double",
+    "map_50": "double",
+    "map_50_95": "double",
+}
+EVENT_REQUIRED_FIELDS = {"UUID", "experiment_id", "user_id"}
+
+
+def build_connect_envelope(payload, field_types, required_fields=None):
+    """Wrap a flat dict in a Kafka Connect JSON schema envelope (schema+payload)."""
+    required_fields = required_fields or set()
+    fields = [
+        {"field": name, "type": conn_type, "optional": name not in required_fields}
+        for name, conn_type in field_types.items()
+    ]
+    schema = {"type": "struct", "fields": fields, "optional": False}
+    return {"schema": schema, "payload": payload}
+
+
+def build_power_field_types(flattened_event):
+    """Power summary keys are dynamic (per-plugin names), so infer types from the event."""
+    return {
+        name: "string" if name == "experiment_id" else "double"
+        for name in flattened_event
+    }
+
 # Generate unique IDs for this run
 EXPERIMENT_ID = str(uuid.uuid4())
 
 # Sample event matching the ckn_plugin event structure for Neo4j Kafka Connector
 # All fields at top level as expected by the Cypher query
 SAMPLE_EVENT = {
-    # Identity fields
-    "device_id": "iu-edge-server-cib",
+    # Identity fields - must be pre-registered in patradb (users/edge_devices/models)
+    # for the CKN ingest trigger (fn_ingest_camera_trap_event) to accept the row.
+    "device_id": "example_device",
     "experiment_id": EXPERIMENT_ID,
-    "user_id": "neelk",
-    "model_id": f"{str(uuid.uuid4())}-model",
+    "user_id": "example_user",
+    "model_id": "1",
     
     # Image metadata
     "image_count": 1,
@@ -180,25 +234,25 @@ def test_connection(kafka_conf):
         return False
 
 
-def publish_event(topic, event, key):
-    """Publish an event to the specified Kafka topic."""
+def publish_event(topic, event, key, envelope):
+    """Publish an event to the specified Kafka topic, wrapped in a Connect schema envelope."""
     kafka_conf = {
         'bootstrap.servers': KAFKA_BROKER,
         'security.protocol': KAFKA_SECURITY_PROTOCOL,
     }
-    
+
     # Test connection first
     if not test_connection(kafka_conf):
         print("Aborting: Could not connect to Kafka broker")
         return False
-    
+
     # Create producer
     print(f"\nCreating Kafka producer...")
     producer = Producer(**kafka_conf)
-    
+
     # Serialize event
-    event_json = json.dumps(event)
-    
+    event_json = json.dumps(envelope)
+
     print(f"\n{'='*60}")
     print(f"Publishing event to topic: {topic}")
     print(f"Key: {key}")
@@ -228,7 +282,8 @@ def publish_oracle_event():
     print("\n" + "="*60)
     print("PUBLISHING ORACLE EVENT")
     print("="*60)
-    return publish_event(ORACLE_EVENTS_TOPIC, SAMPLE_EVENT, EXPERIMENT_ID)
+    envelope = build_connect_envelope(SAMPLE_EVENT, EVENT_FIELD_TYPES, EVENT_REQUIRED_FIELDS)
+    return publish_event(ORACLE_EVENTS_TOPIC, SAMPLE_EVENT, EXPERIMENT_ID, envelope)
 
 
 def publish_power_summary():
@@ -236,7 +291,10 @@ def publish_power_summary():
     print("\n" + "="*60)
     print("PUBLISHING POWER SUMMARY EVENT")
     print("="*60)
-    return publish_event(POWER_SUMMARY_TOPIC, POWER_SUMMARY_EVENT, EXPERIMENT_ID)
+    envelope = build_connect_envelope(
+        POWER_SUMMARY_EVENT, build_power_field_types(POWER_SUMMARY_EVENT), {"experiment_id"}
+    )
+    return publish_event(POWER_SUMMARY_TOPIC, POWER_SUMMARY_EVENT, EXPERIMENT_ID, envelope)
 
 
 def print_usage():
