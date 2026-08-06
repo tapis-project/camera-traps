@@ -6,9 +6,10 @@
 # (https://github.com/tapis-project/camera-traps/pull/65).
 #
 # Requirements: Docker + Compose v2 on a Linux host (x86_64 or arm64), ~25 GB
-# free disk, outbound HTTPS. The user/device/model below must already be
-# registered in patradb (users.username / edge_devices.device_id / models.id)
-# or the ingest trigger will reject every event.
+# free disk, outbound HTTPS. The user/model below must already be registered
+# in patradb (users.username / models.id) or the ingest trigger will reject
+# every event. The device does not: an unseen device_id auto-registers in
+# edge_devices on first event.
 #
 # Usage:
 #   ./run_e2e_test.sh                 # real powerjoular (0 W readings on most VMs)
