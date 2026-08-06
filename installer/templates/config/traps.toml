@@ -70,9 +70,9 @@ subscriptions = [
     "PluginTerminateEvent",
 ]
 {% endif %}
-{% if deploy_oracle %}
+{% if deploy_ckn %}
 [[plugins.external]]
-plugin_name = "ext_oracle_monitor_plugin"
+plugin_name = "ext_ckn_plugin"
 id = "6e153711-9823-4ee6-b608-58e2e801db51"
 external_port = 6011
 subscriptions = [

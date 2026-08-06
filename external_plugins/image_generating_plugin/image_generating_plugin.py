@@ -98,7 +98,7 @@ def load_ground_truth():
     return ground_truth_data
 
 
-def oracle_monitoring_info(track_image_count, image_uuid, image_name, ground_truth):
+def ckn_monitoring_info(track_image_count, image_uuid, image_name, ground_truth):
     """
     This function is called by get_binary for each image processed in the main loop.It 
     creates and/or updates the uuid_image_mapping.json file that stores information about the image file.
@@ -159,7 +159,7 @@ def get_binary(file_name, binary_img, img_format, track_image_count, total_image
     logger.info(f"Sending new image with the following data: image:{file_name}; uuid:{image_uuid}; format: {img_format}; type(format): {type(img_format)}")
     try: 
         # first update the uuid_image_mapping.json file
-        oracle_monitoring_info(track_image_count, image_uuid, file_name, ground_truth)
+        ckn_monitoring_info(track_image_count, image_uuid, file_name, ground_truth)
         
         # then send the new image event; this should ensure that the mapping file always contains the 
         # the image prior to a subsequent plugin processing it. 

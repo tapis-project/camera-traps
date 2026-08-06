@@ -91,9 +91,9 @@ services:
       # NOTE: this is NOT the shared images directory!!
       - {{ source_image_dir }}:/example_images:ro
       {% endif %}      
-      {% if deploy_oracle %}
-      # mount the directory shared with the oracle plugin 
-      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+      {% if deploy_ckn %}
+      # mount the directory shared with the CKN plugin 
+      - {{ host_output_dir }}/{{ ckn_plugin_output_dir }}:/output
       {% endif %}
 {% endif %}
 
@@ -327,18 +327,27 @@ services:
 {% endif %}
 
 
-{% if deploy_oracle %}
-  oraclePlugin:
-    container_name: oracle_monitor
-    image: {{ oracle_plugin_image }}:{{ ct_version }}
+{% if deploy_ckn %}
+  cknPlugin:
+    container_name: ckn_plugin
+    image: {{ ckn_plugin_image }}:{{ ct_version }}
     {% if run_containers_as_user %}
     user: "{{ uid }}:{{ gid }}"
     {% endif %}
     environment:
-      - ORACLE_PLUGIN_PORT=6011
-      - TRAPS_ORACLE_OUTPUT_PATH=/output
+      - CKN_PLUGIN_PORT=6011
+      - TRAPS_CKN_OUTPUT_PATH=/output
       - DEVICE_ID={{ device_id }}
       - MODEL_ID={{ model_id }}
+      - CKN_KAFKA_BROKER={{ ckn_kafka_broker_address }}:{{ ckn_kafka_broker_port }}
+      - CKN_KAFKA_TOPIC=oracle-events
+      - CAMERA_TRAPS_DEVICE_ID={{ device_id }}
+      - EXPERIMENT_ID={{ experiment_id }}
+      - USER_ID={{ user_id }}
+      - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}
+      - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
+      - POWER_SUMMARY_TOPIC=cameratraps-power-summary
+      - TRAPS_VIDEO_INFO_PATH=/video_info/video_info.yaml
       {% if deploy_video_generating %}
       - MODE=video
       {% else %}
@@ -361,7 +370,9 @@ services:
 
     volumes:
       - {{ host_config_dir }}/traps.toml:/traps.toml:ro
-      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/output
+      - {{ host_output_dir }}/{{ ckn_plugin_output_dir }}:/output
+      - {{ host_output_dir }}/{{ power_output_dir }}:/power_logs
+      - {{ host_output_dir }}/{{ video_output_dir }}:/video_info
 {% endif %}
 
 {% if deploy_reporter %}
@@ -403,34 +414,6 @@ services:
 {% endif %}
 
 
-{% if deploy_ckn %}
-  cknDaemon:
-    container_name: ckn_daemon
-    image: iud2i/ckn-daemon-cameratraps:{{ ckn_daemon_tag }}
-    environment:
-      - ORACLE_CSV_PATH=/logs/image_mapping_final.json
-      - CKN_LOG_FILE=/logs/ckn.log
-      - CKN_KAFKA_BROKER={{ ckn_kafka_broker_address }}:{{ ckn_kafka_broker_port }}
-      - CKN_KAFKA_TOPIC=oracle-events
-      - CAMERA_TRAPS_DEVICE_ID={{ device_id }}
-      - EXPERIMENT_ID={{ experiment_id }}
-      - USER_ID={{ user_id }}
-      - POWER_SUMMARY_FILE=/power_logs/power_summary_report.json
-      - POWER_SUMMARY_TOPIC=cameratraps-power-summary
-      - ENABLE_POWER_MONITORING={{ ckn_enable_power_monitoring }}      
-      - SYSTEM_MEASUREMENTS_FILE=/power_logs/system_measurements.csv
-    networks:
-      - cameratraps
-
-    pid: host
-
-    depends_on:
-      - oraclePlugin
-
-    volumes:
-      - {{ host_output_dir }}/{{ oracle_plugin_output_dir }}:/logs
-      - {{ host_output_dir }}/{{ power_output_dir }}:/power_logs
-{% endif %}
 
 {% if inference_server %}
   MDServer:
