@@ -17,7 +17,7 @@
 #    Example: 'make build' builds all targets.
 
 clean:
-	cd releases/${TRAPS_REL}; rm -rf power_output_dir/*; rm -rf images_output_dir/*; rm -rf oracle_plugin_dir/*; 
+	cd releases/${TRAPS_REL}; rm -rf power_output_dir/*; rm -rf images_output_dir/*; rm -rf ckn_plugin_dir/*; 
 
 build-engine:
 	docker build -t tapis/camera_traps_engine:${TRAPS_REL} --build-arg TRAPS_REL=${TRAPS_REL} .
@@ -47,8 +47,8 @@ build-generating:
 build-power:
 	cd external_plugins/power_measuring_plugin/ && docker build -t tapis/powerjoular -f Dockerfile-powerjoular . && docker build -t tapis/scaphandre -f Dockerfile-scaphandre . && docker build -t tapis/power_measuring_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
-build-oracle:
-	cd external_plugins/oracle_plugin/ && docker build -t tapis/oracle_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
+build-ckn:
+	cd external_plugins/ckn_plugin/ && docker build -t tapis/ckn_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
 build-detection:
 	cd external_plugins/detection_reporter_plugin && docker build -t tapis/detection_reporter_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
@@ -62,7 +62,7 @@ build-uploader:
 build-video:
 	cd external_plugins/video_generating_plugin/ && docker build -t tapis/video_generating_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
-build-py-plugins: build-camerapy build-scoring-server build-generating build-power build-oracle build-detection build-detecting build-video build-uploader
+build-py-plugins: build-camerapy build-scoring-server build-generating build-power build-ckn build-detection build-detecting build-video build-uploader
 
 build-installer: 
 	cd installer && docker build -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../
@@ -70,10 +70,10 @@ build-installer:
 build: build-engine build-py-plugins build-installer
 
 tag: build
-	docker tag tapis/camera_traps_py:${TRAPS_REL} tapis/camera_traps_py & docker tag tapis/camera_traps_py_3.8:${TRAPS_REL} tapis/camera_traps_py_3.8 & docker tag tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} tapis/image_scoring_plugin_py_3.8 & docker tag tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} tapis/image_scoring_plugin_py_nano_3.8 & docker tag tapis/image_generating_plugin_py:${TRAPS_REL} tapis/image_generating_plugin_py & docker tag tapis/power_measuring_plugin_py:${TRAPS_REL} tapis/power_measuring_plugin_py & docker tag tapis/camera_traps_engine:${TRAPS_REL} tapis/camera_traps_engine & docker tag tapis/oracle_plugin:${TRAPS_REL} tapis/oracle_plugin & docker tag tapis/camera-traps-installer:${TRAPS_REL} tapis/camera-traps-installer
+	docker tag tapis/camera_traps_py:${TRAPS_REL} tapis/camera_traps_py & docker tag tapis/camera_traps_py_3.8:${TRAPS_REL} tapis/camera_traps_py_3.8 & docker tag tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} tapis/image_scoring_plugin_py_3.8 & docker tag tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} tapis/image_scoring_plugin_py_nano_3.8 & docker tag tapis/image_generating_plugin_py:${TRAPS_REL} tapis/image_generating_plugin_py & docker tag tapis/power_measuring_plugin_py:${TRAPS_REL} tapis/power_measuring_plugin_py & docker tag tapis/camera_traps_engine:${TRAPS_REL} tapis/camera_traps_engine & docker tag tapis/ckn_plugin:${TRAPS_REL} tapis/ckn_plugin & docker tag tapis/camera-traps-installer:${TRAPS_REL} tapis/camera-traps-installer
 
 push: tag
-	docker push tapis/camera_traps_py & docker push tapis/camera_traps_py:${TRAPS_REL} & docker push tapis/camera_traps_py_3.8 & docker push tapis/camera_traps_py_3.8:${TRAPS_REL} & docker push tapis/image_scoring_plugin_py_3.8 & docker push tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} & docker push tapis/image_scoring_plugin_py_nano_3.8 & docker push tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} & docker push tapis/image_generating_plugin_py & docker push tapis/image_generating_plugin_py:${TRAPS_REL} & docker push tapis/power_measuring_plugin_py:${TRAPS_REL} & docker push tapis/oracle_plugin:${TRAPS_REL} & docker push tapis/camera_traps_engine & docker push tapis/camera_traps_engine:${TRAPS_REL} & docker push tapis/camera-traps-installer:${TRAPS_REL} & docker push tapis/camera-traps-installer
+	docker push tapis/camera_traps_py & docker push tapis/camera_traps_py:${TRAPS_REL} & docker push tapis/camera_traps_py_3.8 & docker push tapis/camera_traps_py_3.8:${TRAPS_REL} & docker push tapis/image_scoring_plugin_py_3.8 & docker push tapis/image_scoring_plugin_py_3.8:${TRAPS_REL} & docker push tapis/image_scoring_plugin_py_nano_3.8 & docker push tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} & docker push tapis/image_generating_plugin_py & docker push tapis/image_generating_plugin_py:${TRAPS_REL} & docker push tapis/power_measuring_plugin_py:${TRAPS_REL} & docker push tapis/ckn_plugin:${TRAPS_REL} & docker push tapis/camera_traps_engine & docker push tapis/camera_traps_engine:${TRAPS_REL} & docker push tapis/camera-traps-installer:${TRAPS_REL} & docker push tapis/camera-traps-installer
 
 push-all:
 	docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/camera_traps_engine:${TRAPS_REL} --build-arg TRAPS_REL=${TRAPS_REL} .
@@ -82,5 +82,5 @@ push-all:
 	cd external_plugins/image_scoring_plugin/ && docker buildx build --platform linux/arm64 -t tapis/image_scoring_plugin_py_nano_3.8:${TRAPS_REL} --build-arg REL=${TRAPS_REL} -f Dockerfile-3.8-nano .; cd ../..
 	cd external_plugins/image_generating_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/image_generating_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 	cd external_plugins/power_measuring_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/power_measuring_plugin_py:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
-	cd external_plugins/oracle_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/oracle_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
+	cd external_plugins/ckn_plugin/ && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/ckn_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 	cd installer && docker buildx build --platform linux/arm64,linux/amd64 --push -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../

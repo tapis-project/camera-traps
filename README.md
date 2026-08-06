@@ -36,7 +36,7 @@ In general, plugins can also depend on their own environment variables and/or co
 | detection_reporter_plugin| TRAPS_DETECTION_REPORTER_*    | /traps-detection.toml    |
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
 | power_measure_plugin     | TRAPS_POWER_LOG_PATH          | ~/logs                   |                                   |
-| oracle_monitor_plugin    | TRAPS_ORACLE_OUTPUT_PATH      | ~/output                 |                                   |
+| ckn_plugin               | TRAPS_CKN_OUTPUT_PATH         | ~/output                 |                                   |
 | integration tests        | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                   |
 | logger                   | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application         |
 
@@ -123,7 +123,7 @@ Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal a
 > "PluginTerminateEvent"<br>
 > ]<br>
 > [[plugins.external]]<br>
->   plugin_name = "ext_oracle_monitor_plugin"<br>
+>   plugin_name = "ext_ckn_plugin"<br>
 >   id = "6e153711-9823-4ee6-b608-58e2e801db51"<br>
 >  external_port = 6011<br>
 > subscriptions = [<br>

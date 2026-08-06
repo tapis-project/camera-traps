@@ -21,7 +21,7 @@ def validate_metadata_schema(metadata_file):
                                     "image_scoring_plugin",
                                     "image_generating_plugin",
                                     "power_monitor_plugin",
-                                    "oracle_plugin",
+                                    "ckn_plugin",
                                     "image_detecting_plugin",
                                     "video_generating_plugin",
                                     "detection_reporter_plugin",
