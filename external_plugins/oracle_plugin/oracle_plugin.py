@@ -146,6 +146,11 @@ def update_json(uuid, updated_data):
 
     # iterate through the update_data parameter and add them to the existing data
     for key, value in updated_data.items():
+        if key == "image_decision":
+            existing = existing_image_mapping_final[uuid].get("image_decision")
+            if existing:
+                logger.debug(f"update_json: not overwriting decision for {uuid} ({existing})")
+                continue
         existing_image_mapping_final[uuid][key] = value    
     
     # write the updates mapping back to the file

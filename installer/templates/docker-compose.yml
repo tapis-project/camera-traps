@@ -415,6 +415,34 @@ services:
 
 
 
+{% if deploy_uploader %}
+  imageUploadingPlugin:
+    image: {{ uploader_plugin_image }}:{{ ct_version }}
+    container_name: upload_plugin
+    networks:
+      - cameratraps
+    depends_on:
+      - engine
+      {% if deploy_image_generating %}
+      - imageGeneratingPlugin
+      {% endif %}
+      {% if deploy_image_detecting %}
+      - imageDetectingPlugin
+      {% endif %}
+    pid: host
+    volumes:
+      - {{host_output_dir}}/{{ images_output_dir }}:/images
+      - {{ host_config_dir }}/traps-upload.toml:/traps-upload.toml:ro
+    environment:
+      - IMAGE_UPLOADING_PLUGIN_PORT=6013
+      - WATCH_DIR=/images
+      - BASE_URL={{ tapis_tenant }}
+      - JWT={{ tapis_jwt }}
+      - SYSTEM_ID={{upload_system_id }}
+      - DEST_DIR={{ upload_dest_dir }}
+      - TRAPS_UPLOAD_FILE=/traps-upload.toml
+{% endif %}
+
 {% if inference_server %}
   MDServer:
     container_name: md_server

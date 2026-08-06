@@ -56,10 +56,13 @@ build-detection:
 build-detecting:
 	cd external_plugins/image_detecting_plugin && docker build -t tapis/image_detecting_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
+build-uploader:
+	cd external_plugins/image_uploading_plugin && docker build -t tapis/image_uploading_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
+
 build-video:
 	cd external_plugins/video_generating_plugin/ && docker build -t tapis/video_generating_plugin:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../..
 
-build-py-plugins: build-camerapy build-scoring-server build-generating build-power build-ckn build-detection build-detecting build-video
+build-py-plugins: build-camerapy build-scoring-server build-generating build-power build-ckn build-detection build-detecting build-video build-uploader
 
 build-installer: 
 	cd installer && docker build -t tapis/camera-traps-installer:${TRAPS_REL} --build-arg REL=${TRAPS_REL} .; cd ../

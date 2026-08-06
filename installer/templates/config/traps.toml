@@ -98,3 +98,15 @@ subscriptions = [
     "PluginTerminatingEvent",
 ]
 {% endif %}
+{% if deploy_uploader %}
+[[plugins.external]]
+plugin_name = "ext_image_uploading_plugin"
+id = "3773c2b4-1364-11f1-8141-a71faaf45cee"
+external_port = 6013
+subscriptions = [
+    "ImageScoredEvent",
+    "ImageStoredEvent",
+    "PluginTerminateEvent",
+    "PluginTerminatingEvent",
+]
+{% endif %}

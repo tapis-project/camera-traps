@@ -89,7 +89,16 @@ detection_thresholds:
   animal: 0.5
 detection_reporter_monitor_power: true
 
-# CKN Daemon -- for Monitoring Plane Integration
+# Image uploading plugin
+deploy_uploader: false
+uploader_plugin_image: tapis/image_uploading_plugin
+tapis_tenant: https://icicleai.tapis.io
+tapis_jwt: 
+upload_system_id: 
+upload_dest_dir: 
+upload_thresholds:
+
+#CKN Daemon -- for Monitoring Plane Integration
 deploy_ckn: true
 ckn_daemon_tag: latest
 ckn_kafka_broker_address: cknbroker.pods.icicleai.tapis.io
