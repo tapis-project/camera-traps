@@ -202,7 +202,7 @@ def get_urls_from_ckn(endpoint, model_id):
     """
     if model_id.endswith("-model"):
         model_id = model_id[:-6]
-    patra_download_endpoint = f"{endpoint}?id={model_id}"
+    patra_download_endpoint = f"{endpoint}/{model_id}"
 
     num_tries = 0
     while num_tries < 5:

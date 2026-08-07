@@ -106,7 +106,7 @@ ckn_kafka_broker_port: 443
 ckn_enable_power_monitoring: true
 experiment_id: 
 user_id: 
-patra_endpoint: https://patraserver.pods.icicleai.tapis.io/download_mc
+patra_endpoint: https://patrabackend.pods.icicleai.tapis.io/modelcard
 
 deploy_ckn_mqtt: false
 ckn_mqtt_tag: latest
