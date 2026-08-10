@@ -1,4 +1,6 @@
 [thresholds]
+{% if upload_thresholds %}
 {% for key, value in upload_thresholds.items() %}
 {{ key }} = {{ value }}
 {% endfor %}
+{% endif %}
