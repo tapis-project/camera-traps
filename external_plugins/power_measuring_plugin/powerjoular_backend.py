@@ -52,6 +52,10 @@ def start_powerjoular(pid):
     logger.info(f"Pulling container image for powerjoular: {POWER_JOULAR_IMAGE}")
     client.images.pull(POWER_JOULAR_IMAGE)
 
+    device_requests = []
+    if 'nvidia' in client.info().get("Runtimes", {}):
+        device_requests.append(docker.types.DeviceRequest(count=-1, capabilities=[['gpu']]))
+
     # run the powerjoular container
     logger.info(f"Starting a powerjoular conatiner for PID: {pid}")
     logger.debug(f"powerjoular container args: {powerjoular_args}; image: {POWER_JOULAR_IMAGE}")
@@ -65,6 +69,7 @@ def start_powerjoular(pid):
                                 # we must run powerjoular in privileged mode so that it can access 
                                 # the program coutners through the Intel RAPL interface
                                 privileged=True,
+                                device_requests=device_requests,
                                 detach=True)
     return cid 
 
