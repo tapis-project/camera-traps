@@ -37,6 +37,7 @@ In general, plugins can also depend on their own environment variables and/or co
 | image_store_plugin       | TRAPS_IMAGE_STORE_FILE        | ~/traps-image-store.toml |                                   |
 | power_measure_plugin     | TRAPS_POWER_LOG_PATH          | ~/logs                   |                                   |
 | ckn_plugin               | TRAPS_CKN_OUTPUT_PATH         | ~/output                 |                                   |
+| image_uploading_plugin   | TRAPS_UPLOAD_FILE             | /traps-upload.toml       |                                   |
 | integration tests        | TRAPS_INTEGRATION_CONFIG_FILE | ~/traps-integration.toml |                                   |
 | logger                   | TRAPS_LOG4RS_CONFIG_FILE      | resources/log4rs.yml     | Packaged with application         |
 
@@ -46,7 +47,7 @@ The camera-traps application uses [log4rs](https://docs.rs/log4rs/latest/log4rs/
 
 ## Plugin Configuration
 
-Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  Here is the example resources/traps.toml file content:
+Camera-traps uses a [TOML](https://toml.io/en/) file to configure the internal and external plugins it loads.  Internal plugins are registered with the event-engine by simply specfying their names since their runtime characteristics are compiled into the application.  External plugins, on the other hand, require more detailed information in order to be registered.  An up-to-date toml file is maintained with the installer in this [template file](installer/templates/config/traps.toml). Here is an example resources/traps.toml file content:
 
 > \# This is the camera-traps application configuration file for versions 0.x.y of the application.<br>
 > \# It assumes the use of containers and docker-compose as the deployment mechanism.<br>
@@ -230,6 +231,28 @@ cat /etc/mosquitto/conf.d/my.conf
 listener 1883 0.0.0.0
 allow_anonymous true
 ```
+
+## Using the Image Upload Plugin
+
+The image upload plugin automatically uploads images to a remote Tapis Files system. To enable it, set `deploy_uploader: true` in your installer configuration YAML file.
+
+The plugin requires the following environment variables to be configured:
+
+| Variable | Description |
+|----------|-------------|
+| `JWT` | Tapis access token for authentication |
+| `SYSTEM_ID` | The Tapis system ID (e.g., `ascend-tapis`) |
+| `DEST_DIR` | Destination path on the Tapis system (e.g., `users/you/inbox`) |
+
+Optionally, you can configure upload thresholds in `/traps-upload.toml` to only upload images that meet certain confidence scores:
+
+```toml
+[thresholds]
+"dog" = 0.7
+"cat" = 0.75
+```
+
+The plugin uses smart batching to efficiently upload multiple files and automatically deletes local files after successful upload.
 
 ## Developer Information
 

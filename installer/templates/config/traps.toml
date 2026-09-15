@@ -1,4 +1,4 @@
-# This is the camera-traps application configuration file for versions 0.1.x of the application.
+# This is the camera-traps application configuration file for versions 0.7.x of the application.
 # It assumes the use of containers and docker-compose as the deployment mechanism.
 
 title = "Camera-Traps Application Configuration v{{ ct_version }}"
