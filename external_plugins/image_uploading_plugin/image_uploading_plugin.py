@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Smart-batched uploader for Tapis Files.
-Now uses a JSON config file instead of environment variables.
+Based on tapis_auto_uploader code by Harikesh Byrandurga Gopinath.
 
 Required JSON keys:
   - "token": Tapis access token string
