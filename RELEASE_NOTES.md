@@ -1,5 +1,12 @@
 # Camera Traps Release Notes
 
+## Version 0.7.0
+This release introduces two new plugins:
+1. A CKN Plugin, which combines the functionality of the Oracle Plugin and CKN dameon into one plugin integrated into the existing architecture for streaming metrics to the CKN broker.
+2. A file upload plugin, which enables automated file uploads from the edge device to the cloud.
+
+Several minor bug fixes are included in this release. One major fix is for a bug where gpu power metrics were not being properly captured.
+
 ## Version 0.6.0
 This release includes three main improvements:
 1. A Video Generating plugin that uses a video file and a v4l2loopback virtual device to simulate a mounted camera stream, to use in conjunction with the Image Detecting plugin.

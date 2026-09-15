@@ -392,6 +392,7 @@ impl ImageReceivedEvent {
 pub struct ImageLabelScore {
     label: String,
     probability: f32,
+    bbox: Option<BoundingBox>,
 }
 
 impl ImageLabelScore {
@@ -400,6 +401,7 @@ impl ImageLabelScore {
         ImageLabelScore {
             label,
             probability,
+            bbox: None,
         }
     }
 
@@ -413,12 +415,33 @@ impl ImageLabelScore {
         // Get the label's probability value.
         let probability = ev.probability();
 
+        // Parse optional bbox if present.
+        let bbox = match ev.bbox() {
+            Some(bb) => Some(BoundingBox {
+                x_center: bb.x_center(),
+                y_center: bb.y_center(),
+                width: bb.width(),
+                height: bb.height(),
+            }),
+            None => None,
+        };
+
         // Return the object.
         Result::Ok(ImageLabelScore {
             label: String::from(label),
             probability,
+            bbox,
         })
     }
+}
+
+// Simple bounding-box type used by application-level events.
+#[derive(Serialize, Clone)]
+pub struct BoundingBox {
+    pub x_center: f32,
+    pub y_center: f32,
+    pub width: f32,
+    pub height: f32,
 }
 
 // ------------------------------
@@ -465,12 +488,26 @@ impl Event for ImageScoredEvent {
             // Assign the string fields.
             let label = Some(fbuf.create_string(&score.label));
 
+            let bbox = match &score.bbox {
+                Some(b) => {
+                    let bb_args = gen_events::BoundingBoxArgs {
+                        x_center: b.x_center,
+                        y_center: b.y_center,
+                        width: b.width,
+                        height: b.height,
+                    };
+                    Some(gen_events::BoundingBox::create(&mut fbuf, &bb_args))
+                }
+                None => None,
+            };
+
             // Create each generated score object
             let im_score = gen_events::ImageLabelScore::create(
                 &mut fbuf,
                 &gen_events::ImageLabelScoreArgs {
                     label,
                     probability: score.probability,
+                    bbox: bbox,
                 },
             );
             // Add the current generated score object to the list.
@@ -618,10 +655,22 @@ impl ImageScoredEvent {
             // Extract the probability.
             let probability = gen_score.probability();
 
+            // Parse optional bbox from the generated score
+            let bbox = match gen_score.bbox() {
+                Some(bb) => Some(BoundingBox {
+                    x_center: bb.x_center(),
+                    y_center: bb.y_center(),
+                    width: bb.width(),
+                    height: bb.height(),
+                }),
+                None => None,
+            };
+
             // Create the event imagelabelscore and add it to the vector.
             let new_score = ImageLabelScore {
                 label: label.to_string(),
                 probability,
+                bbox,
             };
             scores.push(new_score);
         }

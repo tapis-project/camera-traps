@@ -85,15 +85,17 @@ def get_vars(input_data, default_data):
                      'deploy_ckn': False,
                      'deploy_ckn_mqtt': True,
                      'deploy_power_monitoring': False,
-                     'deploy_oracle': False,
+                     'deploy_ckn': False,
                      'motion_video_device': '/dev/video0',
+                     'motion_video_type': 'device',
+                     'use_example_video': False,
                      'inference_server': True}
     simulation_defaults = {'deploy_image_generating': True,
                            'deploy_image_detecting': False,
                            'deploy_reporter': False,
                            'deploy_ckn': True,
                            'deploy_ckn_mqtt': False,
-                           'deploy_oracle': True,
+                           'deploy_ckn': True,
                            'expanded_metrics': True,
                            'inference_server': False}
     video_simulation_defaults = {'deploy_image_generating': False,
@@ -102,7 +104,7 @@ def get_vars(input_data, default_data):
                                  'deploy_reporter': True,
                                  'deploy_ckn': False,
                                  'deploy_ckn_mqtt': False,
-                                 'deploy_oracle': False,
+                                 'deploy_ckn': False,
                                  'use_bundled_example_images': False,
                                  'inference_server': False}
 
@@ -158,14 +160,18 @@ def get_vars(input_data, default_data):
             vars['model_id'] = '41d3ed40-b836-4a62-b3fb-67cee79f33d9-model'
 
     if vars.get('mode') == 'video_simulation':
+        vars['fake_stream'] = True
         # for video simulations, determine if motion is using device or netcam
         if vars.get('motion_video_device'):
             vars['motion_video_type'] = 'device'
         else:
             vars['motion_video_type'] = 'file'
         # determine which of url, local file, and example file are used for the video
-        if vars.get('source_video_url') or vars.get('local_video_path'):
+        if vars.get('local_video_path'):
             vars['use_example_video'] = False
+        elif vars.get('source_video_url'):
+            vars['use_example_video'] = False
+            vars['local_video_path'] = './video.mp4'
         elif vars.get('use_example_video'):
             vars['local_video_path'] = './video.mp4'
 
@@ -196,7 +202,7 @@ def get_urls_from_ckn(endpoint, model_id):
     """
     if model_id.endswith("-model"):
         model_id = model_id[:-6]
-    patra_download_endpoint = f"{endpoint}?id={model_id}"
+    patra_download_endpoint = f"{endpoint}/{model_id}"
 
     num_tries = 0
     while num_tries < 5:
@@ -372,9 +378,9 @@ def generate_additional_directories(vars, full_install_dir):
     if not os.path.exists(images_output_dir):
         os.makedirs(images_output_dir)
     
-    oracle_plugin_output_dir = os.path.join(full_install_dir, vars["oracle_plugin_output_dir"])
-    if not os.path.exists(oracle_plugin_output_dir):
-        os.makedirs(oracle_plugin_output_dir)
+    ckn_plugin_output_dir = os.path.join(full_install_dir, vars["ckn_plugin_output_dir"])
+    if not os.path.exists(ckn_plugin_output_dir):
+        os.makedirs(ckn_plugin_output_dir)
 
     power_output_dir = os.path.join(full_install_dir, vars["power_output_dir"])
     if not os.path.exists(power_output_dir):

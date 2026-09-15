@@ -38,7 +38,18 @@ class ImageLabelScore(object):
             return self._tab.Get(flatbuffers.number_types.Float32Flags, o + self._tab.Pos)
         return 0.0
 
-def ImageLabelScoreStart(builder): builder.StartObject(2)
+    # ImageLabelScore
+    def Bbox(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            x = self._tab.Indirect(o + self._tab.Pos)
+            from gen_events.BoundingBox import BoundingBox
+            obj = BoundingBox()
+            obj.Init(self._tab.Bytes, x)
+            return obj
+        return None
+
+def ImageLabelScoreStart(builder): builder.StartObject(3)
 def Start(builder):
     return ImageLabelScoreStart(builder)
 def ImageLabelScoreAddLabel(builder, label): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(label), 0)
@@ -47,6 +58,9 @@ def AddLabel(builder, label):
 def ImageLabelScoreAddProbability(builder, probability): builder.PrependFloat32Slot(1, probability, 0.0)
 def AddProbability(builder, probability):
     return ImageLabelScoreAddProbability(builder, probability)
+def ImageLabelScoreAddBbox(builder, bbox): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(bbox), 0)
+def AddBbox(builder, bbox):
+    return ImageLabelScoreAddBbox(builder, bbox)
 def ImageLabelScoreEnd(builder): return builder.EndObject()
 def End(builder):
     return ImageLabelScoreEnd(builder)
